@@ -380,6 +380,7 @@ function addComment(int $articleId, int $userId, string $content, ?int $parentId
     if ($ok) {
         $article = getArticleById($articleId);
         $link = '/article/' . $articleId;
+        $excludeFromMentions = [];
         if ($parentId !== null) {
             $pstmt = $db->prepare("SELECT user_id FROM comments WHERE id = ?");
             $pstmt->bind_param('i', $parentId);
@@ -388,10 +389,13 @@ function addComment(int $articleId, int $userId, string $content, ?int $parentId
             $pstmt->close();
             if ($parentOwner && (int)$parentOwner['user_id'] !== $userId) {
                 createNotification((int)$parentOwner['user_id'], 'comment_reply', $userId, $link, $content);
+                $excludeFromMentions[] = (int)$parentOwner['user_id'];
             }
         } elseif ($article && !empty($article['user_id']) && (int)$article['user_id'] !== $userId) {
             createNotification((int)$article['user_id'], 'article_comment', $userId, $link, $content);
+            $excludeFromMentions[] = (int)$article['user_id'];
         }
+        notifyMentions($content, $userId, $link, $excludeFromMentions);
         notifyAdmins('admin_new_comment', $userId, $link, $content);
     }
 
@@ -424,6 +428,26 @@ function buildCommentTree(array $comments): array {
 
 function linkifyMentions(string $escapedText): string {
     return preg_replace('/@([A-Za-z0-9_]{3,20})\b/', '<a href="/@$1">@$1</a>', $escapedText);
+}
+
+// Finds @username mentions in comment content and notifies each mentioned user,
+// skipping the actor themselves and anyone in $excludeUserIds (e.g. the article/profile
+// owner or parent comment author, who already got their own notification for this comment).
+function notifyMentions(string $content, int $actorId, string $link, array $excludeUserIds = []): void {
+    if (!preg_match_all('/@([A-Za-z0-9_]{3,20})\b/', $content, $matches)) {
+        return;
+    }
+    $notified = [];
+    foreach (array_unique($matches[1]) as $username) {
+        $mentioned = getUserByUsername($username);
+        if (!$mentioned) continue;
+        $mentionedId = (int)$mentioned['id'];
+        if ($mentionedId === $actorId) continue;
+        if (in_array($mentionedId, $excludeUserIds, true)) continue;
+        if (in_array($mentionedId, $notified, true)) continue;
+        createNotification($mentionedId, 'mention', $actorId, $link, $content);
+        $notified[] = $mentionedId;
+    }
 }
 
 function renderCommentThread(array $comment, bool $canReply, int $depth = 0, bool $canReport = false): string {
@@ -1884,6 +1908,7 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
     $stmt->close();
 
     $link = '/@' . getUserById($profileUserId)['username'];
+    $excludeFromMentions = [];
     if ($parentId !== null) {
         $pstmt = $db->prepare("SELECT author_id FROM profile_comments WHERE id = ?");
         $pstmt->bind_param('i', $parentId);
@@ -1892,10 +1917,13 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
         $pstmt->close();
         if ($parentOwner && (int)$parentOwner['author_id'] !== $authorId) {
             createNotification((int)$parentOwner['author_id'], 'comment_reply', $authorId, $link, $content);
+            $excludeFromMentions[] = (int)$parentOwner['author_id'];
         }
     } elseif ($profileUserId !== $authorId) {
         createNotification($profileUserId, 'profile_comment', $authorId, $link, $content);
+        $excludeFromMentions[] = $profileUserId;
     }
+    notifyMentions($content, $authorId, $link, $excludeFromMentions);
     notifyAdmins('admin_new_comment', $authorId, $link, $content);
 
     return $id;
@@ -2046,6 +2074,7 @@ const NOTIFICATION_ICONS = [
     'article_comment'        => '/assets/icons/reply.svg',
     'profile_comment'        => '/assets/icons/reply.svg',
     'comment_reply'          => '/assets/icons/reply.svg',
+    'mention'                => '/assets/icons/mention.svg',
     'article_liked'          => '/assets/icons/like.svg',
     'article_disliked'       => '/assets/icons/dislike.svg',
     'article_saved'          => '/assets/icons/save.svg',
@@ -2120,6 +2149,7 @@ function renderNotificationText(array $n): string {
         case 'article_comment': return $actor . ' commented on your article';
         case 'profile_comment': return $actor . ' commented on your profile';
         case 'comment_reply': return $actor . ' replied to your comment';
+        case 'mention': return $actor . ' mentioned you in a comment';
         case 'article_liked': return $actor . ' liked your article';
         case 'article_disliked': return $actor . ' disliked your article';
         case 'article_saved': return $actor . ' saved your article';
