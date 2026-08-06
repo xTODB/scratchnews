@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $target = getUserByUsername(trim($_POST['username'] ?? ''));
         if ($target) resetModerationStrikes((int)$target['id']);
     }
-    header('Location: /admin/moderation-words.php');
+    header('Location: /admin/moderation-words');
     exit;
 }
 

@@ -31,7 +31,7 @@ $visits = getRecentVisits(200, $includeIp ?: null, $excludeIp ?: null);
         </div>
         <button class="btn" type="submit" style="margin-top:0;">Filter</button>
         <?php if ($includeIp || $excludeIp): ?>
-        <a href="/admin/visits.php" class="btn secondary" style="margin-top:0;">Clear</a>
+        <a href="/admin/visits" class="btn secondary" style="margin-top:0;">Clear</a>
         <?php endif; ?>
     </form>
     <table>

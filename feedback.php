@@ -1,21 +1,17 @@
 <?php
-require_once __DIR__ . '/functions.php';
-startSession();
-
-$success = false;
-$error = '';
+require_once __DIR__ . '/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
-    $message = trim($_POST['message'] ?? '');
-    if ($message === '') {
-        $error = 'Please enter some feedback before submitting.';
-    } else {
-        $userId = !empty($_SESSION['reader_id']) ? (int)$_SESSION['reader_id'] : null;
-        submitFeedback($userId, $message);
-        $success = true;
+    if (($_POST['action'] ?? '') === 'delete') {
+        deleteFeedback((int)($_POST['id'] ?? 0));
     }
+    header('Location: /admin/feedback');
+    exit;
 }
+
+$feedback = getAllFeedback();
+markAllFeedbackRead();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,27 +20,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Feedback - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=2">
+<style>
+.feedback-row { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 0.9rem; border: 1px solid rgba(128,128,128,0.2); border-radius: 8px; margin-bottom: 0.5rem; }
+.feedback-row.unread { border-color: #e8a33d; }
+.feedback-meta { opacity: 0.65; font-size: 0.8rem; margin-top: 0.3rem; }
+.feedback-delete { background: none; border: none; color: #c33; cursor: pointer; font-size: 0.85rem; }
+</style>
 </head>
-<body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
-<script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/empty-header.php'; ?>
+<body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
+<?php require_once __DIR__ . '/nav.php'; ?>
 <main>
     <h2>Feedback</h2>
-    <p>Got a suggestion, bug report, or idea for ScratchNews? Let us know below.</p>
-
-    <?php if ($success): ?>
-        <div class="alert success">Thanks for the feedback! We read every submission.</div>
+    <?php if (empty($feedback)): ?>
+        <p>No feedback yet.</p>
     <?php else: ?>
-        <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
-        <form method="post">
-            <?= csrfField() ?>
-            <label for="message">Your feedback</label>
-            <textarea name="message" id="message" required></textarea>
-            <button class="btn" type="submit">Submit</button>
-        </form>
+        <?php foreach ($feedback as $f): ?>
+            <div class="feedback-row <?= empty($f['is_read']) ? 'unread' : '' ?>">
+                <div>
+                    <div><?= nl2br(e($f['message'])) ?></div>
+                    <div class="feedback-meta">
+                        <?= $f['username'] ? '@' . e($f['username']) : 'Anonymous' ?> ·
+                        <?= e($f['created_at']) ?>
+                    </div>
+                </div>
+                <form method="post" onsubmit="return confirm('Delete this feedback?');">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+                    <button type="submit" class="feedback-delete">Delete</button>
+                </form>
+            </div>
+        <?php endforeach; ?>
     <?php endif; ?>
 </main>
-<?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
 </html>

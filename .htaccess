@@ -40,6 +40,26 @@ RewriteRule ^google-auth/?$ google-auth.php [L,QSA]
 RewriteRule ^upload-image/?$ upload-image.php [L,QSA]
 RewriteRule ^messages/?$ messages.php [L,QSA]
 
+# Clean URLs: admin/ nested pages. Same explicit-hardcoded pattern as above
+# (dynamic -f checks are unreliable on InfinityFree and caused 500s).
+RewriteRule ^admin/banners/?$ admin/banners.php [L,QSA]
+RewriteRule ^admin/create/?$ admin/create.php [L,QSA]
+RewriteRule ^admin/delete/?$ admin/delete.php [L,QSA]
+RewriteRule ^admin/edit/?$ admin/edit.php [L,QSA]
+RewriteRule ^admin/feedback/?$ admin/feedback.php [L,QSA]
+RewriteRule ^admin/impersonate/?$ admin/impersonate.php [L,QSA]
+RewriteRule ^admin/impersonation-log/?$ admin/impersonation-log.php [L,QSA]
+RewriteRule ^admin/moderation-words/?$ admin/moderation-words.php [L,QSA]
+RewriteRule ^admin/move/?$ admin/move.php [L,QSA]
+RewriteRule ^admin/reports/?$ admin/reports.php [L,QSA]
+RewriteRule ^admin/stats/?$ admin/stats.php [L,QSA]
+RewriteRule ^admin/submissions/?$ admin/submissions.php [L,QSA]
+RewriteRule ^admin/sync-github/?$ admin/sync-github.php [L,QSA]
+RewriteRule ^admin/upload-avatar/?$ admin/upload-avatar.php [L,QSA]
+RewriteRule ^admin/upload-image/?$ admin/upload-image.php [L,QSA]
+RewriteRule ^admin/users/?$ admin/users.php [L,QSA]
+RewriteRule ^admin/visits/?$ admin/visits.php [L,QSA]
+
 <FilesMatch "\.(css|js|php)$">
     Header set Cache-Control "no-cache, must-revalidate"
 </FilesMatch>

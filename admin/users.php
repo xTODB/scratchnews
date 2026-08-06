@@ -55,7 +55,7 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                 <td class="actions" style="white-space:nowrap;">
                     <?php if (!$u['is_admin']): ?>
                         <a href="#" onclick="if(confirm('Log in as @<?= e($u['username']) ?>?')) document.getElementById('imp<?= (int)$u['id'] ?>').submit(); return false;">Log In As</a>
-                        <form id="imp<?= (int)$u['id'] ?>" method="post" action="/admin/impersonate.php" style="display:none;">
+                        <form id="imp<?= (int)$u['id'] ?>" method="post" action="/admin/impersonate" style="display:none;">
                             <?= csrfField() ?>
                             <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                         </form>

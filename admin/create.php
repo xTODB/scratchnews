@@ -143,7 +143,7 @@ quill.getModule('toolbar').addHandler('image', function() {
         if (!file) return;
         var formData = new FormData();
         formData.append('image', file);
-        fetch('/admin/upload-image.php', { method: 'POST', body: formData })
+        fetch('/admin/upload-image', { method: 'POST', body: formData })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.url) {

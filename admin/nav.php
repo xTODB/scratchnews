@@ -6,15 +6,15 @@
         <button class="admin-nav-toggle" onclick="document.getElementById('adminMenu').classList.toggle('open')">Menu &#9662;</button>
         <div id="adminMenu" class="admin-nav-menu">
             <a href="/admin">Dashboard</a>
-            <a href="/admin/users.php">Users</a>
-            <a href="/admin/visits.php">Visitor Log</a>
-            <a href="/admin/submissions.php">Submissions<?php $c = getPendingSubmissionsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
-            <a href="/admin/feedback.php">Feedback<?php $c = getPendingFeedbackCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
-            <a href="/admin/reports.php">Reports<?php $c = getPendingReportsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
-            <a href="/admin/move.php">Move Content</a>
-            <a href="/admin/moderation-words.php">Moderation Words</a>
-            <a href="/admin/banners.php">Banners</a>
-            <a href="/admin/stats.php">Stats</a>
+            <a href="/admin/users">Users</a>
+            <a href="/admin/visits">Visitor Log</a>
+            <a href="/admin/submissions">Submissions<?php $c = getPendingSubmissionsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
+            <a href="/admin/feedback">Feedback<?php $c = getPendingFeedbackCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
+            <a href="/admin/reports">Reports<?php $c = getPendingReportsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
+            <a href="/admin/move">Move Content</a>
+            <a href="/admin/moderation-words">Moderation Words</a>
+            <a href="/admin/banners">Banners</a>
+            <a href="/admin/stats">Stats</a>
             <a href="/logout">Log Out</a>
         </div>
     </nav>

@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($error === '') {
-        header('Location: /admin/banners.php');
+        header('Location: /admin/banners');
         exit;
     }
 }

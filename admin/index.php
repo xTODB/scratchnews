@@ -14,7 +14,7 @@ $articles = getAllArticles(true);
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
 <?php require_once __DIR__ . '/nav.php'; ?>
 <main>
-    <a href="/admin/create.php" class="btn">+ New Article</a>
+    <a href="/admin/create" class="btn">+ New Article</a>
     <br><br>
     <?php if (empty($articles)): ?>
         <p>No articles yet.</p>
@@ -32,8 +32,8 @@ $articles = getAllArticles(true);
                         <?php if (($a['status'] ?? 'published') !== 'draft'): ?>
                         <a href="/article/<?= (int)$a['id'] ?>" target="_blank">View</a>
                         <?php endif; ?>
-                        <a href="/admin/edit.php?id=<?= (int)$a['id'] ?>">Edit</a>
-                        <a href="/admin/delete.php?id=<?= (int)$a['id'] ?>" style="color:#d9392a;"
+                        <a href="/admin/edit?id=<?= (int)$a['id'] ?>">Edit</a>
+                        <a href="/admin/delete?id=<?= (int)$a['id'] ?>" style="color:#d9392a;"
                            onclick="return confirm('Delete this article? This cannot be undone.');">Delete</a>
                     </td>
                 </tr>

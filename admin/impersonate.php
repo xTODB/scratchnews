@@ -10,5 +10,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: /');
     exit;
 }
-header('Location: /admin/users.php');
+header('Location: /admin/users');
 exit;

@@ -736,7 +736,7 @@ function createSubmission($userId, $title, $summary, $content, ?string $imageUrl
     $stmt->close();
     setSubmissionCategories($id, $categoryIds);
     if ($status === 'pending') {
-        notifyAdmins('admin_new_submission', $userId, '/admin/submissions.php', $title);
+        notifyAdmins('admin_new_submission', $userId, '/admin/submissions', $title);
     }
     return $id;
 }
@@ -751,7 +751,7 @@ function updateSubmission(int $id, string $title, string $summary, string $conte
     if ($status === 'pending') {
         $submission = getSubmissionById($id);
         if ($submission) {
-            notifyAdmins('admin_new_submission', (int)$submission['user_id'], '/admin/submissions.php', $title);
+            notifyAdmins('admin_new_submission', (int)$submission['user_id'], '/admin/submissions', $title);
         }
     }
     return $ok;
@@ -929,7 +929,7 @@ function submitFeedback($userId, $message) {
     $stmt->bind_param("is", $userId, $message);
     $stmt->execute();
     $stmt->close();
-    notifyAdmins('admin_new_feedback', $userId, '/admin/feedback.php', $message);
+    notifyAdmins('admin_new_feedback', $userId, '/admin/feedback', $message);
 }
 
 function getAllFeedback() {
@@ -2140,7 +2140,7 @@ function renderNotificationText(array $n): string {
 // Modeled on Scratch's actual Community Guidelines: no swearing/rude language,
 // no bullying/insults, no NFE content (gore/violence/sexual/self-harm), no
 // personal info sharing, no spam/scam links. Words live in the
-// `moderation_words` table, managed from /admin/moderation-words.php.
+// `moderation_words` table, managed from /admin/moderation-words.
 // Regex patterns stay hardcoded (too technical for a simple word-list UI).
 
 const MODERATION_CATEGORIES = ['profanity', 'sexual', 'violence_selfharm'];
