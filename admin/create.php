@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $summary = trim($_POST['summary'] ?? '');
     $content = trim($_POST['content'] ?? '');
-    $author = trim($_POST['author'] ?? 'ScratchNews Staff');
+    $author = trim($_POST['author'] ?? 'TODB');
 
     $status = ($_POST['status'] ?? 'published') === 'draft' ? 'draft' : 'published';
 
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $imageUrl = saveUploadedImage($_FILES['cover_image']);
             }
             $userId = isset($_POST['user_id']) && (int)$_POST['user_id'] > 0 ? (int)$_POST['user_id'] : ($_SESSION['reader_id'] ?? null);
-            $id = createArticle($title, $summary, $content, $author ?: 'ScratchNews Staff', $imageUrl, $status, $userId);
+            $id = createArticle($title, $summary, $content, $author ?: 'TODB', $imageUrl, $status, $userId);
             $categoryIds = $_POST['categories'] ?? [];
             if (!empty($categoryIds)) {
                 setArticleCategories($id, $categoryIds);
