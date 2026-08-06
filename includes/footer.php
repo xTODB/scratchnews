@@ -13,7 +13,6 @@
             </div>
             <div class="footer-col">
                 <h4>Developers</h4>
-                <a href="/stats.php">Stats</a>
                 <a href="/api.php">API</a>
             </div>
             <div class="footer-col">
