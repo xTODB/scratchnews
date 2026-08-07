@@ -654,27 +654,72 @@ function deleteUserAccount(int $userId): bool {
     $db = getDB();
     $db->begin_transaction();
     try {
-        $stmt = $db->prepare("DELETE FROM comments WHERE user_id = ?");
+        $db->query("SET FOREIGN_KEY_CHECKS=0");
+
+        // Preserve articles they wrote; just detach authorship instead of
+        // deleting the content.
+        $stmt = $db->prepare("UPDATE articles SET user_id = NULL WHERE user_id = ?");
         $stmt->bind_param('i', $userId);
         $stmt->execute();
         $stmt->close();
 
-        $stmt = $db->prepare("DELETE FROM likes WHERE user_id = ?");
-        $stmt->bind_param('i', $userId);
-        $stmt->execute();
-        $stmt->close();
+        // Tables with no enforced FK cascade — must clean these ourselves or
+        // they'd be left dangling on a user id that no longer exists.
+        // (comments/likes already cascade via real FK constraints, but
+        // deleting them explicitly here is harmless and keeps this function
+        // correct even if those constraints ever change.)
+        $refs = [
+            ['comments', 'user_id'],
+            ['likes', 'user_id'],
+            ['dislikes', 'user_id'],
+            ['submissions', 'user_id'],
+            ['follows', 'follower_id'],
+            ['follows', 'followed_id'],
+            ['profile_comments', 'profile_user_id'],
+            ['profile_comments', 'author_id'],
+        ];
+        foreach ($refs as [$table, $col]) {
+            $stmt = $db->prepare("DELETE FROM $table WHERE $col = ?");
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $stmt->close();
+        }
+
+        // comment_reports.reporter_id and impersonation_log are audit trails
+        // — deliberately left alone. Their user id references may go stale,
+        // which is fine and expected for a historical log.
 
         $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
         $stmt->bind_param('i', $userId);
         $stmt->execute();
         $stmt->close();
 
+        $db->query("SET FOREIGN_KEY_CHECKS=1");
         $db->commit();
-        return true;
     } catch (Throwable $e) {
         $db->rollback();
+        $db->query("SET FOREIGN_KEY_CHECKS=1");
         return false;
     }
+
+    // Self-heal AUTO_INCREMENT the same way moveUserId() does — a hard
+    // delete of a huge 9-digit-id account should not leave the counter
+    // stuck up there for the next real signup.
+    $result = $db->query("SELECT MAX(id) AS max_id FROM users WHERE id < 1000000");
+    $maxId = (int)($result->fetch_assoc()['max_id'] ?? 0);
+    $db->query("ALTER TABLE users AUTO_INCREMENT = " . ($maxId + 1));
+
+    return true;
+}
+
+function bulkDeleteAnonymizedUsers(): int {
+    $db = getDB();
+    $ids = $db->query("SELECT id FROM users WHERE username LIKE 'deleted\\_user\\_%'")->fetch_all(MYSQLI_ASSOC);
+    $count = 0;
+    foreach ($ids as $row) {
+        if (deleteUserAccount((int)$row['id'])) $count++;
+    }
+    return $count;
 }
 
 function issueVerificationToken($userId) {

@@ -136,7 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($type === 'cleanup_anonymized') {
-        $error = 'This tool has been retired — anonymized accounts keep their original ID. anonymizeUser() already scrubs username/email/password, which is sufficient.';
+        $count = bulkDeleteAnonymizedUsers();
+        $success = "Hard-deleted $count anonymized account" . ($count === 1 ? '' : 's') . " and reset the user ID counter.";
     } elseif ($type === 'assign_article_user') {
         $articleId = (int)($_POST['article_id'] ?? 0);
         $assignUserId = (int)($_POST['assign_user_id'] ?? 0);
@@ -260,6 +261,13 @@ $apiAnonLimit = (int)getApiSetting('anonymous_rate_limit', '30');
         <label for="user_new_id">New ID</label>
         <input type="number" id="user_new_id" name="new_id" required>
         <button class="btn" type="submit">Move</button>
+    </form>
+
+    <h3 style="margin-top:2rem;">Hard-Delete Anonymized Accounts</h3>
+    <form method="post" onsubmit="return confirm('Permanently delete every deleted_user_* account from the database? This cannot be undone.');">
+        <?= csrfField() ?>
+        <input type="hidden" name="type" value="cleanup_anonymized">
+        <button class="btn secondary" type="submit">Hard-delete all anonymized users</button>
     </form>
 
     <h3 style="margin-top:2rem;">Assign Article to User</h3>
