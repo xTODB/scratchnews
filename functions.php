@@ -2360,6 +2360,23 @@ function getActiveBanners(): array {
     return $db->query("SELECT * FROM banners WHERE is_active = 1 ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
 }
 
+function getRandomActiveBanner(): ?array {
+    $banners = getActiveBanners();
+    if (empty($banners)) return null;
+    $totalWeight = 0;
+    foreach ($banners as $b) $totalWeight += max(0, (int)$b['sort_order']);
+    if ($totalWeight <= 0) {
+        return $banners[array_rand($banners)];
+    }
+    $rand = mt_rand(1, $totalWeight);
+    $cumulative = 0;
+    foreach ($banners as $b) {
+        $cumulative += max(0, (int)$b['sort_order']);
+        if ($rand <= $cumulative) return $b;
+    }
+    return $banners[count($banners) - 1];
+}
+
 function getAllBanners(): array {
     $db = getDB();
     return $db->query("SELECT * FROM banners ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);

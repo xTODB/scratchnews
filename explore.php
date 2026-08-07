@@ -33,7 +33,7 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
-<?php $banners = getActiveBanners(); if (!empty($banners)): ?>
+<?php $banners = ($randomBanner = getRandomActiveBanner()) ? [$randomBanner] : []; if (!empty($banners)): ?>
 <div id="promoBanners">
     <?php foreach ($banners as $b): ?>
         <div class="promo-banner" data-banner-id="<?= (int)$b['id'] ?>">

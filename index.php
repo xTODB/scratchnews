@@ -34,7 +34,7 @@ $popular = getPopularArticles(4);
     You aren't email verified! Check your inbox to get access to likes, dislikes, and comments.
 </div>
 <?php endif; endif; ?>
-<?php $banners = getActiveBanners(); if (!empty($banners)): ?>
+<?php $banners = ($randomBanner = getRandomActiveBanner()) ? [$randomBanner] : []; if (!empty($banners)): ?>
 <div id="promoBanners">
     <?php foreach ($banners as $b): ?>
         <div class="promo-banner" data-banner-id="<?= (int)$b['id'] ?>">

@@ -86,7 +86,7 @@ $banners = getAllBanners();
                     <label>Text (optional)</label>
                     <label>Link</label>
                     <input type="text" name="link" value="<?= e($b['link']) ?>" required>
-                    <label>Sort order (lower shows first)</label>
+                    <label>Priority weight (higher = shown more often)</label>
                     <input type="number" name="sort_order" value="<?= (int)$b['sort_order'] ?>">
                     <label><input type="checkbox" name="is_active" <?= $b['is_active'] ? 'checked' : '' ?>> Active</label>
                     <div class="banner-admin-row-actions">
@@ -111,7 +111,7 @@ $banners = getAllBanners();
         <label>Text (optional)</label>
         <label>Link (internal path or full URL)</label>
         <input type="text" name="link" placeholder="/register or https://scratch.mit.edu/users/ScratchNews" required>
-        <label>Sort order (lower shows first)</label>
+        <label>Priority weight (higher = shown more often)</label>
         <input type="number" name="sort_order" value="0">
         <button class="btn" type="submit">Add Banner</button>
     </form>
