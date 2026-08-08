@@ -26,9 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($categoryIds)) {
                 setArticleCategories($id, $categoryIds);
             }
-            if ($status === 'published') {
-                notifySubscribersOfNewArticle($id, $title);
-            }
             header('Location: /login/?created=' . $id);
             exit;
         } catch (RuntimeException $e) {

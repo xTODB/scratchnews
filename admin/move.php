@@ -238,6 +238,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $approveUserId = (int)($_POST['phone_user_id'] ?? 0);
         approvePhoneVerification($approveUserId);
         $success = "Phone verification approved for user #$approveUserId.";
+    } elseif ($type === 'unlink_scratch_username') {
+        $unlinkUserId = (int)($_POST['scratch_user_id'] ?? 0);
+        if ($unlinkUserId > 0) {
+            $unlinkedName = unlinkScratchUsername($unlinkUserId);
+            $success = $unlinkedName !== null
+                ? "Unlinked Scratch account @$unlinkedName from user #$unlinkUserId. They can now re-verify with any Scratch username."
+                : "User #$unlinkUserId has no linked Scratch username.";
+        }
     }
 }
 
@@ -250,6 +258,7 @@ $scratchVerifyTargetUser = getApiSetting('scratch_verify_target_user', '');
 $scratchVerifyProjectId = getApiSetting('scratch_verify_project_id', '');
 $suspiciousIps = getSuspiciousIps();
 $pendingPhoneVerifications = getPendingPhoneVerifications();
+$scratchLinkedUsers = getScratchLinkedUsers();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -363,6 +372,31 @@ $pendingPhoneVerifications = getPendingPhoneVerifications();
     </table>
     <?php else: ?>
     <p style="color:#888; font-size:0.9rem;">No pending phone verifications.</p>
+    <?php endif; ?>
+
+    <h3 style="margin-top:2rem;">Verified Scratch Usernames</h3>
+    <p style="color:#888; font-size:0.9rem; margin-top:-0.5rem;">Unlinking clears the account's Scratch username so verify-scratch.php will stop rejecting it as "already linked" — lets the user (or someone else) verify that Scratch username again. Does not delete or ban the ScratchNews account itself.</p>
+    <?php if ($scratchLinkedUsers): ?>
+    <table style="width:auto; margin-top:1rem;">
+        <tr><th>Username</th><th>Linked Scratch Account</th><th>Verified</th><th>Actions</th></tr>
+        <?php foreach ($scratchLinkedUsers as $slu): ?>
+            <tr>
+                <td><a href="/@<?= e($slu['username']) ?>">@<?= e($slu['username']) ?></a></td>
+                <td><a href="https://scratch.mit.edu/users/<?= rawurlencode($slu['scratch_username']) ?>/" target="_blank" rel="noopener">@<?= e($slu['scratch_username']) ?></a></td>
+                <td><?= $slu['scratch_verified_at'] ? utcTimeTag($slu['scratch_verified_at']) : '—' ?></td>
+                <td>
+                    <form method="post" style="display:inline;" onsubmit="return confirm('Unlink @<?= e($slu['scratch_username']) ?> from @<?= e($slu['username']) ?>? They will need to re-verify to link a Scratch account again.');">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="type" value="unlink_scratch_username">
+                        <input type="hidden" name="scratch_user_id" value="<?= (int)$slu['id'] ?>">
+                        <button class="btn secondary" type="submit">Unlink</button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php else: ?>
+    <p style="color:#888; font-size:0.9rem;">No verified Scratch usernames yet.</p>
     <?php endif; ?>
 
     <h3 style="margin-top:2rem;">Assign Article to User</h3>

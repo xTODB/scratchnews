@@ -1,4 +1,3 @@
-<?php if (!defined('HIDE_SUBSCRIBE_WIDGET')) require_once __DIR__ . '/subscribe-widget.php'; ?>
 <footer class="site-footer">
     <div class="footer-top">
         <div class="footer-logo">

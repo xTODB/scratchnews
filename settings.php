@@ -52,7 +52,6 @@ $activeTab = $_GET['tab'] ?? 'general';
 if ($activeTab === 'appearance') $activeTab = 'customization';
 if (!in_array($activeTab, ['general', 'customization', 'security'], true)) $activeTab = 'general';
 $usernameCooldown = canChangeUsername($user);
-define('HIDE_SUBSCRIBE_WIDGET', true);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -107,9 +106,6 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                     <a href="/@<?= e($user['username']) ?>" class="btn secondary">View Profile</a>
                 </div>
                 <p class="settings-sub" style="margin-top:1rem;">More general settings are coming soon.</p>
-                <div style="margin-top:1.5rem;">
-                    <?php require __DIR__ . '/includes/subscribe-widget.php'; ?>
-                </div>
 
             <?php elseif ($activeTab === 'customization'): ?>
                 <form method="post" class="settings-row" style="border:none;">

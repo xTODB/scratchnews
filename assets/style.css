@@ -686,39 +686,6 @@ body.dark .explore-filter-form label { color: #f0f0f0; }
 .reset-filter-link { text-align: center; font-size: 0.85rem; color: #888; text-decoration: none; margin-top: 0.3rem; }
 .reset-filter-link:hover { text-decoration: underline; }
 
-.subscribe-widget { background: var(--brand-bright); padding: 0.7rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2rem; text-align: center; }
-.subscribe-text { color: #3a2a00; }
-.subscribe-text strong { font-size: 1rem; }
-.subscribe-form { display: flex; flex-direction: column; gap: 0.4rem; align-items: center; }
-.subscribe-categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; font-size: 0.8rem; color: currentColor; }
-.subscribe-cat-check { display: flex; align-items: center; gap: 0.25rem; }
-.subscribe-input-row { display: flex; gap: 0.5rem; }
-.subscribe-input-row input[type="email"] { padding: 0.5rem 0.8rem; border-radius: 20px; border: none; min-width: 220px; height: 38px; box-sizing: border-box; }
-.subscribe-input-row .btn { height: 38px; padding: 0 1.2rem; margin: 0; display: inline-flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; border-radius: 20px; }
-.subscribe-popup {
-    background: #2ecc71;
-    color: #fff;
-    text-align: center;
-    padding: 0.7rem;
-    font-weight: 600;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 9999;
-}
-.subscribe-popup-error { background: #e74c3c; }
-.subscribe-subtitle {
-    font-weight: 400;
-    font-size: 0.9rem;
-    margin: 0.3rem 0 0;
-}
-@media (max-width: 700px) {
-    .subscribe-widget { flex-direction: column; align-items: stretch; }
-    .subscribe-form { align-items: stretch; }
-    .subscribe-input-row { flex-direction: column; }
-}
 
 .site-footer { background: #eceff1; }
 body.dark .site-footer { background: #111; }

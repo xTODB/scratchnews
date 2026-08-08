@@ -16,7 +16,6 @@ if (!$user) {
 
 markAllNotificationsRead($user['id']);
 $notifications = getNotificationsForUser($user['id']);
-define('HIDE_SUBSCRIBE_WIDGET', true);
 ?>
 <!DOCTYPE html>
 <html lang="en">

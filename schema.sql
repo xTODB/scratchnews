@@ -205,6 +205,18 @@ CREATE TABLE `likes` (
 -- Structură tabel pentru tabel `signup_attempts`
 --
 
+--
+-- Structură tabel pentru tabel `sessions`
+--
+
+CREATE TABLE `sessions` (
+  `id` varchar(128) NOT NULL,
+  `data` mediumtext NOT NULL,
+  `last_activity` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
 CREATE TABLE `signup_attempts` (
   `id` int(11) NOT NULL,
   `ip` varchar(45) NOT NULL,
@@ -244,36 +256,6 @@ CREATE TABLE `submissions` (
 
 CREATE TABLE `submission_categories` (
   `submission_id` int(11) NOT NULL,
-  `category_id` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Structură tabel pentru tabel `subscribers`
---
-
-CREATE TABLE `subscribers` (
-  `id` int(11) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `confirm_token` varchar(64) DEFAULT NULL,
-  `unsubscribe_token` varchar(64) NOT NULL,
-  `confirmed` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `confirmed_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
---
-
--- --------------------------------------------------------
-
---
--- Structură tabel pentru tabel `subscriber_categories`
---
-
-CREATE TABLE `subscriber_categories` (
-  `subscriber_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -403,6 +385,13 @@ ALTER TABLE `likes`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexuri pentru tabele `sessions`
+--
+ALTER TABLE `sessions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `last_activity` (`last_activity`);
+
+--
 -- Indexuri pentru tabele `signup_attempts`
 --
 ALTER TABLE `signup_attempts`
@@ -421,20 +410,6 @@ ALTER TABLE `submissions`
 --
 ALTER TABLE `submission_categories`
   ADD PRIMARY KEY (`submission_id`,`category_id`),
-  ADD KEY `category_id` (`category_id`);
-
---
--- Indexuri pentru tabele `subscribers`
---
-ALTER TABLE `subscribers`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
-
---
--- Indexuri pentru tabele `subscriber_categories`
---
-ALTER TABLE `subscriber_categories`
-  ADD PRIMARY KEY (`subscriber_id`,`category_id`),
   ADD KEY `category_id` (`category_id`);
 
 --
@@ -522,12 +497,6 @@ ALTER TABLE `submissions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT pentru tabele `subscribers`
---
-ALTER TABLE `subscribers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
-
---
 -- AUTO_INCREMENT pentru tabele `users`
 --
 ALTER TABLE `users`
@@ -572,12 +541,6 @@ ALTER TABLE `submission_categories`
   ADD CONSTRAINT `submission_categories_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `submissions` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `submission_categories_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
 
---
--- Constrângeri pentru tabele `subscriber_categories`
---
-ALTER TABLE `subscriber_categories`
-  ADD CONSTRAINT `subscriber_categories_ibfk_1` FOREIGN KEY (`subscriber_id`) REFERENCES `subscribers` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `subscriber_categories_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
