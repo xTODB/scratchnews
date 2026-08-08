@@ -22,7 +22,10 @@ $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
 $profileUser = getUserById($profileUserId);
 
 $modError = '';
-if ($profileUser && $content !== '' && mb_strlen($content) <= 1000) {
+$blocked = isUserBanned((int)$_SESSION['reader_id']) || isPhoneVerificationPending((int)$_SESSION['reader_id']);
+if ($blocked) {
+    $modError = 'Your account is currently restricted from commenting.';
+} elseif ($profileUser && $content !== '' && mb_strlen($content) <= 1000) {
     $modCheck = checkAndModerateComment((int)$_SESSION['reader_id'], $content);
     if ($modCheck['allowed']) {
         addProfileComment($profileUserId, (int)$_SESSION['reader_id'], $content, $parentId);

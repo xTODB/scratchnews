@@ -13,14 +13,13 @@ if ($article && ($article['status'] ?? 'published') === 'draft' && empty($_SESSI
 }
 
 if ($article) {
-    $viewCookie = 'viewed_' . $article['id'];
-    if (empty($_COOKIE[$viewCookie])) {
+    if (empty($_SESSION['viewed_articles'][$article['id']])) {
         incrementArticleView($article['id']);
-        setcookie($viewCookie, '1', ['path' => '/', 'samesite' => 'Lax']);
+        $_SESSION['viewed_articles'][$article['id']] = true;
     }
 }
 
-$isBanned = !empty($_SESSION['reader_id']) && isUserBanned($_SESSION['reader_id']);
+$isBanned = !empty($_SESSION['reader_id']) && (isUserBanned($_SESSION['reader_id']) || isPhoneVerificationPending($_SESSION['reader_id']));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reader_id'])) {
     requireCsrf();
@@ -46,29 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reade
     if (($_POST['action'] ?? '') === 'comment' && !$isBanned) {
         $content = trim($_POST['content'] ?? '');
         $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
-        if ($content !== '') {
-            $modCheck = checkAndModerateComment($_SESSION['reader_id'], $content);
-            if ($modCheck['allowed']) {
-                addComment($article['id'], $_SESSION['reader_id'], $content, $parentId);
-                header('Location: /article/' . $article['id']);
-                exit;
-            }
-            $commentError = $modCheck['reason'];
-        } else {
-            header('Location: /article/' . $article['id']);
-            exit;
-        }
+        if ($content !== '') addComment($article['id'], $_SESSION['reader_id'], $content, $parentId);
+        header('Location: /article/' . $article['id']);
+        exit;
     }
     if (($_POST['action'] ?? '') === 'report') {
         $commentId = (int)($_POST['comment_id'] ?? 0);
         if ($commentId > 0) reportComment($commentId, $_SESSION['reader_id']);
-        header('Location: /article/' . $article['id']);
-        exit;
-    }
-    if (($_POST['action'] ?? '') === 'admin_delete') {
-        if (!empty($_SESSION['is_admin'])) {
-            adminDeleteComment((int)($_POST['comment_id'] ?? 0));
-        }
         header('Location: /article/' . $article['id']);
         exit;
     }
@@ -111,37 +94,10 @@ if (!$article) {
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
-<?php $banners = ($randomBanner = getRandomActiveBanner()) ? [$randomBanner] : []; if (!empty($banners)): ?>
-<div id="promoBanners">
-    <?php foreach ($banners as $b): ?>
-        <div class="promo-banner" data-banner-id="<?= (int)$b['id'] ?>">
-            <button type="button" class="promo-banner-close" aria-label="Close">&times;</button>
-            <a href="<?= e($b['link']) ?>" class="promo-banner-link">
-                <img src="<?= e($b['image_url']) ?>" alt="" class="promo-banner-img">
-            </a>
-        </div>
-    <?php endforeach; ?>
-</div>
-<script>
-(function() {
-    var dismissed = [];
-    try { dismissed = JSON.parse(localStorage.getItem('dismissedBanners') || '[]'); } catch (e) {}
-    document.querySelectorAll('.promo-banner').forEach(function(el) {
-        var id = el.getAttribute('data-banner-id');
-        if (dismissed.indexOf(id) !== -1) { el.remove(); return; }
-        el.querySelector('.promo-banner-close').addEventListener('click', function() {
-            dismissed.push(id);
-            try { localStorage.setItem('dismissedBanners', JSON.stringify(dismissed)); } catch (e) {}
-            el.remove();
-        });
-    });
-})();
-</script>
-<?php endif; ?>
 <?php if (!empty($_SESSION['impersonator_admin_username'])): ?>
 <div class="impersonation-banner">
     Viewing as <strong><?= e($_SESSION['reader_username']) ?></strong> (impersonating)
-    <form method="post" action="/stop-impersonating" class="impersonation-form">
+    <form method="post" action="/stop-impersonating.php" class="impersonation-form">
         <?= csrfField() ?>
         <button type="submit" class="text-action">Return to Admin</button>
     </form>
@@ -195,7 +151,7 @@ if (!$article) {
                     <?= csrfField() ?>
                     <input type="hidden" name="action" value="toggle_save">
                     <button class="icon-btn save-btn <?= $isSaved ? 'active' : '' ?>" type="submit" <?= empty($_SESSION['reader_id']) ? 'disabled' : '' ?> title="<?= $isSaved ? 'Remove from Saved' : 'Save for later' ?>">
-                        <img src="/assets/icons/<?= $isSaved ? 'save' : 'unsave' ?>.svg" alt="Save" class="icon-svg">
+                        <img src="/assets/icons/save.svg" alt="Save" class="icon-svg">
                     </button>
                 </form>
                 <a href="#comments" class="icon-btn" title="Jump to comments" style="text-decoration:none;">
@@ -213,7 +169,7 @@ if (!$article) {
                     <div class="share-menu" id="shareMenu">
                         <button type="button" class="share-option" data-share="copy">Copy Link</button>
                         <button type="button" class="share-option" data-share="text">Copy Article Text</button>
-                        <button type="button" class="share-option" data-share="discord">Share to Scratch</button>
+                        <button type="button" class="share-option" data-share="discord">Share to Scratch/Discord</button>
                         <button type="button" class="share-option" data-share="more" id="shareMoreBtn" style="display:none;">More...</button>
                     </div>
                 </div>
@@ -224,9 +180,6 @@ if (!$article) {
             <div class="content"><?= $article['content'] ?></div>
             <div class="comments-section" id="comments">
     <h3>Comments (<?= count($comments) ?>)</h3>
-    <?php if (!empty($commentError)): ?>
-        <div class="alert error moderation-banner"><?= e($commentError) ?></div>
-    <?php endif; ?>
     <?php if (!empty($_SESSION['reader_id']) && !$isBanned): ?>
         <form method="post">
             <?= csrfField() ?>

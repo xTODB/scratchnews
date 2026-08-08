@@ -188,14 +188,16 @@ function getTimeOnSiteStats(int $days = 7): array {
 }
 
 // ---- Reader accounts ----
-function createUser(string $username, ?string $email, string $password, ?string $scratchUsername = null) {
+function createUser(string $username, ?string $email, string $password, ?string $scratchUsername = null, ?string $phoneNumber = null) {
     $db = getDB();
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $emailValue = ($email === '' ? null : $email);
     $verifiedAt = $scratchUsername !== null ? date('Y-m-d H:i:s') : null;
+    // Phone numbers are never auto-verified - an admin manually approves via /admin/move
+    // after contacting the person themselves. phone_verified_at stays NULL until then.
     try {
-        $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, scratch_username, scratch_verified_at) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param('sssss', $username, $emailValue, $hash, $scratchUsername, $verifiedAt);
+        $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, scratch_username, scratch_verified_at, phone_number, phone_verified_at) VALUES (?, ?, ?, ?, ?, ?, NULL)");
+        $stmt->bind_param('ssssss', $username, $emailValue, $hash, $scratchUsername, $verifiedAt, $phoneNumber);
         $stmt->execute();
         $id = $db->insert_id;
         $stmt->close();
@@ -221,6 +223,78 @@ function updateUserIp(int $userId, string $ip): void {
     $db = getDB();
     $stmt = $db->prepare("UPDATE users SET ip_address = ? WHERE id = ?");
     $stmt->bind_param('si', $ip, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// ---- Suspicious IP flagging (phone verification fallback) ----
+function isSuspiciousIp(string $ip): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM suspicious_ips WHERE ip_address = ?");
+    $stmt->bind_param('s', $ip);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row !== null;
+}
+
+function getSuspiciousIps(): array {
+    $db = getDB();
+    return $db->query("SELECT * FROM suspicious_ips ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
+}
+
+function addSuspiciousIp(string $ip, string $note = ''): bool {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("INSERT INTO suspicious_ips (ip_address, note) VALUES (?, ?)");
+        $stmt->bind_param('ss', $ip, $note);
+        $stmt->execute();
+        $stmt->close();
+        return true;
+    } catch (mysqli_sql_exception $e) {
+        if (str_contains($e->getMessage(), 'Duplicate')) return false;
+        throw $e;
+    }
+}
+
+function removeSuspiciousIp(int $id): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM suspicious_ips WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// ---- Phone verification (manual admin approval, only for flagged IPs) ----
+function isPhoneNumberLinked(string $phoneNumber): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM users WHERE phone_number = ?");
+    $stmt->bind_param('s', $phoneNumber);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row !== null;
+}
+
+function isPhoneVerificationPending(int $userId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT phone_number, phone_verified_at FROM users WHERE id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row && $row['phone_number'] !== null && $row['phone_verified_at'] === null;
+}
+
+function getPendingPhoneVerifications(): array {
+    $db = getDB();
+    return $db->query("SELECT id, username, phone_number, created_at FROM users WHERE phone_number IS NOT NULL AND phone_verified_at IS NULL ORDER BY created_at ASC")->fetch_all(MYSQLI_ASSOC);
+}
+
+function approvePhoneVerification(int $userId): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET phone_verified_at = NOW() WHERE id = ?");
+    $stmt->bind_param('i', $userId);
     $stmt->execute();
     $stmt->close();
 }

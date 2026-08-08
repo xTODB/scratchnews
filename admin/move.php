@@ -221,6 +221,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setApiSetting('scratch_verify_target_user', $targetUser);
         setApiSetting('scratch_verify_project_id', $projectId);
         $success = "Scratch verification settings updated.";
+    } elseif ($type === 'add_suspicious_ip') {
+        $ipToFlag = trim($_POST['ip_address'] ?? '');
+        $note = trim($_POST['note'] ?? '');
+        if ($ipToFlag === '') {
+            $error = 'IP address is required.';
+        } elseif (!addSuspiciousIp($ipToFlag, $note)) {
+            $error = 'That IP is already flagged.';
+        } else {
+            $success = "IP $ipToFlag flagged for phone verification.";
+        }
+    } elseif ($type === 'remove_suspicious_ip') {
+        removeSuspiciousIp((int)($_POST['suspicious_ip_id'] ?? 0));
+        $success = "IP unflagged.";
+    } elseif ($type === 'approve_phone_verification') {
+        $approveUserId = (int)($_POST['phone_user_id'] ?? 0);
+        approvePhoneVerification($approveUserId);
+        $success = "Phone verification approved for user #$approveUserId.";
     }
 }
 
@@ -231,6 +248,8 @@ $apiRateLimitingEnabled = getApiSetting('rate_limiting_enabled', '1') === '1';
 $apiAnonLimit = (int)getApiSetting('anonymous_rate_limit', '30');
 $scratchVerifyTargetUser = getApiSetting('scratch_verify_target_user', '');
 $scratchVerifyProjectId = getApiSetting('scratch_verify_project_id', '');
+$suspiciousIps = getSuspiciousIps();
+$pendingPhoneVerifications = getPendingPhoneVerifications();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -288,6 +307,63 @@ $scratchVerifyProjectId = getApiSetting('scratch_verify_project_id', '');
         <input type="text" id="scratch_verify_project_id" name="scratch_verify_project_id" value="<?= e($scratchVerifyProjectId) ?>" placeholder="e.g. 123456789">
         <button class="btn" type="submit">Save</button>
     </form>
+
+    <h3 style="margin-top:2rem;">Suspicious IPs (require phone verification)</h3>
+    <p style="color:#888; font-size:0.9rem; margin-top:-0.5rem;">Visitors registering from these IPs get a silent extra step requiring SMS phone verification. Normal visitors never see this step.</p>
+    <form method="post">
+        <?= csrfField() ?>
+        <input type="hidden" name="type" value="add_suspicious_ip">
+        <label for="ip_address">IP address</label>
+        <input type="text" id="ip_address" name="ip_address" placeholder="e.g. 203.0.113.5" required>
+        <label for="note">Note (optional)</label>
+        <input type="text" id="note" name="note" placeholder="Why this IP was flagged">
+        <button class="btn" type="submit">Flag IP</button>
+    </form>
+    <?php if ($suspiciousIps): ?>
+    <table style="width:auto; margin-top:1rem;">
+        <tr><th>IP Address</th><th>Note</th><th>Flagged</th><th>Actions</th></tr>
+        <?php foreach ($suspiciousIps as $sip): ?>
+            <tr>
+                <td><?= e($sip['ip_address']) ?></td>
+                <td><?= e($sip['note'] ?: '—') ?></td>
+                <td><?= utcTimeTag($sip['created_at']) ?></td>
+                <td>
+                    <form method="post" style="display:inline;" onsubmit="return confirm('Unflag this IP?');">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="type" value="remove_suspicious_ip">
+                        <input type="hidden" name="suspicious_ip_id" value="<?= (int)$sip['id'] ?>">
+                        <button class="btn secondary" type="submit">Unflag</button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php endif; ?>
+
+    <h3 style="margin-top:2rem;">Pending Phone Verifications</h3>
+    <p style="color:#888; font-size:0.9rem; margin-top:-0.5rem;">These accounts registered with a phone number instead of Scratch verification. They can't comment or submit articles until you contact them yourself and approve below.</p>
+    <?php if ($pendingPhoneVerifications): ?>
+    <table style="width:auto; margin-top:1rem;">
+        <tr><th>Username</th><th>Phone Number</th><th>Registered</th><th>Actions</th></tr>
+        <?php foreach ($pendingPhoneVerifications as $ppv): ?>
+            <tr>
+                <td><a href="/@<?= e($ppv['username']) ?>">@<?= e($ppv['username']) ?></a></td>
+                <td><?= e($ppv['phone_number']) ?></td>
+                <td><?= utcTimeTag($ppv['created_at']) ?></td>
+                <td>
+                    <form method="post" style="display:inline;" onsubmit="return confirm('Approve this phone number? This unlocks commenting and submissions for @<?= e($ppv['username']) ?>.');">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="type" value="approve_phone_verification">
+                        <input type="hidden" name="phone_user_id" value="<?= (int)$ppv['id'] ?>">
+                        <button class="btn" type="submit">Approve</button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php else: ?>
+    <p style="color:#888; font-size:0.9rem;">No pending phone verifications.</p>
+    <?php endif; ?>
 
     <h3 style="margin-top:2rem;">Assign Article to User</h3>
     <form method="post">

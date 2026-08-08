@@ -10,14 +10,16 @@ if (empty($_SESSION['reader_id'])) {
 $readerId = (int)$_SESSION['reader_id'];
 
 $db = getDB();
-$stmt = $db->prepare("SELECT email_verified FROM users WHERE id = ?");
+$stmt = $db->prepare("SELECT is_banned, scratch_verified_at, phone_verified_at FROM users WHERE id = ?");
 $stmt->bind_param("i", $readerId);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
 
-$isVerified = $user && (int)$user['email_verified'] === 1;
+$isBanned = $user && (int)$user['is_banned'] === 1;
+$isPhonePending = $user && isPhoneVerificationPending($readerId);
+$isVerified = $user && !$isBanned && !$isPhonePending && (!empty($user['scratch_verified_at']) || !empty($user['phone_verified_at']));
 
 // Load an existing draft for editing, if requested.
 $draftId = (int)($_GET['draft_id'] ?? 0);
@@ -140,9 +142,12 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
 
     <?php if (!$isVerified): ?>
         <div class="alert error">
-            You need to verify your email before submitting an article.
-            Check your inbox for the verification link, or
-            <a href="/profile">visit your profile</a> for more info.
+            <?php if ($isPhonePending): ?>
+                Your account is pending phone verification. You'll be able to submit once an admin approves it.
+            <?php else: ?>
+                Your account needs to be verified before submitting an article.
+                <a href="/profile">Visit your profile</a> for more info.
+            <?php endif; ?>
         </div>
     <?php elseif ($success): ?>
         <div class="alert success">

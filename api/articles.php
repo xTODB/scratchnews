@@ -19,7 +19,7 @@ if ($article) {
     }
 }
 
-$isBanned = !empty($_SESSION['reader_id']) && isUserBanned($_SESSION['reader_id']);
+$isBanned = !empty($_SESSION['reader_id']) && (isUserBanned($_SESSION['reader_id']) || isPhoneVerificationPending($_SESSION['reader_id']));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reader_id'])) {
     requireCsrf();

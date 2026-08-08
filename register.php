@@ -6,17 +6,19 @@ if (!empty($_SESSION['reader_id'])) { header('Location: /'); exit; }
 
 $scratchTargetUser = getApiSetting('scratch_verify_target_user', '');
 $scratchProjectId = getApiSetting('scratch_verify_project_id', '');
+$registerIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+$isSuspiciousIp = isSuspiciousIp($registerIp);
 
-if (empty($_SESSION['scratch_verify_code'])) {
+if (!$isSuspiciousIp && empty($_SESSION['scratch_verify_code'])) {
     $_SESSION['scratch_verify_code'] = generateScratchVerifyCode();
 }
-$scratchVerifyCode = $_SESSION['scratch_verify_code'];
+$scratchVerifyCode = $_SESSION['scratch_verify_code'] ?? '';
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $ip = $registerIp;
     $username = trim($_POST['username'] ?? '');
     $email = null;
     $password = $_POST['password'] ?? '';
@@ -24,7 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bio = trim($_POST['bio'] ?? '');
     if (mb_strlen($bio) > 500) $bio = mb_substr($bio, 0, 500);
     $darkMode = !empty($_POST['dark_mode']);
-    $scratchVerifiedUsername = $_SESSION['scratch_verified_username'] ?? null;
+    $scratchVerifiedUsername = $isSuspiciousIp ? null : ($_SESSION['scratch_verified_username'] ?? null);
+    $phoneNumber = $isSuspiciousIp ? trim($_POST['phone_number'] ?? '') : null;
+    if ($phoneNumber === '') $phoneNumber = null;
 
     if ($honeypot !== '') {
         header('Location: /?justregistered=1');
@@ -37,12 +41,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Username must be 3-20 characters and can only contain letters, numbers, and underscores.';
     } elseif (strlen($password) < 6) {
         $error = 'Password must be at least 6 characters.';
-    } elseif ($scratchVerifiedUsername === null) {
+    } elseif ($isSuspiciousIp && ($phoneNumber === null || !preg_match('/^\+[1-9]\d{6,14}$/', $phoneNumber))) {
+        $error = 'Please enter a valid phone number including country code (e.g. +12345678900).';
+    } elseif ($isSuspiciousIp && isPhoneNumberLinked($phoneNumber)) {
+        $error = 'That phone number is already linked to another ScratchNews account.';
+    } elseif (!$isSuspiciousIp && $scratchVerifiedUsername === null) {
         $error = 'Please complete Scratch verification before finishing your account.';
     } else {
-        $result = createUser($username, $email, $password, $scratchVerifiedUsername);
+        $result = createUser($username, $email, $password, $scratchVerifiedUsername, $phoneNumber);
         if ($result === 'duplicate') {
-            $error = 'That username or linked Scratch account is already taken.';
+            $error = 'That username, linked Scratch account, or phone number is already taken.';
             logSignupAttempt($ip, false);
         } else {
             logSignupAttempt($ip, true);
@@ -183,6 +191,28 @@ body.dark .verify-code { background:#444; }
             </div>
         </section>
 
+        <?php if ($isSuspiciousIp): ?>
+        <section class="wizard-step" data-step="3">
+            <h3>Verify your ScratchNews account using your phone number</h3>
+            <div class="verify-row">
+                <span class="verify-num">1</span>
+                <div class="verify-body">
+                    Enter your phone number (with country code)
+                    <div class="verify-code-row">
+                        <input type="tel" id="phoneNumber" name="phone_number" placeholder="+12345678900" style="max-width:220px;" required>
+                    </div>
+                </div>
+            </div>
+            <p class="wizard-or-divider" style="text-align:left; margin:0.5rem 0 0;">
+                An admin will reach out to confirm this number. Your account will be created now, but commenting
+                and submitting articles will be disabled until then.
+            </p>
+            <div class="wizard-nav-row">
+                <button type="button" class="btn secondary" data-prev>Previous</button>
+                <button type="submit" class="btn" id="finishBtn">Finish</button>
+            </div>
+        </section>
+        <?php else: ?>
         <section class="wizard-step" data-step="3">
             <h3>Verify your ScratchNews account using Scratch</h3>
             <div class="verify-row">
@@ -222,6 +252,7 @@ body.dark .verify-code { background:#444; }
                 <button type="submit" class="btn" id="finishBtn" disabled>Finish</button>
             </div>
         </section>
+        <?php endif; ?>
     </form>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -315,55 +346,61 @@ function handleGoogleCredential(response) {
             : '<path d="M20.7 14.9A8.5 8.5 0 019.1 3.3a1 1 0 00-1.2-1.3 10 10 0 1013.9 13.9 1 1 0 00-1.1-1z"/>';
     });
 
-    // Copy verification code
-    document.getElementById('verifyCopyBtn').addEventListener('click', function() {
-        var code = document.getElementById('verifyCode').textContent;
-        navigator.clipboard.writeText(code).then(function() {
-            var btn = document.getElementById('verifyCopyBtn');
-            var original = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(function() { btn.textContent = original; }, 1500);
+    // Copy verification code (Scratch branch only)
+    var verifyCopyBtn = document.getElementById('verifyCopyBtn');
+    if (verifyCopyBtn) {
+        verifyCopyBtn.addEventListener('click', function() {
+            var code = document.getElementById('verifyCode').textContent;
+            navigator.clipboard.writeText(code).then(function() {
+                var btn = document.getElementById('verifyCopyBtn');
+                var original = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(function() { btn.textContent = original; }, 1500);
+            });
         });
-    });
+    }
 
-    // Verify Scratch follow + comment
-    document.getElementById('verifyBtn').addEventListener('click', function() {
-        var btn = this;
-        var status = document.getElementById('verifyStatus');
-        var finishBtn = document.getElementById('finishBtn');
-        btn.disabled = true;
-        btn.textContent = 'Checking...';
-        status.className = 'verify-status';
-        status.textContent = '';
+    // Verify Scratch follow + comment (Scratch branch only)
+    var verifyBtn = document.getElementById('verifyBtn');
+    if (verifyBtn) {
+        verifyBtn.addEventListener('click', function() {
+            var btn = this;
+            var status = document.getElementById('verifyStatus');
+            var finishBtn = document.getElementById('finishBtn');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            status.className = 'verify-status';
+            status.textContent = '';
 
-        var formData = new URLSearchParams();
-        formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+            var formData = new URLSearchParams();
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
 
-        fetch('/verify-scratch.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            btn.disabled = false;
-            btn.textContent = 'Verify';
-            if (data.success) {
-                status.className = 'verify-status success';
-                status.textContent = 'Verified as @' + data.username + '!';
-                finishBtn.disabled = false;
-            } else {
+            fetch('/verify-scratch.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.textContent = 'Verify';
+                if (data.success) {
+                    status.className = 'verify-status success';
+                    status.textContent = 'Verified as @' + data.username + '!';
+                    finishBtn.disabled = false;
+                } else {
+                    status.className = 'verify-status error';
+                    status.textContent = data.error || 'Verification failed. Please try again.';
+                }
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = 'Verify';
                 status.className = 'verify-status error';
-                status.textContent = data.error || 'Verification failed. Please try again.';
-            }
-        })
-        .catch(function() {
-            btn.disabled = false;
-            btn.textContent = 'Verify';
-            status.className = 'verify-status error';
-            status.textContent = 'Something went wrong. Please try again.';
+                status.textContent = 'Something went wrong. Please try again.';
+            });
         });
-    });
+    }
 })();
 </script>
 </body>
