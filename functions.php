@@ -265,6 +265,34 @@ function removeSuspiciousIp(int $id): void {
     $stmt->close();
 }
 
+// ---- Country calling code detection (prefills the phone verification field) ----
+const COUNTRY_CALLING_CODES = [
+    'US'=>'1','CA'=>'1','GB'=>'44','IE'=>'353','FR'=>'33','DE'=>'49','ES'=>'34','PT'=>'351','IT'=>'39',
+    'NL'=>'31','BE'=>'32','LU'=>'352','CH'=>'41','AT'=>'43','SE'=>'46','NO'=>'47','DK'=>'45','FI'=>'358',
+    'IS'=>'354','PL'=>'48','CZ'=>'420','SK'=>'421','HU'=>'36','RO'=>'40','BG'=>'359','GR'=>'30','TR'=>'90',
+    'RU'=>'7','UA'=>'380','BY'=>'375','MD'=>'373','LT'=>'370','LV'=>'371','EE'=>'372','HR'=>'385','SI'=>'386',
+    'RS'=>'381','BA'=>'387','MK'=>'389','AL'=>'355','ME'=>'382','XK'=>'383','MT'=>'356','CY'=>'357',
+    'AU'=>'61','NZ'=>'64','JP'=>'81','KR'=>'82','CN'=>'86','HK'=>'852','TW'=>'886','SG'=>'65','MY'=>'60',
+    'TH'=>'66','VN'=>'84','PH'=>'63','ID'=>'62','IN'=>'91','PK'=>'92','BD'=>'880','LK'=>'94','NP'=>'977',
+    'AE'=>'971','SA'=>'966','IL'=>'972','EG'=>'20','ZA'=>'27','NG'=>'234','KE'=>'254','GH'=>'233','MA'=>'212',
+    'DZ'=>'213','TN'=>'216','BR'=>'55','MX'=>'52','AR'=>'54','CL'=>'56','CO'=>'57','PE'=>'51','VE'=>'58',
+    'EC'=>'593','UY'=>'598','PY'=>'595','BO'=>'591','CR'=>'506','PA'=>'507','DO'=>'1','JM'=>'1','TT'=>'1',
+];
+
+function getCountryCallingCode(string $ip): string {
+    $ch = curl_init("http://ip-api.com/json/" . urlencode($ip) . "?fields=countryCode");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $httpCode !== 200) return '+';
+    $data = json_decode($response, true);
+    $countryCode = $data['countryCode'] ?? null;
+    if ($countryCode === null || !isset(COUNTRY_CALLING_CODES[$countryCode])) return '+';
+    return '+' . COUNTRY_CALLING_CODES[$countryCode];
+}
+
 // ---- Phone verification (manual admin approval, only for flagged IPs) ----
 function isPhoneNumberLinked(string $phoneNumber): bool {
     $db = getDB();
