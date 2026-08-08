@@ -4,6 +4,14 @@ startSession();
 
 if (!empty($_SESSION['reader_id'])) { header('Location: /'); exit; }
 
+$scratchTargetUser = getApiSetting('scratch_verify_target_user', '');
+$scratchProjectId = getApiSetting('scratch_verify_project_id', '');
+
+if (empty($_SESSION['scratch_verify_code'])) {
+    $_SESSION['scratch_verify_code'] = generateScratchVerifyCode();
+}
+$scratchVerifyCode = $_SESSION['scratch_verify_code'];
+
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
@@ -16,33 +24,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bio = trim($_POST['bio'] ?? '');
     if (mb_strlen($bio) > 500) $bio = mb_substr($bio, 0, 500);
     $darkMode = !empty($_POST['dark_mode']);
+    $scratchVerifiedUsername = $_SESSION['scratch_verified_username'] ?? null;
 
     if ($honeypot !== '') {
         header('Location: /?justregistered=1');
         exit;
     } elseif (tooManySignupAttempts($ip)) {
         $error = 'Too many signup attempts from your network. Please try again later.';
-    } elseif ($username === '' || $email === '' || $password === '') {
-        $error = 'Username, email, and password are required.';
+    } elseif ($username === '' || $password === '') {
+        $error = 'Username and password are required.';
     } elseif (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $username)) {
         $error = 'Username must be 3-20 characters and can only contain letters, numbers, and underscores.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Please enter a valid email address.';
+    } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Please enter a valid email address, or leave it blank.';
     } elseif (strlen($password) < 6) {
         $error = 'Password must be at least 6 characters.';
-    } elseif (isDisposableEmail($email)) {
+    } elseif ($email !== '' && isDisposableEmail($email)) {
         $error = 'Please use a permanent email address, not a temporary/disposable one.';
-    } elseif (!checkdnsrr(substr(strrchr($email, '@'), 1), 'MX')) {
+    } elseif ($email !== '' && !checkdnsrr(substr(strrchr($email, '@'), 1), 'MX')) {
         $error = 'That email address domain doesn\'t appear to accept mail. Please check it and try again.';
+    } elseif ($scratchVerifiedUsername === null) {
+        $error = 'Please complete Scratch verification before finishing your account.';
     } else {
-        $result = createUser($username, $email, $password);
+        $result = createUser($username, $email, $password, $scratchVerifiedUsername);
         if ($result === 'duplicate') {
-            $error = 'That username or email is already taken.';
+            $error = 'That username, email, or linked Scratch account is already taken.';
             logSignupAttempt($ip, false);
         } else {
             logSignupAttempt($ip, true);
-            $token = issueVerificationToken($result);
-            sendVerificationEmail($email, $username, $token);
+            if ($email !== '') {
+                $token = issueVerificationToken($result);
+                sendVerificationEmail($email, $username, $token);
+            }
 
             $avatarUrl = null;
             $bannerUrl = null;
@@ -58,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             setDarkModePreference($result, $darkMode);
             updateUserIp($result, $ip);
+
+            unset($_SESSION['scratch_verify_code'], $_SESSION['scratch_verified_username']);
 
             $_SESSION['reader_id'] = $result;
             $_SESSION['reader_username'] = $username;
@@ -97,6 +112,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .wizard-step2-fields { flex:1; min-width:220px; }
 .wizard-darkmode-toggle { display:inline-flex; align-items:center; gap:0.4rem; background:none; border:1px solid #999; border-radius:20px; padding:0.3rem 0.8rem; cursor:pointer; color:inherit; margin-top:0.75rem; }
 .wizard-darkmode-toggle svg { width:16px; height:16px; fill:currentColor; }
+.verify-row { background:#f2f2f2; border-radius:8px; padding:0.85rem 1rem; margin-bottom:0.75rem; display:flex; align-items:flex-start; gap:0.75rem; }
+body.dark .verify-row { background:#2a2a2a; }
+.verify-num { font-size:1.4rem; font-weight:bold; color:#e8a33d; min-width:1.6rem; }
+.verify-body { flex:1; }
+.verify-code-row { display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem; }
+.verify-code { font-family:monospace; font-size:1rem; background:#e0e0e0; border-radius:5px; padding:0.25rem 0.6rem; }
+body.dark .verify-code { background:#444; }
+.verify-copy-btn { border:1px solid #999; background:none; border-radius:5px; padding:0.2rem 0.6rem; cursor:pointer; color:inherit; font-size:0.85rem; }
+.verify-status { margin-top:0.6rem; font-size:0.9rem; }
+.verify-status.success { color:#2e8b2e; }
+.verify-status.error { color:#c0392b; }
 </style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
@@ -109,8 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="wizard-card">
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
     <div class="wizard-progress-row">
-        <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizardFill" style="width:50%"></div></div>
-        <span class="wizard-progress-label" id="wizardLabel">1/2</span>
+        <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizardFill" style="width:33%"></div></div>
+        <span class="wizard-progress-label" id="wizardLabel">1/3</span>
     </div>
 
     <form method="post" enctype="multipart/form-data" id="wizardForm">
@@ -122,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="dark_mode" id="darkModeField" value="0">
 
         <section class="wizard-step active" data-step="1">
-            <h2>Create an account in 2 steps</h2>
+            <h2>Create an account in 3 steps</h2>
             <div class="google-signin-row">
                 <div id="g_id_onload"
                      data-client_id="<?= e(GOOGLE_CLIENT_ID) ?>"
@@ -136,8 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="text" id="username" name="username" value="<?= e($_POST['username'] ?? '') ?>" required>
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required minlength="6">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" value="<?= e($_POST['email'] ?? '') ?>" required>
+            <label for="email">Email (optional)</label>
+            <input type="email" id="email" name="email" value="<?= e($_POST['email'] ?? '') ?>">
             <div class="wizard-nav-row">
                 <button type="button" class="btn" data-next>Next</button>
             </div>
@@ -165,7 +191,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="wizard-nav-row">
                 <button type="button" class="btn secondary" data-prev>Previous</button>
-                <button type="submit" class="btn" id="finishBtn">Finish Account</button>
+                <button type="button" class="btn" data-next>Next</button>
+            </div>
+        </section>
+
+        <section class="wizard-step" data-step="3">
+            <h3>Verify your ScratchNews account using Scratch</h3>
+            <div class="verify-row">
+                <span class="verify-num">1</span>
+                <div class="verify-body">
+                    Follow <strong>@<?= e($scratchTargetUser) ?></strong> on Scratch
+                    <div class="verify-code-row">
+                        <a class="btn secondary" href="https://scratch.mit.edu/users/<?= rawurlencode($scratchTargetUser) ?>/" target="_blank" rel="noopener">Visit Scratch profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="verify-row">
+                <span class="verify-num">2</span>
+                <div class="verify-body">
+                    Comment your code on the verification project
+                    <div class="verify-code-row">
+                        <a class="btn secondary" href="https://scratch.mit.edu/projects/<?= rawurlencode($scratchProjectId) ?>/" target="_blank" rel="noopener">Visit Scratch project</a>
+                    </div>
+                    <div class="verify-code-row">
+                        <span class="verify-code" id="verifyCode"><?= e($scratchVerifyCode) ?></span>
+                        <button type="button" class="verify-copy-btn" id="verifyCopyBtn">Copy</button>
+                    </div>
+                </div>
+            </div>
+            <div class="verify-row">
+                <span class="verify-num">3</span>
+                <div class="verify-body">
+                    Click "Verify"
+                    <div class="verify-code-row">
+                        <button type="button" class="btn" id="verifyBtn">Verify</button>
+                    </div>
+                    <div class="verify-status" id="verifyStatus"></div>
+                </div>
+            </div>
+            <div class="wizard-nav-row">
+                <button type="button" class="btn secondary" data-prev>Previous</button>
+                <button type="submit" class="btn" id="finishBtn" disabled>Finish</button>
             </div>
         </section>
     </form>
@@ -191,14 +257,15 @@ function handleGoogleCredential(response) {
     var steps = Array.prototype.slice.call(document.querySelectorAll('.wizard-step'));
     var fill = document.getElementById('wizardFill');
     var label = document.getElementById('wizardLabel');
+    var totalSteps = steps.length;
     var current = 1;
 
     function showStep(n) {
-    steps.forEach(function(s) { s.classList.toggle('active', parseInt(s.dataset.step, 10) === n); });
-    fill.style.width = (n / 2 * 100) + '%';
-    label.textContent = n + '/2';
-    current = n;
-}
+        steps.forEach(function(s) { s.classList.toggle('active', parseInt(s.dataset.step, 10) === n); });
+        fill.style.width = (n / totalSteps * 100) + '%';
+        label.textContent = n + '/' + totalSteps;
+        current = n;
+    }
 
     function validateStep1() {
         var username = document.getElementById('username');
@@ -206,7 +273,7 @@ function handleGoogleCredential(response) {
         var email = document.getElementById('email');
         if (!/^[A-Za-z0-9_]{3,20}$/.test(username.value)) { alert('Username must be 3-20 characters (letters, numbers, underscores only).'); return false; }
         if (password.value.length < 6) { alert('Password must be at least 6 characters.'); return false; }
-        if (!email.value.includes('@')) { alert('Please enter a valid email address.'); return false; }
+        if (email.value !== '' && !email.value.includes('@')) { alert('Please enter a valid email address, or leave it blank.'); return false; }
         return true;
     }
 
@@ -221,7 +288,7 @@ function handleGoogleCredential(response) {
     });
 
     <?php if ($error): ?>
-    showStep(1);
+    showStep(<?= $scratchVerifiedUsername ?? ($_SESSION['scratch_verified_username'] ?? null) ? 3 : 1 ?>);
     <?php endif; ?>
 
     // Avatar/banner preview
@@ -260,6 +327,56 @@ function handleGoogleCredential(response) {
         document.getElementById('darkModeIcon').innerHTML = darkEnabled
             ? '<path d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-5a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm9-7a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5 12a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zm12.66-6.66a1 1 0 010 1.42l-.71.7a1 1 0 11-1.41-1.41l.7-.71a1 1 0 011.42 0zM6.46 17.54a1 1 0 010 1.42l-.7.7a1 1 0 11-1.42-1.41l.71-.71a1 1 0 011.41 0zm11.2 0a1 1 0 011.41 0l.71.71a1 1 0 11-1.42 1.41l-.7-.7a1 1 0 010-1.42zM6.46 6.46a1 1 0 01-1.41 0l-.71-.7a1 1 0 111.42-1.42l.7.71a1 1 0 010 1.41z"/>'
             : '<path d="M20.7 14.9A8.5 8.5 0 019.1 3.3a1 1 0 00-1.2-1.3 10 10 0 1013.9 13.9 1 1 0 00-1.1-1z"/>';
+    });
+
+    // Copy verification code
+    document.getElementById('verifyCopyBtn').addEventListener('click', function() {
+        var code = document.getElementById('verifyCode').textContent;
+        navigator.clipboard.writeText(code).then(function() {
+            var btn = document.getElementById('verifyCopyBtn');
+            var original = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = original; }, 1500);
+        });
+    });
+
+    // Verify Scratch follow + comment
+    document.getElementById('verifyBtn').addEventListener('click', function() {
+        var btn = this;
+        var status = document.getElementById('verifyStatus');
+        var finishBtn = document.getElementById('finishBtn');
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+        status.className = 'verify-status';
+        status.textContent = '';
+
+        var formData = new URLSearchParams();
+        formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+        fetch('/verify-scratch.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.textContent = 'Verify';
+            if (data.success) {
+                status.className = 'verify-status success';
+                status.textContent = 'Verified as @' + data.username + '!';
+                finishBtn.disabled = false;
+            } else {
+                status.className = 'verify-status error';
+                status.textContent = data.error || 'Verification failed. Please try again.';
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.textContent = 'Verify';
+            status.className = 'verify-status error';
+            status.textContent = 'Something went wrong. Please try again.';
+        });
     });
 })();
 </script>
