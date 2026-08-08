@@ -10,7 +10,7 @@ if (empty($_SESSION['reader_id'])) {
 $readerId = (int)$_SESSION['reader_id'];
 
 $db = getDB();
-$stmt = $db->prepare("SELECT is_banned, scratch_verified_at, phone_verified_at FROM users WHERE id = ?");
+$stmt = $db->prepare("SELECT is_banned, email_verified, scratch_verified_at, phone_verified_at FROM users WHERE id = ?");
 $stmt->bind_param("i", $readerId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -19,7 +19,11 @@ $stmt->close();
 
 $isBanned = $user && (int)$user['is_banned'] === 1;
 $isPhonePending = $user && isPhoneVerificationPending($readerId);
-$isVerified = $user && !$isBanned && !$isPhonePending && (!empty($user['scratch_verified_at']) || !empty($user['phone_verified_at']));
+$isVerified = $user && !$isBanned && !$isPhonePending && (
+    !empty($user['scratch_verified_at']) ||
+    !empty($user['phone_verified_at']) ||
+    (int)$user['email_verified'] === 1
+);
 
 // Load an existing draft for editing, if requested.
 $draftId = (int)($_GET['draft_id'] ?? 0);
