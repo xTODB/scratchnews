@@ -188,12 +188,14 @@ function getTimeOnSiteStats(int $days = 7): array {
 }
 
 // ---- Reader accounts ----
-function createUser(string $username, string $email, string $password) {
+function createUser(string $username, ?string $email, string $password, ?string $scratchUsername = null) {
     $db = getDB();
     $hash = password_hash($password, PASSWORD_DEFAULT);
+    $emailValue = ($email === '' ? null : $email);
+    $verifiedAt = $scratchUsername !== null ? date('Y-m-d H:i:s') : null;
     try {
-        $stmt = $db->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
-        $stmt->bind_param('sss', $username, $email, $hash);
+        $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, scratch_username, scratch_verified_at) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param('sssss', $username, $emailValue, $hash, $scratchUsername, $verifiedAt);
         $stmt->execute();
         $id = $db->insert_id;
         $stmt->close();
@@ -221,6 +223,65 @@ function updateUserIp(int $userId, string $ip): void {
     $stmt->bind_param('si', $ip, $userId);
     $stmt->execute();
     $stmt->close();
+}
+
+// ---- Scratch follower verification ----
+function generateScratchVerifyCode(): string {
+    return 'SN-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+}
+
+function scratchApiGet(string $url): ?array {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'ScratchNews-Verification/1.0');
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $httpCode !== 200) return null;
+    $data = json_decode($response, true);
+    return is_array($data) ? $data : null;
+}
+
+// Scans the verification project's comments for one containing $code and
+// returns the commenter's Scratch username, or null if not found yet.
+function findScratchCommentAuthor(string $ownerUsername, string $projectId, string $code): ?string {
+    $offset = 0;
+    do {
+        $page = scratchApiGet("https://api.scratch.mit.edu/users/" . rawurlencode($ownerUsername) . "/projects/" . rawurlencode($projectId) . "/comments/?limit=40&offset=$offset");
+        if ($page === null) return null;
+        foreach ($page as $comment) {
+            if (!empty($comment['content']) && stripos($comment['content'], $code) !== false) {
+                return $comment['author']['username'] ?? null;
+            }
+        }
+        $offset += 40;
+    } while (count($page) === 40 && $offset < 400);
+    return null;
+}
+
+// Checks whether $username is in $targetUsername's follower list.
+function scratchUserFollows(string $username, string $targetUsername): bool {
+    $offset = 0;
+    do {
+        $page = scratchApiGet("https://api.scratch.mit.edu/users/" . rawurlencode($targetUsername) . "/followers/?limit=40&offset=$offset");
+        if ($page === null) return false;
+        foreach ($page as $follower) {
+            if (isset($follower['username']) && strcasecmp($follower['username'], $username) === 0) return true;
+        }
+        $offset += 40;
+    } while (count($page) === 40 && $offset < 2000);
+    return false;
+}
+
+function isScratchUsernameLinked(string $scratchUsername): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM users WHERE scratch_username = ?");
+    $stmt->bind_param('s', $scratchUsername);
+    $stmt->execute();
+    $exists = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $exists;
 }
 
 function verifyGoogleIdToken(string $idToken): ?array {
