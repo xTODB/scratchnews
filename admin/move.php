@@ -215,6 +215,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setApiSetting('anonymous_rate_limit', (string)$anonLimit);
         setApiSetting('rate_limiting_enabled', isset($_POST['rate_limiting_enabled']) ? '1' : '0');
         $success = "API settings updated.";
+    } elseif ($type === 'update_scratch_verify_settings') {
+        $targetUser = trim($_POST['scratch_verify_target_user'] ?? '');
+        $projectId = trim($_POST['scratch_verify_project_id'] ?? '');
+        setApiSetting('scratch_verify_target_user', $targetUser);
+        setApiSetting('scratch_verify_project_id', $projectId);
+        $success = "Scratch verification settings updated.";
     }
 }
 
@@ -223,6 +229,8 @@ $allUsers = $db->query("SELECT id, username FROM users ORDER BY id ASC")->fetch_
 $apiKeys = $db->query("SELECT * FROM api_keys ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
 $apiRateLimitingEnabled = getApiSetting('rate_limiting_enabled', '1') === '1';
 $apiAnonLimit = (int)getApiSetting('anonymous_rate_limit', '30');
+$scratchVerifyTargetUser = getApiSetting('scratch_verify_target_user', '');
+$scratchVerifyProjectId = getApiSetting('scratch_verify_project_id', '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -268,6 +276,17 @@ $apiAnonLimit = (int)getApiSetting('anonymous_rate_limit', '30');
         <?= csrfField() ?>
         <input type="hidden" name="type" value="cleanup_anonymized">
         <button class="btn secondary" type="submit">Hard-delete all anonymized users</button>
+    </form>
+
+    <h3 style="margin-top:2rem;">Scratch Verification Settings</h3>
+    <form method="post">
+        <?= csrfField() ?>
+        <input type="hidden" name="type" value="update_scratch_verify_settings">
+        <label for="scratch_verify_target_user">Scratch account new users must follow</label>
+        <input type="text" id="scratch_verify_target_user" name="scratch_verify_target_user" value="<?= e($scratchVerifyTargetUser) ?>" placeholder="e.g. ScratchNews">
+        <label for="scratch_verify_project_id">Scratch project ID they must comment on</label>
+        <input type="text" id="scratch_verify_project_id" name="scratch_verify_project_id" value="<?= e($scratchVerifyProjectId) ?>" placeholder="e.g. 123456789">
+        <button class="btn" type="submit">Save</button>
     </form>
 
     <h3 style="margin-top:2rem;">Assign Article to User</h3>
