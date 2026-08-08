@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
+    $email = null;
     $password = $_POST['password'] ?? '';
     $honeypot = trim($_POST['website'] ?? '');
     $bio = trim($_POST['bio'] ?? '');
@@ -35,27 +35,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Username and password are required.';
     } elseif (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $username)) {
         $error = 'Username must be 3-20 characters and can only contain letters, numbers, and underscores.';
-    } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Please enter a valid email address, or leave it blank.';
     } elseif (strlen($password) < 6) {
         $error = 'Password must be at least 6 characters.';
-    } elseif ($email !== '' && isDisposableEmail($email)) {
-        $error = 'Please use a permanent email address, not a temporary/disposable one.';
-    } elseif ($email !== '' && !checkdnsrr(substr(strrchr($email, '@'), 1), 'MX')) {
-        $error = 'That email address domain doesn\'t appear to accept mail. Please check it and try again.';
     } elseif ($scratchVerifiedUsername === null) {
         $error = 'Please complete Scratch verification before finishing your account.';
     } else {
         $result = createUser($username, $email, $password, $scratchVerifiedUsername);
         if ($result === 'duplicate') {
-            $error = 'That username, email, or linked Scratch account is already taken.';
+            $error = 'That username or linked Scratch account is already taken.';
             logSignupAttempt($ip, false);
         } else {
             logSignupAttempt($ip, true);
-            if ($email !== '') {
-                $token = issueVerificationToken($result);
-                sendVerificationEmail($email, $username, $token);
-            }
 
             $avatarUrl = null;
             $bannerUrl = null;
@@ -162,8 +152,6 @@ body.dark .verify-code { background:#444; }
             <input type="text" id="username" name="username" value="<?= e($_POST['username'] ?? '') ?>" required>
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required minlength="6">
-            <label for="email">Email (optional)</label>
-            <input type="email" id="email" name="email" value="<?= e($_POST['email'] ?? '') ?>">
             <div class="wizard-nav-row">
                 <button type="button" class="btn" data-next>Next</button>
             </div>
@@ -270,10 +258,8 @@ function handleGoogleCredential(response) {
     function validateStep1() {
         var username = document.getElementById('username');
         var password = document.getElementById('password');
-        var email = document.getElementById('email');
         if (!/^[A-Za-z0-9_]{3,20}$/.test(username.value)) { alert('Username must be 3-20 characters (letters, numbers, underscores only).'); return false; }
         if (password.value.length < 6) { alert('Password must be at least 6 characters.'); return false; }
-        if (email.value !== '' && !email.value.includes('@')) { alert('Please enter a valid email address, or leave it blank.'); return false; }
         return true;
     }
 
