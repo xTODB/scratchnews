@@ -246,6 +246,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? "Unlinked Scratch account @$unlinkedName from user #$unlinkUserId. They can now re-verify with any Scratch username."
                 : "User #$unlinkUserId has no linked Scratch username.";
         }
+    } elseif ($type === 'manually_verify_user') {
+        $verifyUsername = trim($_POST['verify_username'] ?? '');
+        if ($verifyUsername !== '') {
+            $success = verifyUserManually($verifyUsername)
+                ? "Manually verified @$verifyUsername."
+                : "No user found with username @$verifyUsername.";
+        }
     }
 }
 
@@ -398,6 +405,15 @@ $scratchLinkedUsers = getScratchLinkedUsers();
     <?php else: ?>
     <p style="color:#888; font-size:0.9rem;">No verified Scratch usernames yet.</p>
     <?php endif; ?>
+
+    <h3 style="margin-top:2rem;">Manually Verify a User</h3>
+    <p style="color:#888; font-size:0.9rem; margin-top:-0.5rem;">Grants verified status directly, bypassing Scratch or phone verification — for cases where the normal flow isn't working for someone.</p>
+    <form method="post" style="margin-top:1rem; display:flex; gap:0.5rem; align-items:center;">
+        <?= csrfField() ?>
+        <input type="hidden" name="type" value="manually_verify_user">
+        <input type="text" name="verify_username" placeholder="ScratchNews username" required style="padding:0.4rem 0.6rem;">
+        <button class="btn" type="submit">Verify</button>
+    </form>
 
     <h3 style="margin-top:2rem;">Assign Article to User</h3>
     <form method="post">

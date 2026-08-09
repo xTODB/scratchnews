@@ -411,6 +411,28 @@ function unlinkScratchUsername(int $userId): ?string {
     return $row['scratch_username'];
 }
 
+// True if the user has verified through any real method: Scratch follow, phone, or a
+// grandfathered email verification from before that flow was removed.
+function isUserVerified(array $user): bool {
+    return !empty($user['scratch_verified_at'])
+        || !empty($user['phone_verified_at'])
+        || (int)($user['email_verified'] ?? 0) === 1;
+}
+
+// Admin override: marks a user verified directly (sets the same email_verified flag that
+// submit.php already accepts as one of three valid verification paths), bypassing Scratch
+// or phone verification entirely. Returns false if no user with that username exists.
+function verifyUserManually(string $username): bool {
+    $user = getUserByUsername($username);
+    if (!$user) return false;
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET email_verified = 1 WHERE id = ?");
+    $stmt->bind_param('i', $user['id']);
+    $stmt->execute();
+    $stmt->close();
+    return true;
+}
+
 function verifyGoogleIdToken(string $idToken): ?array {
     $ch = curl_init('https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -968,80 +990,6 @@ function bulkDeleteAnonymizedUsers(): int {
         if (deleteUserAccount((int)$row['id'])) $count++;
     }
     return $count;
-}
-
-function issueVerificationToken($userId) {
-    $db = getDB();
-    $token = bin2hex(random_bytes(32));
-
-    $stmt = $db->prepare("UPDATE users SET verification_token = ? WHERE id = ?");
-    $stmt->bind_param("si", $token, $userId);
-    $stmt->execute();
-    $stmt->close();
-
-    return $token;
-}
-
-function getUserByVerificationToken($token) {
-    $db = getDB();
-    $stmt = $db->prepare("SELECT * FROM users WHERE verification_token = ?");
-    $stmt->bind_param("s", $token);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-    $stmt->close();
-
-    return $user ?: null;
-}
-
-function markEmailVerified($userId) {
-    $db = getDB();
-    $stmt = $db->prepare("UPDATE users SET email_verified = 1, verification_token = NULL WHERE id = ?");
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $stmt->close();
-}
-
-function sendVerificationEmail($toEmail, $toUsername, $token) {
-    $verifyLink = "https://scratchnews.freedev.app/verify?token=" . urlencode($token);
-
-    $payload = json_encode([
-        "sender" => [
-            "name" => "ScratchNews",
-            "email" => BREVO_SENDER_EMAIL
-        ],
-        "to" => [
-            ["email" => $toEmail, "name" => $toUsername]
-        ],
-        "subject" => "Verify your ScratchNews account",
-        "htmlContent" => "<p>Hi " . htmlspecialchars($toUsername) . ",</p>"
-            . "<p>Click the link below to verify your email address and unlock likes and comments on ScratchNews:</p>"
-            . "<p><a href=\"" . htmlspecialchars($verifyLink) . "\">" . htmlspecialchars($verifyLink) . "</a></p>"
-            . "<p>If you didn't create this account, you can ignore this email.</p>"
-    ]);
-
-    $ch = curl_init("https://api.brevo.com/v3/smtp/email");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "accept: application/json",
-        "api-key: " . BREVO_API_KEY,
-        "content-type: application/json"
-    ]);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    // TEMPORARY DEBUG LOGGING — remove once email sending is confirmed working
-    file_put_contents(__DIR__ . '/brevo_debug.log',
-        date('Y-m-d H:i:s') . " | HTTP $httpCode | curl_error: $curlError | response: $response\n",
-        FILE_APPEND
-    );
-
-    return $httpCode >= 200 && $httpCode < 300;
 }
 
 function createSubmission($userId, $title, $summary, $content, ?string $imageUrl = null, array $categoryIds = [], string $status = 'pending') {

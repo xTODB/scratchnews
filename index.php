@@ -27,13 +27,6 @@ $popular = getPopularArticles(4);
     </form>
 </div>
 <?php endif; ?>
-<?php if (!empty($_SESSION['reader_id'])):
-    $currentUser = getUserById($_SESSION['reader_id']);
-    if ($currentUser && empty($currentUser['email_verified'])): ?>
-<div class="verify-banner">
-    You aren't email verified! Check your inbox to get access to likes, dislikes, and comments.
-</div>
-<?php endif; endif; ?>
 <?php $banners = ($randomBanner = getRandomActiveBanner()) ? [$randomBanner] : []; if (!empty($banners)): ?>
 <div id="promoBanners">
     <?php foreach ($banners as $b): ?>

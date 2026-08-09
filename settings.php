@@ -26,10 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['dark_mode'] = $enabled ? 1 : 0;
         $user['dark_mode'] = $enabled ? 1 : 0;
         $message = 'Theme preference saved.';
-    } elseif ($action === 'resend_verification' && empty($user['email_verified'])) {
-        $token = issueVerificationToken($user['id']);
-        sendVerificationEmail($user['email'], $user['username'], $token);
-        $message = 'Verification email sent. Check your inbox.';
     } elseif ($action === 'change_username') {
         $result = changeUsername($user['id'], trim($_POST['new_username'] ?? ''));
         if ($result === 'ok') {
@@ -145,10 +141,20 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
             <?php elseif ($activeTab === 'security'): ?>
                 <div class="settings-row">
                     <div>
-                        <div class="settings-label">Email Verification</div>
-                        <div class="settings-sub"><?= e($user['email']) ?></div>
+                        <div class="settings-label">Account Verification</div>
+                        <div class="settings-sub">
+                            <?php if (!empty($user['scratch_verified_at'])): ?>
+                                Verified via your Scratch account<?= !empty($user['scratch_username']) ? ' (@' . e($user['scratch_username']) . ')' : '' ?>
+                            <?php elseif (!empty($user['phone_verified_at'])): ?>
+                                Verified via phone
+                            <?php elseif (!empty($user['email_verified'])): ?>
+                                Verified
+                            <?php else: ?>
+                                Not verified yet
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <?php if (!empty($user['email_verified'])): ?>
+                    <?php if (isUserVerified($user)): ?>
                         <span class="verified-badge">
                             <svg class="lock-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
@@ -156,12 +162,6 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                             </svg>
                             Verified
                         </span>
-                    <?php else: ?>
-                        <form method="post">
-                            <?= csrfField() ?>
-                            <input type="hidden" name="action" value="resend_verification">
-                            <button type="submit" class="btn secondary">Resend Verification Email</button>
-                        </form>
                     <?php endif; ?>
                 </div>
                 <p class="settings-sub" style="margin-top:1rem;">More security settings are coming soon.</p>
