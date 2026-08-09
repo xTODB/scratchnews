@@ -10,7 +10,7 @@ define('DB_PASS', '');
 define('ADMIN_USER', '');
 define('ADMIN_PASS_HASH', '');
 define('SITE_NAME', 'ScratchNews');
-define('SITE_VERSION', '0.18');
+define('SITE_VERSION', '0.19');
 define('BREVO_API_KEY', '');
 define('BREVO_SENDER_EMAIL', 'noreply@example.com');
 

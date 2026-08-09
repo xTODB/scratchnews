@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Aug9] v0.19 - You know it's good when ScratchNews blesses us with a new update 
     <p>[Aug6] v0.18 - 3 days of work, worth it! Image banners, @mentions and @mentions notifications in comments, "Collective Time" Admin Stat, revamped profile comments and clear URLs sitewide (no more .php)</p>
     <p>[Aug3] v0.17.1 - Fixed Submit Page, added images and save as draft (you can see it in My Articles)</p>
     <p>[Aug2] v0.17 - Pretty good update! Messages, Moderation Filter</p>
