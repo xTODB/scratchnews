@@ -991,6 +991,37 @@ function getArticleCountByUser(int $userId): int {
     return (int)$count;
 }
 
+// ---- About page: Contributions section ----
+function getFanUsers(): array {
+    $db = getDB();
+    $result = $db->query("SELECT id, username, avatar_url, bio FROM users WHERE is_fan = 1 AND is_banned = 0 ORDER BY username ASC");
+    if (!$result) return [];
+    $rows = [];
+    while ($row = $result->fetch_assoc()) $rows[] = $row;
+    return $rows;
+}
+
+function getFeaturedWriterUsers(): array {
+    $db = getDB();
+    // GROUP BY lists every non-aggregated selected column explicitly, since some MySQL
+    // configs (ONLY_FULL_GROUP_BY, common on shared hosts) reject grouping by u.id alone
+    // even though the other columns are functionally dependent on it. A rejected query
+    // makes $db->query() return false, which would otherwise fatal on fetch_assoc().
+    $result = $db->query(
+        "SELECT u.id, u.username, u.avatar_url, u.bio, COUNT(a.id) AS article_count
+         FROM users u
+         JOIN articles a ON a.user_id = u.id
+         WHERE u.is_banned = 0
+         GROUP BY u.id, u.username, u.avatar_url, u.bio
+         HAVING article_count >= 3
+         ORDER BY article_count DESC, u.username ASC"
+    );
+    if (!$result) return [];
+    $rows = [];
+    while ($row = $result->fetch_assoc()) $rows[] = $row;
+    return $rows;
+}
+
 function getArticlesByUser(int $userId): array {
     $db = getDB();
     $stmt = $db->prepare("SELECT * FROM articles WHERE user_id = ? ORDER BY created_at DESC");
