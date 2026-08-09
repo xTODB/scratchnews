@@ -42,7 +42,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= $user ? e($user['username']) : 'User Not Found' ?> - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=16">
+<link rel="stylesheet" href="/assets/style.css?v=17">
 <style>
 /* Page-scoped stopgap — fold into style.css once shared */
 .profile-banner { width:100%; height:200px; border-radius:10px; background:linear-gradient(135deg,#e8a33d,#d97b1f); margin:0.75rem 0; }

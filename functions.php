@@ -467,6 +467,9 @@ function getUserRankBadges($user): array {
         if (!$user) return [];
     }
     $badges = [];
+    if (!empty($user['is_admin'])) {
+        $badges[] = ['label' => 'Dev', 'class' => 'rank-dev'];
+    }
     $articleCount = getArticleCountByUser((int)$user['id']);
     if ($articleCount >= 3) {
         $badges[] = ['label' => 'Featured Writer', 'class' => 'rank-featured-writer'];
@@ -476,7 +479,7 @@ function getUserRankBadges($user): array {
     if (!empty($user['is_fan'])) {
         $badges[] = ['label' => 'Fan', 'class' => 'rank-fan'];
     }
-    if (!empty($user['is_moderator'])) {
+    if (empty($user['is_admin']) && !empty($user['is_moderator'])) {
         $badges[] = ['label' => 'Moderator', 'class' => 'rank-moderator'];
     }
     return $badges;

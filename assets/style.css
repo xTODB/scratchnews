@@ -751,3 +751,4 @@ body.dark .footer-copyright { border-top: 1px solid rgba(255,255,255,0.1); color
 .rank-badge.rank-featured-writer { background: #d97b1f; }
 .rank-badge.rank-fan { background: #d94f8c; }
 .rank-badge.rank-moderator { background: #3a6ea5; }
+.rank-badge.rank-dev { background: linear-gradient(135deg, #6a3fd9, #b23fd9); }
