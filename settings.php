@@ -16,6 +16,13 @@ if (!$user) {
 
 $message = '';
 
+$scratchTargetUser = getApiSetting('scratch_verify_target_user', '');
+$scratchProjectId = getApiSetting('scratch_verify_project_id', '');
+if (!isUserVerified($user) && empty($_SESSION['scratch_verify_code_settings'])) {
+    $_SESSION['scratch_verify_code_settings'] = generateScratchVerifyCode();
+}
+$scratchVerifyCode = $_SESSION['scratch_verify_code_settings'] ?? '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $action = $_POST['action'] ?? '';
@@ -164,6 +171,44 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                         </span>
                     <?php endif; ?>
                 </div>
+                <?php if (!isUserVerified($user)): ?>
+                <div style="margin-top:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Verify your account with Scratch</h3>
+                    <?= csrfField() ?>
+                    <div class="verify-row">
+                        <span class="verify-num">1</span>
+                        <div class="verify-body">
+                            Follow <strong>@<?= e($scratchTargetUser) ?></strong> on Scratch
+                            <div class="verify-code-row">
+                                <a class="btn secondary" href="https://scratch.mit.edu/users/<?= rawurlencode($scratchTargetUser) ?>/" target="_blank" rel="noopener">Visit Scratch profile</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="verify-row">
+                        <span class="verify-num">2</span>
+                        <div class="verify-body">
+                            Comment your code on the verification project
+                            <div class="verify-code-row">
+                                <a class="btn secondary" href="https://scratch.mit.edu/projects/<?= rawurlencode($scratchProjectId) ?>/" target="_blank" rel="noopener">Visit Scratch project</a>
+                            </div>
+                            <div class="verify-code-row">
+                                <span class="verify-code" id="settingsVerifyCode"><?= e($scratchVerifyCode) ?></span>
+                                <button type="button" class="verify-copy-btn" id="settingsVerifyCopyBtn">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="verify-row">
+                        <span class="verify-num">3</span>
+                        <div class="verify-body">
+                            Click "Verify"
+                            <div class="verify-code-row">
+                                <button type="button" class="btn" id="settingsVerifyBtn">Verify</button>
+                            </div>
+                            <div class="verify-status" id="settingsVerifyStatus"></div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <p class="settings-sub" style="margin-top:1rem;">More security settings are coming soon.</p>
             <?php endif; ?>
         </div>
@@ -175,6 +220,56 @@ document.addEventListener('click', function(e) {
     var menu = document.getElementById('userMenu');
     if (menu && !e.target.closest('.user-nav')) menu.classList.remove('open');
 });
+(function() {
+    var copyBtn = document.getElementById('settingsVerifyCopyBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            var code = document.getElementById('settingsVerifyCode').textContent;
+            navigator.clipboard.writeText(code).then(function() {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+            });
+        });
+    }
+    var verifyBtn = document.getElementById('settingsVerifyBtn');
+    if (verifyBtn) {
+        verifyBtn.addEventListener('click', function() {
+            var status = document.getElementById('settingsVerifyStatus');
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Checking...';
+            status.className = 'verify-status';
+            status.textContent = '';
+
+            var formData = new URLSearchParams();
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+            fetch('/verify-scratch-account.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+                if (data.success) {
+                    status.className = 'verify-status success';
+                    status.textContent = 'Verified as @' + data.username + '! Refreshing...';
+                    setTimeout(function() { location.reload(); }, 1200);
+                } else {
+                    status.className = 'verify-status error';
+                    status.textContent = data.error || 'Verification failed. Please try again.';
+                }
+            })
+            .catch(function() {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+                status.className = 'verify-status error';
+                status.textContent = 'Something went wrong. Please try again.';
+            });
+        });
+    }
+})();
 </script>
 </body>
 </html>

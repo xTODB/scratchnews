@@ -193,11 +193,12 @@ function createUser(string $username, ?string $email, string $password, ?string 
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $emailValue = ($email === '' ? null : $email);
     $verifiedAt = $scratchUsername !== null ? date('Y-m-d H:i:s') : null;
-    // Phone numbers are never auto-verified - an admin manually approves via /admin/move
-    // after contacting the person themselves. phone_verified_at stays NULL until then.
+    // Phone numbers verify instantly on signup (no admin review) - see roadmap history for
+    // why this changed from the original manual-approval design.
+    $phoneVerifiedAt = $phoneNumber !== null ? date('Y-m-d H:i:s') : null;
     try {
-        $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, scratch_username, scratch_verified_at, phone_number, phone_verified_at) VALUES (?, ?, ?, ?, ?, ?, NULL)");
-        $stmt->bind_param('ssssss', $username, $emailValue, $hash, $scratchUsername, $verifiedAt, $phoneNumber);
+        $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, scratch_username, scratch_verified_at, phone_number, phone_verified_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('sssssss', $username, $emailValue, $hash, $scratchUsername, $verifiedAt, $phoneNumber, $phoneVerifiedAt);
         $stmt->execute();
         $id = $db->insert_id;
         $stmt->close();
@@ -409,6 +410,17 @@ function unlinkScratchUsername(int $userId): ?string {
     $stmt->execute();
     $stmt->close();
     return $row['scratch_username'];
+}
+
+// Links a Scratch account to an already-registered, logged-in user (as opposed to the
+// registration-time flow in verify-scratch.php, which stores the pending username in
+// session until the account is created).
+function linkScratchToUser(int $userId, string $scratchUsername): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET scratch_username = ?, scratch_verified_at = NOW() WHERE id = ?");
+    $stmt->bind_param('si', $scratchUsername, $userId);
+    $stmt->execute();
+    $stmt->close();
 }
 
 // True if the user has verified through any real method: Scratch follow, phone, or a
@@ -1323,7 +1335,7 @@ function isUserBanned($userId) {
 
 function getAllUsers() {
     $db = getDB();
-    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, created_at, ip_address FROM users ORDER BY created_at DESC");
+    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, created_at, ip_address FROM users ORDER BY created_at DESC");
     $rows = [];
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;

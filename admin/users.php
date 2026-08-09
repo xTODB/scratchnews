@@ -49,7 +49,7 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                 <td><?= $u['email'] ? e($u['email']) : '-' ?></td>
                 <td><?= e($u['ip_address'] ?? '—') ?></td>
                 <td><?= $u['is_admin'] ? 'Yes' : '—' ?></td>
-                <td><?= $u['email'] ? ($u['email_verified'] ? 'Yes' : 'No') : '-' ?></td>
+                <td><?= isUserVerified($u) ? 'Yes' : 'No' ?></td>
                 <td><?= utcTimeTag($u['created_at']) ?></td>
                 <td><?= $u['is_banned'] ? '<span style="color:#a33; font-weight:600;">Banned</span>' : 'Active' ?></td>
                 <td class="actions" style="white-space:nowrap;">

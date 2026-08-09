@@ -206,8 +206,7 @@ body.dark .verify-code { background:#444; }
                 </div>
             </div>
             <p class="wizard-or-divider" style="text-align:left; margin:0.5rem 0 0;">
-                An admin will reach out to confirm this number. Your account will be created now, but commenting
-                and submitting articles will be disabled until then.
+                Your account will be verified instantly using this number.
             </p>
             <div class="wizard-nav-row">
                 <button type="button" class="btn secondary" data-prev>Previous</button>

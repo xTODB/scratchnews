@@ -3,13 +3,25 @@ require_once __DIR__ . '/functions.php';
 startSession();
 header('Content-Type: application/json');
 
+if (empty($_SESSION['reader_id'])) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'You must be logged in to verify.']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrf()) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Session expired. Please refresh the page and try again.']);
     exit;
 }
 
-$code = $_SESSION['scratch_verify_code'] ?? '';
+$user = getUserById((int)$_SESSION['reader_id']);
+if ($user && isUserVerified($user)) {
+    echo json_encode(['success' => false, 'error' => 'Your account is already verified.']);
+    exit;
+}
+
+$code = $_SESSION['scratch_verify_code_settings'] ?? '';
 if ($code === '') {
     echo json_encode(['success' => false, 'error' => 'No verification code found for this session. Please refresh the page.']);
     exit;
@@ -38,5 +50,6 @@ if (isScratchUsernameLinked($author)) {
     exit;
 }
 
-$_SESSION['scratch_verified_username'] = $author;
+linkScratchToUser((int)$_SESSION['reader_id'], $author);
+unset($_SESSION['scratch_verify_code_settings']);
 echo json_encode(['success' => true, 'username' => $author]);
