@@ -52,9 +52,15 @@ $notifications = getNotificationsForUser($user['id']);
             <?php foreach ($notifications as $n): ?>
                 <?php
                     $icon = NOTIFICATION_ICONS[$n['type']] ?? '/assets/icons/message.svg';
-                    $link = $n['link'] ?: '#';
+                    // If the notification points at an actor's profile (/@username) but that
+                    // actor's account has since been deleted, the link is stale and 404s.
+                    // Fall back to a non-navigating row instead of a broken link.
+                    $actorMissing = !empty($n['actor_id']) && empty($n['actor_username']);
+                    $isProfileLink = $n['link'] && str_starts_with($n['link'], '/@');
+                    $clickable = !($isProfileLink && $actorMissing);
+                    $link = $clickable ? ($n['link'] ?: '#') : '#';
                 ?>
-                <div class="message-row" onclick="location.href='<?= e($link) ?>'">
+                <div class="message-row"<?= $clickable ? ' onclick="location.href=\'' . e($link) . '\'"' : '' ?>>
                     <img src="<?= e($icon) ?>" class="message-row-icon" alt="">
                     <div>
                         <div><?= renderNotificationText($n) ?></div>

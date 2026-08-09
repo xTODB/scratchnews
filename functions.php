@@ -2346,7 +2346,16 @@ function markAllNotificationsRead(int $userId): void {
 }
 
 function renderNotificationText(array $n): string {
-    $actor = !empty($n['actor_username']) ? '<a href="/@' . e($n['actor_username']) . '"><strong>' . e($n['actor_username']) . '</strong></a>' : 'ScratchNews';
+    if (!empty($n['actor_username'])) {
+        $actor = '<a href="/@' . e($n['actor_username']) . '"><strong>' . e($n['actor_username']) . '</strong></a>';
+    } elseif (!empty($n['actor_id'])) {
+        // actor_id is set but the join found no matching user - the account was deleted
+        // since this notification was created. Don't fall back to 'ScratchNews', that's
+        // misleading (implies the system did it, not a since-deleted user).
+        $actor = 'a deleted account';
+    } else {
+        $actor = 'ScratchNews';
+    }
     switch ($n['type']) {
         case 'follow': return $actor . ' followed you';
         case 'article_comment': return $actor . ' commented on your article';
