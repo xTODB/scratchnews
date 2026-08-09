@@ -39,13 +39,13 @@ $categoryLabels = [
 .mod-word-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
 .mod-word-chip { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(128,128,128,0.15); border-radius: 999px; padding: 0.3rem 0.4rem 0.3rem 0.8rem; font-size: 0.85rem; }
 .mod-word-chip button {
-    background: rgba(0,0,0,0.15); border: none; border-radius: 50%;
+    background: transparent; border: none; border-radius: 50%;
     color: inherit; opacity: 0.7; cursor: pointer;
     width: 18px; height: 18px; min-width: 18px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 0.75rem; line-height: 1; padding: 0;
 }
-.mod-word-chip button:hover { opacity: 1; color: #c33; }
+.mod-word-chip button:hover { opacity: 1; color: #c33; background: rgba(0,0,0,0.15); }
 .mod-add-row { display: flex; gap: 0.5rem; }
 .mod-add-row input { flex: 1; }
 </style>
