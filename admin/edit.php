@@ -120,7 +120,7 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
     <button class="ql-link" title="Insert link">🔗</button>
     <button class="ql-image" title="Insert image">🖼️</button>
     <span style="float:right;">
-        <button type="button" id="copyContentBtn" class="editor-copy-icon-btn" title="Copy full article content to clipboard">
+        <button type="button" id="copyContentBtn" class="editor-copy-icon-btn" title="Copy selected text (with formatting) to clipboard">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
         </button>
         <button type="button" id="resetFormattingBtn" class="editor-copy-icon-btn" title="Strip all formatting back to plain text">
@@ -167,8 +167,15 @@ quill.getModule('toolbar').addHandler('image', function() {
 });
 document.getElementById('copyContentBtn').addEventListener('click', function() {
     var btn = this;
-    var html = quill.root.innerHTML;
-    var text = quill.getText();
+    var range = quill.getSelection();
+    var html, text;
+    if (range && range.length > 0) {
+        html = quill.getSemanticHTML(range.index, range.length);
+        text = quill.getText(range.index, range.length);
+    } else {
+        html = quill.root.innerHTML;
+        text = quill.getText();
+    }
     function showCopied() {
         var original = btn.title;
         btn.title = 'Copied!';

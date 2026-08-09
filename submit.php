@@ -143,6 +143,7 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2><?= $formDraftId > 0 ? 'Edit Draft' : 'Submit an Article' ?></h2>
+    <p><a href="/submission-guidelines">Read our submission guidelines</a> before submitting — it covers what gets approved and what doesn't.</p>
 
     <?php if (!$isVerified): ?>
         <div class="alert error">
@@ -211,12 +212,13 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
     <button class="ql-link" title="Insert link">🔗</button>
     <button class="ql-image" title="Insert image">🖼️</button>
     <span style="float:right;">
-        <button type="button" id="copyContentBtn" class="editor-copy-icon-btn" title="Copy full article content to clipboard">
+        <button type="button" id="copyContentBtn" class="editor-copy-icon-btn" title="Copy selected text (with formatting) to clipboard">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
         </button>
         <button type="button" id="resetFormattingBtn" class="editor-copy-icon-btn" title="Strip all formatting back to plain text">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
         </button>
+        <button type="button" id="toggleToolbarPos" title="Move formatting bar to bottom">⇕</button>
     </span>
 </div>
 <div id="editor-container"><?= $formContent ?></div>
@@ -265,8 +267,15 @@ quill.getModule('toolbar').addHandler('image', function() {
 });
 document.getElementById('copyContentBtn').addEventListener('click', function() {
     var btn = this;
-    var html = quill.root.innerHTML;
-    var text = quill.getText();
+    var range = quill.getSelection();
+    var html, text;
+    if (range && range.length > 0) {
+        html = quill.getSemanticHTML(range.index, range.length);
+        text = quill.getText(range.index, range.length);
+    } else {
+        html = quill.root.innerHTML;
+        text = quill.getText();
+    }
     function showCopied() {
         var original = btn.title;
         btn.title = 'Copied!';
@@ -291,6 +300,18 @@ document.getElementById('copyContentBtn').addEventListener('click', function() {
 document.getElementById('resetFormattingBtn').addEventListener('click', function() {
     if (!confirm('Remove all formatting from the article content? This clears bold, headings, colors, links, etc. and keeps plain text only.')) return;
     quill.setText(quill.getText());
+});
+document.getElementById('toggleToolbarPos').addEventListener('click', function() {
+    var wrap = document.getElementById('editorWrap');
+    var toolbar = document.getElementById('toolbar');
+    var editor = document.getElementById('editor-container');
+    if (toolbar.nextElementSibling === editor) {
+        wrap.appendChild(toolbar);
+        this.title = 'Move formatting bar to top';
+    } else {
+        wrap.insertBefore(toolbar, editor);
+        this.title = 'Move formatting bar to bottom';
+    }
 });
 
 // Cover image thumbnail preview
