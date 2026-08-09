@@ -55,11 +55,11 @@
 .nav-messages-link { position: relative; display: inline-flex; align-items: center; align-self: center; vertical-align: middle; margin: 0 1.5rem 0 0.75rem; }
 .nav-messages-link .icon-svg { width: 30px; height: 30px; vertical-align: middle; }
 .nav-messages-badge {
-    position: absolute; top: -6px; right: -8px;
+    position: absolute; top: -9px; right: -11px;
     background: #ff9c2b; color: #fff;
-    font-size: 0.65rem; font-weight: 700;
-    line-height: 1; padding: 2px 5px;
-    border-radius: 999px; min-width: 16px; text-align: center;
+    font-size: 0.8rem; font-weight: 700;
+    line-height: 1; padding: 3px 7px;
+    border-radius: 999px; min-width: 22px; text-align: center;
 }
 </style>
 </header>
