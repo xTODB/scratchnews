@@ -113,6 +113,9 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
         <button type="button" id="copyContentBtn" class="editor-copy-icon-btn" title="Copy full article content to clipboard">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
         </button>
+        <button type="button" id="resetFormattingBtn" class="editor-copy-icon-btn" title="Strip all formatting back to plain text">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </button>
         <button type="button" id="toggleToolbarPos" title="Move formatting bar to bottom">⇕</button>
     </span>
 </div>
@@ -155,14 +158,32 @@ quill.getModule('toolbar').addHandler('image', function() {
 });
 document.getElementById('copyContentBtn').addEventListener('click', function() {
     var btn = this;
-    navigator.clipboard.writeText(quill.root.innerText).then(function() {
+    var html = quill.root.innerHTML;
+    var text = quill.getText();
+    function showCopied() {
         var original = btn.title;
         btn.title = 'Copied!';
         btn.style.opacity = '1';
         setTimeout(function() { btn.title = original; }, 1200);
-    }).catch(function() {
-        alert('Could not copy. Select the editor text manually instead.');
-    });
+    }
+    function fallbackPlainText() {
+        navigator.clipboard.writeText(text).then(showCopied).catch(function() {
+            alert('Could not copy. Select the editor text manually instead.');
+        });
+    }
+    if (window.ClipboardItem) {
+        var item = new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([text], { type: 'text/plain' })
+        });
+        navigator.clipboard.write([item]).then(showCopied).catch(fallbackPlainText);
+    } else {
+        fallbackPlainText();
+    }
+});
+document.getElementById('resetFormattingBtn').addEventListener('click', function() {
+    if (!confirm('Remove all formatting from the article content? This clears bold, headings, colors, links, etc. and keeps plain text only.')) return;
+    quill.setText(quill.getText());
 });
 document.getElementById('toggleToolbarPos').addEventListener('click', function() {
     var wrap = document.getElementById('editorWrap');
