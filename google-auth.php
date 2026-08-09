@@ -39,6 +39,7 @@ updateUserIp($user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
 $_SESSION['reader_id'] = $user['id'];
 $_SESSION['reader_username'] = $user['username'];
 $_SESSION['is_admin'] = !empty($user['is_admin']);
+$_SESSION['is_moderator'] = !empty($user['is_moderator']);
 $_SESSION['dark_mode'] = $user['dark_mode'];
 
 $token = setRememberToken($user['id']);

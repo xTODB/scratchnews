@@ -55,6 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reade
         header('Location: /article/' . $article['id']);
         exit;
     }
+    if (($_POST['action'] ?? '') === 'admin_delete' && (!empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator']))) {
+        // Pre-existing bug fixed here: this button rendered in renderCommentThread() but had
+        // no server-side handler on article.php, so admin comment deletion silently did nothing.
+        $commentId = (int)($_POST['comment_id'] ?? 0);
+        if ($commentId > 0) adminDeleteComment($commentId);
+        header('Location: /article/' . $article['id']);
+        exit;
+    }
 }
 
 $comments = $article ? getCommentsForArticle($article['id']) : [];
@@ -89,7 +97,7 @@ if (!$article) {
 ]) ?>
 </script>
 <?php endif; ?>
-<link rel="stylesheet" href="/assets/style.css?v=3">
+<link rel="stylesheet" href="/assets/style.css?v=16">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>

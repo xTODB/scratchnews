@@ -5,6 +5,7 @@ require_once __DIR__ . '/auth.php';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $reportId = (int)($_POST['report_id'] ?? 0);
     $commentId = (int)($_POST['comment_id'] ?? 0);
     $action = $_POST['action'] ?? '';
@@ -47,12 +48,14 @@ $reports = getPendingReports();
                 </p>
                 <p><?= e($r['content']) ?></p>
                 <form method="post" style="display:inline;">
+                    <?= csrfField() ?>
                     <input type="hidden" name="report_id" value="<?= (int)$r['report_id'] ?>">
                     <input type="hidden" name="comment_id" value="<?= (int)$r['comment_id'] ?>">
                     <input type="hidden" name="action" value="delete">
                     <button class="btn" type="submit" style="background:#a33;" onclick="return confirm('Delete this comment? This also deletes its replies.');">Delete Comment</button>
                 </form>
                 <form method="post" style="display:inline;">
+                    <?= csrfField() ?>
                     <input type="hidden" name="report_id" value="<?= (int)$r['report_id'] ?>">
                     <input type="hidden" name="action" value="dismiss">
                     <button class="btn secondary" type="submit">Dismiss</button>

@@ -9,7 +9,7 @@ if (empty($_SESSION['reader_id'])) {
 requireCsrf();
 
 if (($_POST['action'] ?? '') === 'admin_delete') {
-    if (!empty($_SESSION['is_admin'])) {
+    if (!empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator'])) {
         adminDeleteProfileComment((int)($_POST['comment_id'] ?? 0));
     }
     header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/'));

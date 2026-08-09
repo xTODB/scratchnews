@@ -740,3 +740,14 @@ body.dark .footer-copyright { border-top: 1px solid rgba(255,255,255,0.1); color
     cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .promo-banner-close:hover { background: rgba(0,0,0,0.8); }
+/* v0.19 rank badges */
+.rank-badges { display: inline-flex; gap: 0.3rem; margin-left: 0.4rem; vertical-align: middle; }
+.rank-badge {
+    display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.02em;
+    padding: 0.12rem 0.5rem; border-radius: 999px; color: #fff; vertical-align: middle;
+    text-transform: uppercase;
+}
+.rank-badge.rank-writer { background: #6b8e4e; }
+.rank-badge.rank-featured-writer { background: #d97b1f; }
+.rank-badge.rank-fan { background: #d94f8c; }
+.rank-badge.rank-moderator { background: #3a6ea5; }

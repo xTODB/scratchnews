@@ -42,7 +42,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= $user ? e($user['username']) : 'User Not Found' ?> - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=16">
 <style>
 /* Page-scoped stopgap — fold into style.css once shared */
 .profile-banner { width:100%; height:200px; border-radius:10px; background:linear-gradient(135deg,#e8a33d,#d97b1f); margin:0.75rem 0; }
@@ -92,7 +92,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
             <div class="profile-avatar-fallback"><?= e(mb_strtoupper(mb_substr($user['username'], 0, 1))) ?></div>
         <?php endif; ?>
         <div>
-            <h2 style="margin-bottom:0;">@<?= e($user['username']) ?></h2>
+            <h2 style="margin-bottom:0;">@<?= e($user['username']) ?><?= renderRankBadges($user) ?></h2>
             <p class="meta" style="margin:0.2rem 0;">
                 Member since <?= date('M j, Y', strtotime($user['created_at'])) ?>
                 &middot; <?= (int)$followerCount ?> follower<?= $followerCount === 1 ? '' : 's' ?>

@@ -39,6 +39,8 @@
                 <a href="/my-articles">My Articles</a>
                 <?php if (!empty($_SESSION['is_admin'])): ?>
                 <a href="/admin/">Admin</a>
+                <?php elseif (!empty($_SESSION['is_moderator'])): ?>
+                <a href="/moderator">Moderator</a>
                 <?php endif; ?>
                 <a href="/settings">Settings</a>
                 <a href="/logout">Log Out</a>

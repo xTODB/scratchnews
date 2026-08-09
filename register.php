@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['reader_id'] = $result;
             $_SESSION['reader_username'] = $username;
             $_SESSION['is_admin'] = false;
+            $_SESSION['is_moderator'] = false;
             $_SESSION['dark_mode'] = $darkMode;
             header('Location: /?justregistered=1');
             exit;

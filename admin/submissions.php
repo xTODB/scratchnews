@@ -5,6 +5,7 @@ require_once __DIR__ . '/auth.php';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $submissionId = (int)($_POST['submission_id'] ?? 0);
     $action = $_POST['action'] ?? '';
 
@@ -48,11 +49,13 @@ $pending = getPendingSubmissions();
                 <div class="submission-content"><?= $sub['content'] /* already sanitized on submit */ ?></div>
 
                 <form method="post" style="display:inline;">
+                    <?= csrfField() ?>
                     <input type="hidden" name="submission_id" value="<?= (int)$sub['id'] ?>">
                     <input type="hidden" name="action" value="approve">
                     <button class="btn" type="submit">Approve</button>
                 </form>
                 <form method="post" style="display:inline;">
+                    <?= csrfField() ?>
                     <input type="hidden" name="submission_id" value="<?= (int)$sub['id'] ?>">
                     <input type="hidden" name="action" value="reject">
                     <button class="btn" type="submit" style="background:#a33;">Reject</button>

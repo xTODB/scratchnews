@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['reader_id'] = $user['id'];
     $_SESSION['reader_username'] = $user['username'];
     $_SESSION['is_admin'] = !empty($user['is_admin']);
+    $_SESSION['is_moderator'] = !empty($user['is_moderator']);
     $_SESSION['dark_mode'] = $user['dark_mode'];
     $token = setRememberToken($user['id']);
     setcookie('remember_me', $user['id'] . ':' . $token, [

@@ -20,6 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             anonymizeUser($userId);
             $message = 'User deleted and anonymized.';
         }
+    } elseif ($userId > 0 && in_array($action, ['make_fan', 'unmake_fan'])) {
+        setUserFan($userId, $action === 'make_fan');
+        $message = $action === 'make_fan' ? 'Fan rank granted.' : 'Fan rank removed.';
+    } elseif ($userId > 0 && in_array($action, ['make_moderator', 'unmake_moderator'])) {
+        setUserModerator($userId, $action === 'make_moderator');
+        $message = $action === 'make_moderator' ? 'Moderator rank granted.' : 'Moderator rank removed.';
     }
 }
 
@@ -42,7 +48,7 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
     <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
     <div style="overflow-x:auto;">
     <table style="width:auto;">
-        <tr><th>Username</th><th>Email</th><th>IP</th><th>Admin</th><th>Verified</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
+        <tr><th>Username</th><th>Email</th><th>IP</th><th>Admin</th><th>Verified</th><th>Ranks</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
         <?php foreach ($users as $u): ?>
             <tr>
                 <td><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a></td>
@@ -50,6 +56,34 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                 <td><?= e($u['ip_address'] ?? '—') ?></td>
                 <td><?= $u['is_admin'] ? 'Yes' : '—' ?></td>
                 <td><?= isUserVerified($u) ? 'Yes' : 'No' ?></td>
+                <td style="white-space:nowrap;">
+                    <?= renderRankBadges($u) ?: '<span style="opacity:0.5;">—</span>' ?>
+                    <div style="margin-top:0.3rem; font-size:0.8rem;">
+                        <a href="#" onclick="document.getElementById('<?= $u['is_fan'] ? 'unfan' : 'fan' ?><?= (int)$u['id'] ?>').submit(); return false;"><?= $u['is_fan'] ? 'Remove Fan' : 'Make Fan' ?></a>
+                        <form id="fan<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="make_fan">
+                        </form>
+                        <form id="unfan<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="unmake_fan">
+                        </form>
+                        &middot;
+                        <a href="#" onclick="document.getElementById('<?= $u['is_moderator'] ? 'unmod' : 'mod' ?><?= (int)$u['id'] ?>').submit(); return false;"><?= $u['is_moderator'] ? 'Remove Mod' : 'Make Mod' ?></a>
+                        <form id="mod<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="make_moderator">
+                        </form>
+                        <form id="unmod<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="unmake_moderator">
+                        </form>
+                    </div>
+                </td>
                 <td><?= utcTimeTag($u['created_at']) ?></td>
                 <td><?= $u['is_banned'] ? '<span style="color:#a33; font-weight:600;">Banned</span>' : 'Active' ?></td>
                 <td class="actions" style="white-space:nowrap;">

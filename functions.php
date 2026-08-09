@@ -431,6 +431,70 @@ function isUserVerified(array $user): bool {
         || (int)($user['email_verified'] ?? 0) === 1;
 }
 
+// ---- Ranks ----
+// Writer/Featured Writer are computed live from article count (no stored flag, so they
+// can never go stale relative to actual article authorship). Fan and Moderator are
+// stored flags granted manually by an admin (no Ko-fi webhook exists to automate Fan;
+// Moderator is a trust-based promotion, donation optional).
+function isModerator(array $user): bool {
+    return !empty($user['is_admin']) || !empty($user['is_moderator']);
+}
+
+function setUserFan(int $userId, bool $isFan): void {
+    $db = getDB();
+    $val = $isFan ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_fan = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function setUserModerator(int $userId, bool $isModerator): void {
+    $db = getDB();
+    $val = $isModerator ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_moderator = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Returns an ordered list of ['label' => string, 'class' => string] badges for a user.
+// Accepts either a full user row (preferred, avoids an extra query for is_fan/is_moderator)
+// or just a user id.
+function getUserRankBadges($user): array {
+    if (is_int($user)) {
+        $user = getUserById($user);
+        if (!$user) return [];
+    }
+    $badges = [];
+    $articleCount = getArticleCountByUser((int)$user['id']);
+    if ($articleCount >= 3) {
+        $badges[] = ['label' => 'Featured Writer', 'class' => 'rank-featured-writer'];
+    } elseif ($articleCount >= 1) {
+        $badges[] = ['label' => 'Writer', 'class' => 'rank-writer'];
+    }
+    if (!empty($user['is_fan'])) {
+        $badges[] = ['label' => 'Fan', 'class' => 'rank-fan'];
+    }
+    if (!empty($user['is_moderator'])) {
+        $badges[] = ['label' => 'Moderator', 'class' => 'rank-moderator'];
+    }
+    return $badges;
+}
+
+// Renders badges as inline HTML spans. Pass a full user row when you already have one
+// (comment lists, profile) to avoid an extra getUserById() lookup per call.
+function renderRankBadges($user): string {
+    $badges = getUserRankBadges($user);
+    if (empty($badges)) return '';
+    $html = '<span class="rank-badges">';
+    foreach ($badges as $b) {
+        $html .= '<span class="rank-badge ' . e($b['class']) . '">' . e($b['label']) . '</span>';
+    }
+    $html .= '</span>';
+    return $html;
+}
+
 // Admin override: marks a user verified directly (sets the same email_verified flag that
 // submit.php already accepts as one of three valid verification paths), bypassing Scratch
 // or phone verification entirely. Returns false if no user with that username exists.
@@ -611,6 +675,7 @@ function startSession(): void {
                 $_SESSION['reader_id'] = $user['id'];
                 $_SESSION['reader_username'] = $user['username'];
                 $_SESSION['is_admin'] = !empty($user['is_admin']);
+                $_SESSION['is_moderator'] = !empty($user['is_moderator']);
                 $_SESSION['dark_mode'] = $user['dark_mode'];
                 $newToken = setRememberToken($user['id']);
                 setcookie('remember_me', $user['id'] . ':' . $newToken, [
@@ -736,6 +801,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
     $indent = min($depth * 24, 96); // cap indentation so deep threads don't run off-screen
     $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
     $html .= '<strong><a href="/@' . e($comment['username']) . '">' . e($comment['username']) . '</a></strong>';
+    $html .= renderRankBadges((int)$comment['user_id']);
     $html .= ' <span class="meta">' . utcTimeTag($comment['created_at'], 'datetime') . '</span>';
     $html .= '<p>' . linkifyMentions(e($comment['content'])) . '</p>';
 
@@ -751,7 +817,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
         $html .= '</form>';
     }
 
-    if (!empty($_SESSION['is_admin'])) {
+    if (!empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator'])) {
         $html .= ' <form method="post" class="report-form" onsubmit="return confirm(\'Delete this comment?\');">';
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="admin_delete">';
@@ -1335,7 +1401,7 @@ function isUserBanned($userId) {
 
 function getAllUsers() {
     $db = getDB();
-    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, created_at, ip_address FROM users ORDER BY created_at DESC");
+    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, created_at, ip_address FROM users ORDER BY created_at DESC");
     $rows = [];
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;
@@ -1533,6 +1599,7 @@ function impersonateUser(int $adminId, int $targetUserId): bool {
     $_SESSION['reader_id'] = $target['id'];
     $_SESSION['reader_username'] = $target['username'];
     $_SESSION['is_admin'] = (bool)$target['is_admin'];
+    $_SESSION['is_moderator'] = !empty($target['is_moderator']);
     $_SESSION['dark_mode'] = (bool)$target['dark_mode'];
     return true;
 }
@@ -1551,6 +1618,7 @@ function stopImpersonation(): bool {
     $_SESSION['reader_id'] = $admin['id'];
     $_SESSION['reader_username'] = $admin['username'];
     $_SESSION['is_admin'] = (bool)$admin['is_admin'];
+    $_SESSION['is_moderator'] = !empty($admin['is_moderator']);
     $_SESSION['dark_mode'] = (bool)$admin['dark_mode'];
     unset($_SESSION['impersonator_admin_id'], $_SESSION['impersonator_admin_username']);
     return true;
@@ -2034,10 +2102,11 @@ function renderProfileCommentThread(array $comment, bool $canReply, int $profile
     $avatar = $comment['author_avatar'] ?? null;
     $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
     $html .= '<a href="/@' . e($comment['author_username']) . '"><strong>@' . e($comment['author_username']) . '</strong></a>';
+    $html .= renderRankBadges((int)$comment['author_id']);
     $html .= ' <span class="meta">' . date('M j, Y g:i A', strtotime($comment['created_at'])) . '</span>';
     $html .= '<p>' . linkifyMentions(e($comment['content'])) . '</p>';
 
-    if (!empty($_SESSION['is_admin'])) {
+    if (!empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator'])) {
         $html .= '<form method="post" action="/profile-comment" class="report-form" onsubmit="return confirm(\'Delete this comment?\');">';
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="admin_delete">';

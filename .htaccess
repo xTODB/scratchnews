@@ -39,6 +39,7 @@ RewriteRule ^settings/?$ settings.php [L,QSA]
 RewriteRule ^google-auth/?$ google-auth.php [L,QSA]
 RewriteRule ^upload-image/?$ upload-image.php [L,QSA]
 RewriteRule ^messages/?$ messages.php [L,QSA]
+RewriteRule ^moderator/?$ moderator.php [L,QSA]
 
 # Clean URLs: admin/ nested pages. Same explicit-hardcoded pattern as above
 # (dynamic -f checks are unreliable on InfinityFree and caused 500s).
