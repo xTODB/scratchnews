@@ -16,7 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
-    <p>[Aug9] v0.19 - You know it's good when ScratchNews blesses us with a new update 
+    <p>[Aug9] v0.19 - You know it's good when TODB blesses us with a new update 🌹 this took soo long. Follower auth, changed banner from multiple banners all at once to random, FINALLY FIXED USER ID BUG, fixed copy glitch not copying formatting and making it both select and unselect, default (reload icon) in article toolbar, resets selected text to its normal form, article submission guidelines, ranks "Writer" (1 article) "Featured Writer" (3 articles) "Fan" (donate) "Moderator" (ScratchNews moderators) "Dev" (well, me), updated about page with image, featured writers and fans section in it. Wow.</p>
     <p>[Aug6] v0.18 - 3 days of work, worth it! Image banners, @mentions and @mentions notifications in comments, "Collective Time" Admin Stat, revamped profile comments and clear URLs sitewide (no more .php)</p>
     <p>[Aug3] v0.17.1 - Fixed Submit Page, added images and save as draft (you can see it in My Articles)</p>
     <p>[Aug2] v0.17 - Pretty good update! Messages, Moderation Filter</p>
@@ -25,7 +25,7 @@ startSession();
     <p>[Jul30] v0.15.2 - Added Fallback API</p>
     <p>v0.15.1 - Session tracking for "Time On Site", exclude/delete/flag sessions</p>
     <p>[Jul29] v0.15 - Changed API IP Allow to API Key Allow, everyone gets free 30 a minute API requests. Added views and article-to-user tying for admins.</p>
-    <p>[Jul27/28] v0.14.2 - Added Discord ScratchNews Bot</p>
+    <p>[Jul27/28] v0.14.2 - ScratchNews Bot</p>
     <p>[Jul27] v0.14.1 - Added Read-only API</p>
     <p>v0.14 - Like v0.14 Preview but with bug fixes, removed search icon cuz it made bugs on mobile</p>
     <p>[Jul26] v0.14 Preview - To congratulate hitting 15 users... HUGE update! Explore page, filter in Explore page, categories, and email subscription!<br>Submit Article and Explore buttons added!<br>We know that there still are some bugs (like search icon in wrong position for mobile, explore text looking weird). We promise to fix them today!! Stay tuned and check ScratchNews every now and then to see new updates.</p>
