@@ -10,7 +10,8 @@ define('DB_PASS', '');
 define('ADMIN_USER', '');
 define('ADMIN_PASS_HASH', '');
 define('SITE_NAME', 'ScratchNews');
-define('SITE_VERSION', '0.19');
+// SITE_VERSION lives in version.php now, not here - tracked in the repo so it can be
+// bumped with a normal git push instead of an InfinityFree File Manager edit.
 define('BREVO_API_KEY', '');
 define('BREVO_SENDER_EMAIL', 'noreply@example.com');
 

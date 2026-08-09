@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/version.php';
 
 function getAllArticles(bool $includeDrafts = false): array {
     $db = getDB();
