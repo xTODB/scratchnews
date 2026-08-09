@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>0.19.1 - Super duper tiny, made message number and orange margin bigger and fixed moderation words margin in admin</p>
     <p>[Aug9] v0.19 - You know it's good when TODB blesses us with a new update 🌹 this took soo long. Follower auth, changed banner from multiple banners all at once to random, FINALLY FIXED USER ID BUG, fixed copy glitch not copying formatting and making it both select and unselect, default (reload icon) in article toolbar, resets selected text to its normal form, article submission guidelines, ranks "Writer" (1 article) "Featured Writer" (3 articles) "Fan" (donate) "Moderator" (ScratchNews moderators) "Dev" (well, me), updated about page with image, featured writers and fans section in it. Wow.</p>
     <p>[Aug6] v0.18 - 3 days of work, worth it! Image banners, @mentions and @mentions notifications in comments, "Collective Time" Admin Stat, revamped profile comments and clear URLs sitewide (no more .php)</p>
     <p>[Aug3] v0.17.1 - Fixed Submit Page, added images and save as draft (you can see it in My Articles)</p>
