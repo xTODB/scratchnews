@@ -46,6 +46,7 @@ $categoryLabels = [
     font-size: 0.75rem; line-height: 1; padding: 0;
 }
 .mod-word-chip button:hover { opacity: 1; color: #c33; background: rgba(0,0,0,0.15); }
+.mod-word-chip-form { display: inline; background: none; padding: 0; box-shadow: none; max-width: none; margin: 0; }
 .mod-add-row { display: flex; gap: 0.5rem; }
 .mod-add-row input { flex: 1; }
 </style>
@@ -63,7 +64,7 @@ $categoryLabels = [
                 <?php foreach ($grouped[$cat] as $w): ?>
                     <span class="mod-word-chip">
                         <?= e($w['word']) ?>
-                        <form method="post" style="display:inline;">
+                        <form method="post" class="mod-word-chip-form">
                             <?= csrfField() ?>
                             <input type="hidden" name="action" value="remove">
                             <input type="hidden" name="id" value="<?= (int)$w['id'] ?>">
