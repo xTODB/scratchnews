@@ -208,9 +208,8 @@ html {
     padding: 0;
     box-shadow: none;
     max-width: none;
-    flex: 1 1 340px;
-    justify-content: center;
-    margin: 0 1rem;
+    flex: 0 1 340px;
+    margin: 0 auto;
     min-width: 0;
 }
 .search-form input[type="text"] {
