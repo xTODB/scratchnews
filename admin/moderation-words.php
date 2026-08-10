@@ -33,7 +33,7 @@ $categoryLabels = [
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Moderation Words - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .mod-category { margin-bottom: 2rem; }
 .mod-word-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }

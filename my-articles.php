@@ -36,7 +36,7 @@ if ($view === 'drafts') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>My Articles - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .my-articles-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .my-articles-tab { padding: 0.6rem 1.2rem; border-radius: 6px; text-decoration: none; color: inherit; border: 1px solid rgba(128,128,128,0.3); font-weight: 600; }
@@ -107,7 +107,7 @@ if ($view === 'drafts') {
                         <div class="search-result-body">
                             <div>
                                 <div class="search-result-title"><?= e($a['title']) ?></div>
-                                <div class="meta">By <?= e($a['author']) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
+                                <div class="meta">By <?= renderArticleByline($a) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
                                 <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                             </div>
                             <div class="search-result-stats">

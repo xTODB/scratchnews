@@ -123,7 +123,7 @@ $formDraftId = (int)($draft['id'] ?? 0);
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Submit an Article - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
 <style>
 .cover-preview-wrap { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }

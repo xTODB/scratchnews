@@ -56,7 +56,7 @@ $banners = getAllBanners();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Banners - Admin - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .banner-admin-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
 .banner-admin-row { display: flex; gap: 1rem; align-items: flex-start; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 1rem; }

@@ -24,7 +24,7 @@ $notifications = getNotificationsForUser($user['id']);
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Messages - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .messages-page { max-width: 700px; margin: 0 auto; }
 .messages-empty { opacity: 0.7; padding: 2rem 0; text-align: center; }

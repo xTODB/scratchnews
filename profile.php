@@ -42,7 +42,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= $user ? e($user['username']) : 'User Not Found' ?> - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 /* Page-scoped stopgap — fold into style.css once shared */
 .profile-banner { width:100%; height:200px; border-radius:10px; background:linear-gradient(135deg,#e8a33d,#d97b1f); margin:0.75rem 0; }
@@ -193,7 +193,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
                         <div class="search-result-body">
                             <div>
                                 <div class="search-result-title"><?= e($a['title']) ?></div>
-                                <div class="meta">By <?= e($a['author']) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
+                                <div class="meta">By <?= renderArticleByline($a) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
                                 <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                             </div>
                             <div class="search-result-stats">

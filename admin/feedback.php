@@ -20,7 +20,7 @@ markAllFeedbackRead();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Feedback - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .feedback-row { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 0.9rem; border: 1px solid rgba(128,128,128,0.2); border-radius: 8px; margin-bottom: 0.5rem; }
 .feedback-row.unread { border-color: #e8a33d; }

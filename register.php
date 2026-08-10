@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Sign Up - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .google-signin-row { display:flex; justify-content:center; margin-bottom:1rem; }
 .wizard-or-divider { text-align:center; color:#888; margin:0.75rem 0; font-size:0.85rem; }

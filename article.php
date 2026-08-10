@@ -97,7 +97,7 @@ if (!$article) {
 ]) ?>
 </script>
 <?php endif; ?>
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -120,7 +120,7 @@ if (!$article) {
                 <img src="<?= e($article['image_url']) ?>" alt="" class="article-cover-image" style="max-width:100%;height:auto;">
             <?php endif; ?>
             <div class="meta">
-                By <?= e($article['author']) ?> ·
+                By <?= renderArticleByline($article) ?> ·
                 Published <?= utcTimeTag($article['created_at']) ?>
                 <?php if ($article['updated_at'] !== $article['created_at']): ?>
                     · Updated <?= utcTimeTag($article['updated_at']) ?>

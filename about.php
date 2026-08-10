@@ -12,7 +12,7 @@ $fans = getFanUsers();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>About - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .about-hero { width:100%; height:auto; max-height:500px; object-fit:contain; border-radius:10px; margin:1rem 0 1.5rem; display:block; }
 .contributor-grid { display:flex; flex-wrap:wrap; gap:1rem; margin:1rem 0 2rem; }

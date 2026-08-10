@@ -499,6 +499,19 @@ function renderRankBadges($user): string {
     return $html;
 }
 
+// Renders the article byline author name, linked to their profile when the article is
+// attributed to an existing user account. Falls back to plain text for guest bylines
+// (no user_id) or if the attributed account was since deleted.
+function renderArticleByline(array $article): string {
+    if (!empty($article['user_id'])) {
+        $authorUser = getUserById((int)$article['user_id']);
+        if ($authorUser) {
+            return '<a href="/@' . e($authorUser['username']) . '">' . e($article['author']) . '</a>';
+        }
+    }
+    return e($article['author']);
+}
+
 // Admin override: marks a user verified directly (sets the same email_verified flag that
 // submit.php already accepts as one of three valid verification paths), bypassing Scratch
 // or phone verification entirely. Returns false if no user with that username exists.
@@ -708,7 +721,7 @@ function setDarkModePreference(int $userId, bool $enabled): void {
 // ---- Comments ----
 function getCommentsForArticle(int $articleId): array {
     $db = getDB();
-    $stmt = $db->prepare("SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE article_id = ? ORDER BY comments.created_at ASC");
+    $stmt = $db->prepare("SELECT comments.*, users.username, users.avatar_url FROM comments JOIN users ON comments.user_id = users.id WHERE article_id = ? ORDER BY comments.created_at ASC");
     $stmt->bind_param('i', $articleId);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -801,12 +814,25 @@ function notifyMentions(string $content, int $actorId, string $link, array $excl
     }
 }
 
+// Renders a small round avatar for comment authors, falling back to a
+// first-letter placeholder (matching the pattern used in header.php/profile.php)
+// when no avatar_url is set.
+function renderCommentAvatar(?string $avatarUrl, string $username): string {
+    if ($avatarUrl) {
+        return '<img src="' . e($avatarUrl) . '" alt="" class="comment-avatar">';
+    }
+    return '<span class="comment-avatar comment-avatar-placeholder">' . e(mb_strtoupper(mb_substr($username, 0, 1))) . '</span>';
+}
+
 function renderCommentThread(array $comment, bool $canReply, int $depth = 0, bool $canReport = false): string {
     $indent = min($depth * 24, 96); // cap indentation so deep threads don't run off-screen
     $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
+    $html .= '<div class="comment-header">';
+    $html .= renderCommentAvatar($comment['avatar_url'] ?? null, $comment['username']);
     $html .= '<strong><a href="/@' . e($comment['username']) . '">' . e($comment['username']) . '</a></strong>';
     $html .= renderRankBadges((int)$comment['user_id']);
     $html .= ' <span class="meta">' . utcTimeTag($comment['created_at'], 'datetime') . '</span>';
+    $html .= '</div>';
     $html .= '<p>' . linkifyMentions(e($comment['content'])) . '</p>';
 
     if ($canReply) {
@@ -2136,9 +2162,12 @@ function renderProfileCommentThread(array $comment, bool $canReply, int $profile
     $indent = min($depth * 24, 96);
     $avatar = $comment['author_avatar'] ?? null;
     $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
+    $html .= '<div class="comment-header">';
+    $html .= renderCommentAvatar($avatar, $comment['author_username']);
     $html .= '<a href="/@' . e($comment['author_username']) . '"><strong>@' . e($comment['author_username']) . '</strong></a>';
     $html .= renderRankBadges((int)$comment['author_id']);
     $html .= ' <span class="meta">' . date('M j, Y g:i A', strtotime($comment['created_at'])) . '</span>';
+    $html .= '</div>';
     $html .= '<p>' . linkifyMentions(e($comment['content'])) . '</p>';
 
     if (!empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator'])) {
@@ -2284,7 +2313,7 @@ const NOTIFICATION_ICONS = [
     'article_saved'          => '/assets/icons/save.svg',
     'article_approved'       => '/assets/icons/article_approved.svg',
     'article_rejected'       => '/assets/icons/article_rejected.svg',
-    'followed_user_article'  => '/assets/icons/new_article.svg',
+    'followed_user_article'  => '/assets/icons/article_inbox.svg',
     'account_banned'         => '/assets/icons/ban.svg',
     'comment_deleted'        => '/assets/icons/comment_delete.svg',
     'admin_new_account'      => '/assets/icons/message.svg',

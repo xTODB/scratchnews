@@ -63,7 +63,7 @@ $usernameCooldown = canChangeUsername($user);
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Settings - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <style>
 .settings-layout { display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap; }
 .settings-tabs { display: flex; flex-direction: column; gap: 0.5rem; min-width: 180px; }
