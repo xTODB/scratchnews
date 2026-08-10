@@ -21,34 +21,45 @@ $googleId = $payload['sub'];
 $email = $payload['email'] ?? '';
 $name = $payload['name'] ?? '';
 
-$user = findOrCreateGoogleUser($googleId, $email, $name);
-if (!$user) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Could not create your account. Please try again.']);
+$user = getUserByGoogleIdOrEmail($googleId, $email);
+
+if ($user) {
+    // Returning account - log straight in, same as before.
+    if ($user['google_id'] !== $googleId) {
+        linkGoogleIdToUser($user['id'], $googleId);
+    }
+
+    if (isUserBanned($user['id'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'This account is restricted.']);
+        exit;
+    }
+
+    updateUserIp($user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
+
+    $_SESSION['reader_id'] = $user['id'];
+    $_SESSION['reader_username'] = $user['username'];
+    $_SESSION['is_admin'] = !empty($user['is_admin']);
+    $_SESSION['is_moderator'] = !empty($user['is_moderator']);
+    $_SESSION['dark_mode'] = $user['dark_mode'];
+
+    $token = setRememberToken($user['id']);
+    setcookie('remember_me', $user['id'] . ':' . $token, [
+        'expires' => time() + 60 * 60 * 24 * 30,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
+    echo json_encode(['redirect' => !empty($user['is_admin']) ? '/admin/' : '/']);
     exit;
 }
 
-if (isUserBanned($user['id'])) {
-    http_response_code(403);
-    echo json_encode(['error' => 'This account is restricted.']);
-    exit;
-}
-
-updateUserIp($user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
-
-$_SESSION['reader_id'] = $user['id'];
-$_SESSION['reader_username'] = $user['username'];
-$_SESSION['is_admin'] = !empty($user['is_admin']);
-$_SESSION['is_moderator'] = !empty($user['is_moderator']);
-$_SESSION['dark_mode'] = $user['dark_mode'];
-
-$token = setRememberToken($user['id']);
-setcookie('remember_me', $user['id'] . ':' . $token, [
-    'expires' => time() + 60 * 60 * 24 * 30,
-    'path' => '/',
-    'secure' => true,
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
-
-echo json_encode(['redirect' => !empty($user['is_admin']) ? '/admin/' : '/']);
+// No matching account: this is a brand new signup. Google sign-in no longer acts as
+// a replacement for follower/phone verification - stash the verified Google identity
+// in the session and send the person to /register to complete the same Scratch-follow
+// or phone verification a username/password signup requires. Account creation happens
+// in register.php's Finish handler once that's done (see $googlePending there).
+$_SESSION['google_pending'] = ['google_id' => $googleId, 'email' => $email, 'name' => $name];
+echo json_encode(['newSignup' => true]);

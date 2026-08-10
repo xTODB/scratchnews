@@ -82,6 +82,7 @@ function handleGoogleCredential(response) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.redirect) { window.location.href = data.redirect; }
+        else if (data.newSignup) { window.location.href = '/register'; }
         else { alert(data.error || 'Google sign-in failed.'); }
     })
     .catch(function() { alert('Google sign-in failed. Please try again.'); });

@@ -15,14 +15,20 @@ if (!$isSuspiciousIp && empty($_SESSION['scratch_verify_code'])) {
 }
 $scratchVerifyCode = $_SESSION['scratch_verify_code'] ?? '';
 
+// A verified-but-not-yet-created Google identity, stashed by google-auth.php when
+// someone signs up with Google for the first time. They still have to complete the
+// same Scratch-follow or phone verification below before the account is created.
+$googlePending = $_SESSION['google_pending'] ?? null;
+$suggestedUsername = $googlePending ? suggestUsernameFromName($googlePending['name'] ?? '') : '';
+
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
     $ip = $registerIp;
     $username = trim($_POST['username'] ?? '');
-    $email = null;
-    $password = $_POST['password'] ?? '';
+    $email = $googlePending && ($googlePending['email'] ?? '') !== '' ? $googlePending['email'] : null;
+    $password = $googlePending ? bin2hex(random_bytes(16)) : ($_POST['password'] ?? '');
     $honeypot = trim($_POST['website'] ?? '');
     $bio = trim($_POST['bio'] ?? '');
     if (mb_strlen($bio) > 500) $bio = mb_substr($bio, 0, 500);
@@ -36,11 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } elseif (tooManySignupAttempts($ip)) {
         $error = 'Too many signup attempts from your network. Please try again later.';
-    } elseif ($username === '' || $password === '') {
+    } elseif ($username === '' || (!$googlePending && $password === '')) {
         $error = 'Username and password are required.';
     } elseif (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $username)) {
         $error = 'Username must be 3-20 characters and can only contain letters, numbers, and underscores.';
-    } elseif (strlen($password) < 6) {
+    } elseif (!$googlePending && strlen($password) < 6) {
         $error = 'Password must be at least 6 characters.';
     } elseif ($isSuspiciousIp && ($phoneNumber === null || !preg_match('/^\+[1-9]\d{6,14}$/', $phoneNumber))) {
         $error = 'Please enter a valid phone number including country code (e.g. +12345678900).';
@@ -72,6 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             updateUserIp($result, $ip);
 
             unset($_SESSION['scratch_verify_code'], $_SESSION['scratch_verified_username']);
+
+            if ($googlePending) {
+                linkGoogleIdToUser($result, $googlePending['google_id']);
+                unset($_SESSION['google_pending']);
+            }
 
             $_SESSION['reader_id'] = $result;
             $_SESSION['reader_username'] = $username;
@@ -150,6 +161,9 @@ body.dark .verify-code { background:#444; }
 
         <section class="wizard-step active" data-step="1">
             <h2>Create an account in 3 steps</h2>
+            <?php if ($googlePending): ?>
+            <div class="alert success">Signed in with Google<?= $googlePending['email'] ? ' as ' . e($googlePending['email']) : '' ?>. Pick a username, then finish verification below to create your account.</div>
+            <?php else: ?>
             <div class="google-signin-row">
                 <div id="g_id_onload"
                      data-client_id="<?= e(GOOGLE_CLIENT_ID) ?>"
@@ -158,11 +172,14 @@ body.dark .verify-code { background:#444; }
                 <div class="g_id_signin" data-type="standard" data-size="large" data-width="300"></div>
             </div>
             <p class="wizard-or-divider">— or sign up with a username and password —</p>
+            <?php endif; ?>
             <h3>Step 1: Basics</h3>
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" value="<?= e($_POST['username'] ?? '') ?>" required>
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required minlength="6">
+            <input type="text" id="username" name="username" value="<?= e($_POST['username'] ?? $suggestedUsername) ?>" required>
+            <div id="passwordField" <?= $googlePending ? 'style="display:none;"' : '' ?>>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" <?= $googlePending ? '' : 'required minlength="6"' ?>>
+            </div>
             <div class="wizard-nav-row">
                 <button type="button" class="btn" data-next>Next</button>
             </div>
@@ -268,6 +285,7 @@ function handleGoogleCredential(response) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.redirect) { window.location.href = data.redirect; }
+        else if (data.newSignup) { window.location.reload(); }
         else { alert(data.error || 'Google sign-in failed.'); }
     })
     .catch(function() { alert('Google sign-in failed. Please try again.'); });
@@ -275,6 +293,7 @@ function handleGoogleCredential(response) {
 </script>
 <script>
 (function() {
+    var googlePending = <?= $googlePending ? 'true' : 'false' ?>;
     var steps = Array.prototype.slice.call(document.querySelectorAll('.wizard-step'));
     var fill = document.getElementById('wizardFill');
     var label = document.getElementById('wizardLabel');
@@ -292,7 +311,7 @@ function handleGoogleCredential(response) {
         var username = document.getElementById('username');
         var password = document.getElementById('password');
         if (!/^[A-Za-z0-9_]{3,20}$/.test(username.value)) { alert('Username must be 3-20 characters (letters, numbers, underscores only).'); return false; }
-        if (password.value.length < 6) { alert('Password must be at least 6 characters.'); return false; }
+        if (!googlePending && password.value.length < 6) { alert('Password must be at least 6 characters.'); return false; }
         return true;
     }
 

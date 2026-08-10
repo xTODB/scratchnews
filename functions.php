@@ -540,6 +540,26 @@ function verifyGoogleIdToken(string $idToken): ?array {
     return $payload;
 }
 
+// Suggests an available username derived from a display name (e.g. a Google account's
+// name), for prefilling the signup form. Does not reserve or create anything.
+function suggestUsernameFromName(string $name): string {
+    $base = $name !== '' ? preg_replace('/[^A-Za-z0-9_]/', '', $name) : 'user';
+    if ($base === '') $base = 'user';
+    $base = mb_substr($base, 0, 15);
+    $username = $base;
+    $suffix = 0;
+    while (getUserByUsername($username)) {
+        $suffix++;
+        $username = mb_substr($base, 0, 15 - strlen((string)$suffix)) . $suffix;
+    }
+    return $username;
+}
+
+// SUPERSEDED as of v0.2.1: Google sign-up used to call this to create-and-log-in an
+// account immediately, which let it skip follower/phone verification entirely. That
+// path now goes through google-auth.php (login-only for existing accounts) + the
+// register.php wizard (verification-gated account creation for new ones). Left in
+// place in case it's useful again, but nothing currently calls it.
 function findOrCreateGoogleUser(string $googleId, string $email, string $name): ?array {
     $db = getDB();
 
@@ -586,6 +606,41 @@ function findOrCreateGoogleUser(string $googleId, string $email, string $name): 
     $stmt->close();
 
     return getUserById($newId);
+}
+
+// Looks up an existing account by Google ID or, failing that, by the email Google
+// returned - without creating anything. Used to tell a returning Google sign-in
+// (log straight in) apart from a brand new one (must complete the same follower/phone
+// verification a manual signup requires - see google-auth.php and register.php).
+function getUserByGoogleIdOrEmail(string $googleId, string $email): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM users WHERE google_id = ?");
+    $stmt->bind_param('s', $googleId);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($user) return $user;
+
+    if ($email !== '') {
+        $stmt = $db->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->bind_param('s', $email);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($user) return $user;
+    }
+    return null;
+}
+
+// Links a verified Google identity to a user after they've completed the same
+// verification a manual signup requires. Also marks email_verified since Google
+// already confirmed the address.
+function linkGoogleIdToUser(int $userId, string $googleId): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET google_id = ?, email_verified = 1 WHERE id = ?");
+    $stmt->bind_param('si', $googleId, $userId);
+    $stmt->execute();
+    $stmt->close();
 }
 
 // ---- Remember Me ----
