@@ -42,7 +42,7 @@ body.dark .download-card { border-color:#444; }
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Download ScratchNews Desktop</h2>
-    <p>A desktop app for ScratchNews — same site, its own window, its own icon in your taskbar or dock. Whatever changes on the site shows up here automatically; there's nothing extra to update.</p>
+    <p>A desktop app for ScratchNews: same site, its own window, its own icon in your taskbar or dock. Whatever changes on the site shows up here automatically; there's nothing extra to update.</p>
 
     <div class="download-grid">
         <div class="download-card">
@@ -61,10 +61,10 @@ body.dark .download-card { border-color:#444; }
 
     <div class="warning-box">
         <h4>Seeing a security warning?</h4>
-        <p>That's expected, not a virus — the app just isn't code-signed (that costs money we haven't spent, since we're a small free project). On Windows, click <strong>"More info"</strong> then <strong>"Run anyway."</strong> On Mac, right-click the app and choose <strong>"Open"</strong> once. After that first time, it opens normally.</p>
+        <p>That's expected, not a virus:  the app just isn't code-signed (that costs money we haven't spent, since we're a small free project). On Windows, click <strong>"More info"</strong> then <strong>"Run anyway."</strong> On Mac, right-click the app and choose <strong>"Open"</strong> once. After that first time, it opens normally.</p>
     </div>
 
-    <p class="download-note">Prefer not to install anything? <a href="/">ScratchNews</a> works exactly the same right in your browser — the desktop app is just a shortcut, not a separate experience.</p>
+    <p class="download-note">Prefer not to install anything? <a href="/">ScratchNews</a> works exactly the same right in your browser: the desktop app is just a shortcut, not a separate experience.</p>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
