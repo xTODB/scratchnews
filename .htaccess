@@ -21,6 +21,7 @@ RewriteRule ^explore/?$ explore.php [L,QSA]
 # existence checks, which caused 500s. These mirror the same pattern
 # as the rules above, which are already proven to work on this host.
 RewriteRule ^about/?$ about.php [L,QSA]
+RewriteRule ^download/?$ download.php [L,QSA]
 RewriteRule ^changelog/?$ changelog.php [L,QSA]
 RewriteRule ^community-guidelines/?$ community-guidelines.php [L,QSA]
 RewriteRule ^feedback/?$ feedback.php [L,QSA]

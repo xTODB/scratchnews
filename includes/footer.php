@@ -7,6 +7,7 @@
             <div class="footer-col">
                 <h4>Info</h4>
                 <a href="/about">About</a>
+                <a href="/download">Download</a>
                 <a href="/changelog">Changelog</a>
                 <a href="/community-guidelines">Community Guidelines</a>
             </div>

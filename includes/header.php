@@ -6,6 +6,7 @@
         <div class="header-quick-links">
             <a href="/submit" class="header-quick-link">Submit Article</a>
             <a href="/explore" class="header-quick-link">Explore</a>
+            <a href="/download" class="header-quick-link">Download</a>
             <a href="/api.php" class="header-quick-link">API</a>
             <a href="https://ko-fi.com/scratchnews" class="header-quick-link">Donate</a>
         </div>
