@@ -258,7 +258,7 @@ document.addEventListener('click', function(e) {
                     setTimeout(function() { location.reload(); }, 1200);
                 } else {
                     status.className = 'verify-status error';
-                    status.textContent = data.error || 'Verification failed. Please try again.';
+                    status.textContent = (data.error || 'Verification failed. Please try again.') + (data.debug ? ' [' + data.debug + ']' : '');
                 }
             })
             .catch(function() {
