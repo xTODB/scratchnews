@@ -143,7 +143,7 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2><?= $formDraftId > 0 ? 'Edit Draft' : 'Submit an Article' ?></h2>
-    <p><a href="/submission-guidelines">Read our submission guidelines</a> before submitting — it covers what gets approved and what doesn't.</p>
+    <p><a href="/submission-guidelines">Read our submission guidelines</a> before submitting: it covers what gets approved and what doesn't.</p>
 
     <?php if (!$isVerified): ?>
         <div class="alert error">
