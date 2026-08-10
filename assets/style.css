@@ -202,19 +202,20 @@ html {
 .reply-form { display: none; margin-top: 0.5rem; }
 .reply-form.open { display: block; }
 .search-form {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
     display: flex;
     align-items: center;
     background: none;
     padding: 0;
     box-shadow: none;
     max-width: none;
+    flex: 1 1 340px;
+    justify-content: center;
+    margin: 0 1rem;
+    min-width: 0;
 }
 .search-form input[type="text"] {
-    width: 340px;
+    width: 100%;
+    max-width: 340px;
     padding: 0.4rem 2.2rem 0.4rem 0.8rem;
     border: none;
     border-radius: 20px;
@@ -241,13 +242,10 @@ header.shrink .search-form input[type="text"] { padding: 0.3rem 2rem 0.3rem 0.7r
         position: static;
     }
     .search-form {
-        position: static;
-        transform: none;
-        width: 100%;
         margin: 0.7rem 0 0;
     }
     .search-form input[type="text"] {
-        width: 100%;
+        max-width: none;
     }
     header nav {
         margin-top: 0.6rem;
