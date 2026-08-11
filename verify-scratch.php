@@ -42,14 +42,9 @@ try {
     $_SESSION['scratch_verified_username'] = $author;
     echo json_encode(['success' => true, 'username' => $author]);
 } catch (\Throwable $e) {
-    // TEMP DIAGNOSTIC: InfinityFree gives us no error logs, so surface the real crash
-    // reason directly in the response instead of letting it die as a blank/HTML 500
-    // that the frontend just shows as "Something went wrong." Remove the 'debug' field
-    // once the actual bug behind this is found and fixed.
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Something went wrong. Please try again.',
-        'debug' => $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')'
+        'error' => 'Something went wrong. Please try again.'
     ]);
 }
