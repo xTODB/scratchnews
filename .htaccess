@@ -62,6 +62,8 @@ RewriteRule ^admin/upload-avatar/?$ admin/upload-avatar.php [L,QSA]
 RewriteRule ^admin/upload-image/?$ admin/upload-image.php [L,QSA]
 RewriteRule ^admin/users/?$ admin/users.php [L,QSA]
 RewriteRule ^admin/visits/?$ admin/visits.php [L,QSA]
+RewriteRule ^admin/autosave/?$ autosave.php [L,QSA]
+RewriteRule ^submit-autosave/?$ submit-autosave.php [L,QSA]
 
 <FilesMatch "\.(css|js|php)$">
     Header set Cache-Control "no-cache, must-revalidate"
