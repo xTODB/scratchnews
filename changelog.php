@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Aug11] v0.21 - Fixed nav bar cutoff for some smaller PCs, clear formatting button now also just resets all formatting when clicked and nothing's selected, Autosave (autosaves your article), Auto-Color Links (color links blue when making article, available in settings)</p>
     <p>[Aug10] v0.2 - Mild update! Articles FINALLY linked to user, profile picture next to article/profile comments/replies, and...DESKTOP APP! That's right, ScratchNews has an app now! Scroll down to the footer, More and Download! The app updates sync with the website's. It's free, like everything ScratchNews-related!</p>
     <p>0.19.1 - Super duper tiny, made message number and orange margin bigger and fixed moderation words margin in admin</p>
     <p>[Aug9] v0.19 - You know it's good when TODB blesses us with a new update 🌹 this took soo long. Follower auth, changed banner from multiple banners all at once to random, FINALLY FIXED USER ID BUG, fixed copy glitch not copying formatting and making it both select and unselect, default (reload icon) in article toolbar, resets selected text to its normal form, article submission guidelines, ranks "Writer" (1 article) "Featured Writer" (3 articles) "Fan" (donate) "Moderator" (ScratchNews moderators) "Dev" (well, me), updated about page with image, featured writers and fans section in it. Wow.</p>
