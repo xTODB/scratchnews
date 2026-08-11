@@ -1,12 +1,18 @@
 <?php
 require_once __DIR__ . '/auth.php';
 
+$currentUser = getUserById((int)($_SESSION['reader_id'] ?? 0));
+$autosaveEnabled = $currentUser ? !empty($currentUser['autosave_enabled']) : true;
+$autosaveInterval = $currentUser ? (int)($currentUser['autosave_interval'] ?? 30) : 30;
+$autocolorLinks = $currentUser ? !empty($currentUser['autocolor_links']) : true;
+
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $summary = trim($_POST['summary'] ?? '');
     $content = trim($_POST['content'] ?? '');
     $author = trim($_POST['author'] ?? 'TODB');
+    $existingDraftId = (int)($_POST['draft_article_id'] ?? 0);
 
     $status = ($_POST['status'] ?? 'published') === 'draft' ? 'draft' : 'published';
 
@@ -21,7 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $imageUrl = saveUploadedImage($_FILES['cover_image']);
             }
             $userId = isset($_POST['user_id']) && (int)$_POST['user_id'] > 0 ? (int)$_POST['user_id'] : ($_SESSION['reader_id'] ?? null);
-            $id = createArticle($title, $summary, $content, $author ?: 'TODB', $imageUrl, $status, $userId);
+            // If autosave already created this article as a draft row, update that
+            // same row instead of inserting a second, duplicate one.
+            if ($existingDraftId > 0 && getArticleById($existingDraftId)) {
+                updateArticle($existingDraftId, $title, $summary, $content, $author ?: 'TODB', $imageUrl, $status, $userId);
+                $id = $existingDraftId;
+            } else {
+                $id = createArticle($title, $summary, $content, $author ?: 'TODB', $imageUrl, $status, $userId);
+            }
             $categoryIds = $_POST['categories'] ?? [];
             if (!empty($categoryIds)) {
                 setArticleCategories($id, $categoryIds);
@@ -48,6 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .editor-copy-icon-btn:hover { opacity:1; }
 .editor-copy-icon-btn svg { width:16px; height:16px; }
 body.dark .editor-copy-icon-btn { color:#ccc; }
+#autosaveBtn { transition: color 1.5s ease; }
+#autosaveBtn.just-saved { color: #2a8a4a; opacity: 1; transition: color 0.15s ease; }
+body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
 </style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
@@ -57,6 +73,7 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
     <h2>New Article</h2>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
     <form method="post" enctype="multipart/form-data">
+        <input type="hidden" id="draftArticleIdField" name="draft_article_id" value="0">
         <label for="title">Title</label>
         <input type="text" id="title" name="title" value="<?= e($_POST['title'] ?? '') ?>" required>
 
@@ -115,6 +132,9 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
         </button>
         <button type="button" id="resetFormattingBtn" class="editor-copy-icon-btn" title="Clear formatting">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </button>
+        <button type="button" id="autosaveBtn" class="editor-copy-icon-btn" title="Save now">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         </button>
         <button type="button" id="toggleToolbarPos" title="Move formatting bar to bottom">⇕</button>
     </span>
@@ -215,6 +235,81 @@ document.getElementById('toggleToolbarPos').addEventListener('click', function()
         this.title = 'Move formatting bar to bottom';
     }
 });
+var autosaveEnabled = <?= $autosaveEnabled ? 'true' : 'false' ?>;
+var autosaveInterval = <?= (int)$autosaveInterval ?>; // seconds; 0 = save shortly after you stop typing
+var autocolorLinks = <?= $autocolorLinks ? 'true' : 'false' ?>;
+var autosaveDraftId = 0;
+var autosaveInFlight = false;
+var autosaveIdleTimer = null;
+
+if (autocolorLinks) {
+    quill.on('text-change', function(delta) {
+        var index = 0;
+        var toColor = [];
+        delta.ops.forEach(function(op) {
+            var len = 0;
+            if (typeof op.insert === 'string') len = op.insert.length;
+            else if (op.insert !== undefined) len = 1;
+            else if (typeof op.retain === 'number') len = op.retain;
+            if (op.attributes && op.attributes.link && !op.attributes.color) {
+                toColor.push({ index: index, length: len });
+            }
+            if (op.insert !== undefined || typeof op.retain === 'number') index += len;
+        });
+        if (toColor.length) {
+            toColor.forEach(function(range) {
+                quill.formatText(range.index, range.length, 'color', '#1155cc', 'silent');
+            });
+        }
+    });
+}
+
+function flashAutosaveSaved() {
+    var btn = document.getElementById('autosaveBtn');
+    btn.classList.add('just-saved');
+    setTimeout(function() { btn.classList.remove('just-saved'); }, 1500);
+}
+
+function doAutosave() {
+    if (autosaveInFlight) return;
+    var title = document.getElementById('title').value.trim();
+    var textOnly = quill.getText().trim();
+    if (title === '' && textOnly === '') return;
+    autosaveInFlight = true;
+    var formData = new FormData();
+    formData.append('id', autosaveDraftId);
+    formData.append('title', title);
+    formData.append('summary', document.getElementById('summary').value.trim());
+    formData.append('author', document.getElementById('author').value.trim());
+    formData.append('user_id', document.getElementById('user_id').value);
+    formData.append('content', quill.root.innerHTML);
+    fetch('/admin/autosave', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            autosaveInFlight = false;
+            if (data.saved && data.id) {
+                autosaveDraftId = data.id;
+                document.getElementById('draftArticleIdField').value = data.id;
+                flashAutosaveSaved();
+            }
+        })
+        .catch(function() { autosaveInFlight = false; });
+}
+
+document.getElementById('autosaveBtn').addEventListener('click', doAutosave);
+
+if (autosaveEnabled) {
+    if (autosaveInterval > 0) {
+        setInterval(doAutosave, autosaveInterval * 1000);
+    } else {
+        quill.on('text-change', function(delta, oldDelta, source) {
+            if (source !== 'user') return;
+            if (autosaveIdleTimer) clearTimeout(autosaveIdleTimer);
+            autosaveIdleTimer = setTimeout(doAutosave, 2000);
+        });
+    }
+}
+
 document.querySelector('form').addEventListener('submit', function() {
     document.querySelector('#content').value = quill.root.innerHTML;
 });

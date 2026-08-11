@@ -33,6 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['dark_mode'] = $enabled ? 1 : 0;
         $user['dark_mode'] = $enabled ? 1 : 0;
         $message = 'Theme preference saved.';
+    } elseif ($action === 'update_autosave') {
+        $enabled = !empty($_POST['autosave_enabled']);
+        $interval = (int)($_POST['autosave_interval'] ?? 30);
+        if (!in_array($interval, [0, 15, 30, 60, 120, 300], true)) $interval = 30;
+        setAutosavePreference($user['id'], $enabled, $interval);
+        $user['autosave_enabled'] = $enabled ? 1 : 0;
+        $user['autosave_interval'] = $interval;
+        $message = 'Auto-save preference saved.';
+    } elseif ($action === 'toggle_autocolor_links') {
+        $enabled = !empty($_POST['autocolor_links']);
+        setAutocolorLinksPreference($user['id'], $enabled);
+        $user['autocolor_links'] = $enabled ? 1 : 0;
+        $message = 'Auto-color links preference saved.';
     } elseif ($action === 'change_username') {
         $result = changeUsername($user['id'], trim($_POST['new_username'] ?? ''));
         if ($result === 'ok') {
@@ -137,6 +150,40 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                         <div class="username-cooldown-note">You can change your username again on <?= e($usernameCooldown['next_at']) ?>.</div>
                     <?php endif; ?>
                 </div>
+                <div class="settings-row" style="display:block;">
+                    <div>
+                        <div class="settings-label">Auto-Save</div>
+                        <div class="settings-sub">Automatically save your article as a draft while you write, in the editor's toolbar.</div>
+                    </div>
+                    <form method="post" style="margin-top:0.6rem; display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="update_autosave">
+                        <label style="display:flex; align-items:center; gap:0.4rem; font-weight:normal;">
+                            <input type="checkbox" name="autosave_enabled" value="1" <?= !empty($user['autosave_enabled']) ? 'checked' : '' ?>> Enabled
+                        </label>
+                        <select name="autosave_interval">
+                            <?php $currentInterval = (int)($user['autosave_interval'] ?? 30); ?>
+                            <option value="15" <?= $currentInterval === 15 ? 'selected' : '' ?>>Every 15 seconds</option>
+                            <option value="30" <?= $currentInterval === 30 ? 'selected' : '' ?>>Every 30 seconds</option>
+                            <option value="60" <?= $currentInterval === 60 ? 'selected' : '' ?>>Every 1 minute</option>
+                            <option value="120" <?= $currentInterval === 120 ? 'selected' : '' ?>>Every 2 minutes</option>
+                            <option value="300" <?= $currentInterval === 300 ? 'selected' : '' ?>>Every 5 minutes</option>
+                            <option value="0" <?= $currentInterval === 0 ? 'selected' : '' ?>>When you stop typing</option>
+                        </select>
+                        <button type="submit" class="btn">Save</button>
+                    </form>
+                </div>
+                <form method="post" class="settings-row" style="border:none;">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="toggle_autocolor_links">
+                    <div>
+                        <div class="settings-label">Auto-Color Links</div>
+                        <div class="settings-sub">Automatically color linked text blue in the article editor, without coloring it manually.</div>
+                    </div>
+                    <button type="submit" name="autocolor_links" value="<?= !empty($user['autocolor_links']) ? '0' : '1' ?>" class="btn">
+                        <?= !empty($user['autocolor_links']) ? 'Turn Off' : 'Turn On' ?>
+                    </button>
+                </form>
                 <div class="settings-row">
                     <div>
                         <div class="settings-label">Avatar, Banner &amp; Bio</div>

@@ -773,6 +773,51 @@ function setDarkModePreference(int $userId, bool $enabled): void {
     $stmt->close();
 }
 
+function setAutosavePreference(int $userId, bool $enabled, int $intervalSeconds): void {
+    $db = getDB();
+    $val = $enabled ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET autosave_enabled = ?, autosave_interval = ? WHERE id = ?");
+    $stmt->bind_param('iii', $val, $intervalSeconds, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function setAutocolorLinksPreference(int $userId, bool $enabled): void {
+    $db = getDB();
+    $val = $enabled ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET autocolor_links = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Lightweight draft-only autosave for admin-authored articles (admin/create.php and
+// admin/edit.php). Deliberately NOT createArticle()/updateArticle(): those call
+// syncToGithub() on every save, which pushes a GitHub commit - fine for a deliberate
+// Publish/Save click, not something to fire every few seconds. This also refuses to
+// touch a row that isn't currently status='draft', so it can never silently overwrite
+// or partially-publish a live article mid-edit. Returns the article id (existing or
+// newly created) on success, or null if there was nothing eligible to save to.
+function autosaveArticle(?int $id, string $title, string $summary, string $content, string $author, ?int $userId = null): ?int {
+    $db = getDB();
+    $content = sanitizeArticleHtml($content);
+    if ($id) {
+        $existing = getArticleById($id);
+        if (!$existing || $existing['status'] !== 'draft') return null;
+        $stmt = $db->prepare("UPDATE articles SET title = ?, summary = ?, content = ?, author = ? WHERE id = ?");
+        $stmt->bind_param('ssssi', $title, $summary, $content, $author, $id);
+        $stmt->execute();
+        $stmt->close();
+        return $id;
+    }
+    $newId = getNextArticleId();
+    $stmt = $db->prepare("INSERT INTO articles (id, title, summary, content, author, status, user_id) VALUES (?, ?, ?, ?, ?, 'draft', ?)");
+    $stmt->bind_param('issssi', $newId, $title, $summary, $content, $author, $userId);
+    $stmt->execute();
+    $stmt->close();
+    return $newId;
+}
+
 // ---- Comments ----
 function getCommentsForArticle(int $articleId): array {
     $db = getDB();

@@ -115,6 +115,13 @@ $formSummary = $draft['summary'] ?? '';
 $formContent = $draft['content'] ?? '';
 $formImageUrl = $draft['image_url'] ?? null;
 $formDraftId = (int)($draft['id'] ?? 0);
+// A separate SELECT * lookup (rather than adding these columns to the query above) so
+// this page doesn't break with a SQL error if the autosave_enabled/autosave_interval/
+// autocolor_links columns haven't been added to the users table yet.
+$fullUser = getUserById($readerId);
+$autosaveEnabled = $fullUser ? !empty($fullUser['autosave_enabled']) : false;
+$autosaveInterval = $fullUser ? (int)($fullUser['autosave_interval'] ?? 30) : 30;
+$autocolorLinks = $fullUser ? !empty($fullUser['autocolor_links']) : false;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -135,6 +142,9 @@ $formDraftId = (int)($draft['id'] ?? 0);
 .editor-copy-icon-btn:hover { opacity:1; }
 .editor-copy-icon-btn svg { width:16px; height:16px; }
 body.dark .editor-copy-icon-btn { color:#ccc; }
+#autosaveBtn { transition: color 1.5s ease; }
+#autosaveBtn.just-saved { color: #2a8a4a; opacity: 1; transition: color 0.15s ease; }
+body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
 .draft-saved-note { font-size: 0.85rem; opacity: 0.75; margin-top: -0.5rem; margin-bottom: 1rem; }
 </style>
 </head>
@@ -217,6 +227,9 @@ body.dark .editor-copy-icon-btn { color:#ccc; }
         </button>
         <button type="button" id="resetFormattingBtn" class="editor-copy-icon-btn" title="Clear formatting">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </button>
+        <button type="button" id="autosaveBtn" class="editor-copy-icon-btn" title="Save now">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         </button>
         <button type="button" id="toggleToolbarPos" title="Move formatting bar to bottom">⇕</button>
     </span>
@@ -324,6 +337,82 @@ document.getElementById('toggleToolbarPos').addEventListener('click', function()
         this.title = 'Move formatting bar to bottom';
     }
 });
+
+var autosaveEnabled = <?= $autosaveEnabled ? 'true' : 'false' ?>;
+var autosaveInterval = <?= (int)$autosaveInterval ?>; // seconds; 0 = save shortly after you stop typing
+var autocolorLinks = <?= $autocolorLinks ? 'true' : 'false' ?>;
+var autosaveInFlight = false;
+var autosaveIdleTimer = null;
+
+if (autocolorLinks) {
+    quill.on('text-change', function(delta) {
+        var index = 0;
+        var toColor = [];
+        delta.ops.forEach(function(op) {
+            var len = 0;
+            if (typeof op.insert === 'string') len = op.insert.length;
+            else if (op.insert !== undefined) len = 1;
+            else if (typeof op.retain === 'number') len = op.retain;
+            if (op.attributes && op.attributes.link && !op.attributes.color) {
+                toColor.push({ index: index, length: len });
+            }
+            if (op.insert !== undefined || typeof op.retain === 'number') index += len;
+        });
+        if (toColor.length) {
+            toColor.forEach(function(range) {
+                quill.formatText(range.index, range.length, 'color', '#1155cc', 'silent');
+            });
+        }
+    });
+}
+
+function flashAutosaveSaved() {
+    var btn = document.getElementById('autosaveBtn');
+    btn.classList.add('just-saved');
+    setTimeout(function() { btn.classList.remove('just-saved'); }, 1500);
+}
+
+function doAutosave() {
+    if (autosaveInFlight) return;
+    var title = document.getElementById('title').value.trim();
+    var textOnly = quill.getText().trim();
+    if (title === '' && textOnly === '') return;
+    autosaveInFlight = true;
+    var draftIdField = document.querySelector('input[name="draft_id"]');
+    var formData = new FormData();
+    formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+    formData.append('draft_id', draftIdField.value);
+    formData.append('title', title);
+    formData.append('summary', document.getElementById('summary').value.trim());
+    formData.append('content', quill.root.innerHTML);
+    document.querySelectorAll('.category-cb:checked').forEach(function(cb) {
+        formData.append('categories[]', cb.value);
+    });
+    fetch('/submit-autosave', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            autosaveInFlight = false;
+            if (data.saved && data.draft_id) {
+                draftIdField.value = data.draft_id;
+                flashAutosaveSaved();
+            }
+        })
+        .catch(function() { autosaveInFlight = false; });
+}
+
+document.getElementById('autosaveBtn').addEventListener('click', doAutosave);
+
+if (autosaveEnabled) {
+    if (autosaveInterval > 0) {
+        setInterval(doAutosave, autosaveInterval * 1000);
+    } else {
+        quill.on('text-change', function(delta, oldDelta, source) {
+            if (source !== 'user') return;
+            if (autosaveIdleTimer) clearTimeout(autosaveIdleTimer);
+            autosaveIdleTimer = setTimeout(doAutosave, 2000);
+        });
+    }
+}
 
 // Cover image thumbnail preview
 var coverInput = document.getElementById('cover_image');
