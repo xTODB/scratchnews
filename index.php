@@ -30,7 +30,7 @@ $popular = getPopularArticles(4);
 <?php $banners = ($randomBanner = getRandomActiveBanner()) ? [$randomBanner] : []; if (!empty($banners)): ?>
 <div id="promoBanners">
     <?php foreach ($banners as $b): ?>
-        <div class="promo-banner" data-banner-id="<?= (int)$b['id'] ?>">
+        <div class="promo-banner" data-banner-id="<?= (int)$b['id'] ?>" data-banner-key="<?= (int)$b['id'] ?>|<?= e($b['image_url']) ?>">
             <button type="button" class="promo-banner-close" aria-label="Close">&times;</button>
             <a href="<?= e($b['link']) ?>" class="promo-banner-link">
                 <img src="<?= e($b['image_url']) ?>" alt="" class="promo-banner-img">
@@ -40,13 +40,19 @@ $popular = getPopularArticles(4);
 </div>
 <script>
 (function() {
+    // Dismissal is keyed by id+image_url, not just id: InfinityFree's MySQL can
+    // recalculate AUTO_INCREMENT as MAX(id)+1 (MyISAM behavior), so deleting the
+    // highest-numbered banner and creating a new one can silently reuse that numeric
+    // id. Keying on id alone meant a brand new banner could inherit an old, already-
+    // dismissed one's id and never show up. image_url is unique per upload, so pairing
+    // it with the id tells a genuinely new banner apart from a reused id.
     var dismissed = [];
     try { dismissed = JSON.parse(localStorage.getItem('dismissedBanners') || '[]'); } catch (e) {}
     document.querySelectorAll('.promo-banner').forEach(function(el) {
-        var id = el.getAttribute('data-banner-id');
-        if (dismissed.indexOf(id) !== -1) { el.remove(); return; }
+        var key = el.getAttribute('data-banner-key');
+        if (dismissed.indexOf(key) !== -1) { el.remove(); return; }
         el.querySelector('.promo-banner-close').addEventListener('click', function() {
-            dismissed.push(id);
+            dismissed.push(key);
             try { localStorage.setItem('dismissedBanners', JSON.stringify(dismissed)); } catch (e) {}
             el.remove();
         });
