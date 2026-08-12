@@ -97,7 +97,7 @@ body.dark .article-featured h2 a:hover, body.dark .article-card h2 a:hover { col
 .back-link { display: inline-block; margin-bottom: 1rem; color: #ff8c1a; text-decoration: none; font-weight: 600; }
 footer { text-align: center; padding: 2rem 1rem; color: #888; font-size: 0.85rem; }
 
-form { background: #fff; padding: 0rem; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); max-width: 700px; }
+form { background: #fff; padding: 1.5rem; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); max-width: 700px; }
 form label { display: block; font-weight: 600; margin-top: 1rem; margin-bottom: 0.3rem; }
 form input[type=text], form input[type=password], form input[type=email], form textarea {
     width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; font-family: inherit;
