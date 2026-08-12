@@ -918,25 +918,43 @@ function collectTranslatableTextNodes(DOMNode $node, array &$out): void {
     }
 }
 
-// Translates a list of DOMText nodes, batching several short ones into a single
-// MyMemory call (joined by a rare delimiter, then split back apart) instead of
-// firing one HTTP request per paragraph. A long article can easily have dozens of
-// text nodes; translating each with its own round trip was blowing past
-// InfinityFree's execution time limit before the request could finish and get
-// cached, so it 500'd on every attempt. Falls back to translating a batch's items
-// individually if the delimiter didn't survive translation intact.
-function translateTextNodesBatched(array $nodes, string $targetLang): void {
+// Time budget (seconds) for how long ONE request is willing to keep calling
+// MyMemory for a single article's content. Once the deadline passes we stop
+// starting new batches and return what's been translated so far instead of
+// risking InfinityFree's execution time limit killing the request outright
+// (a hard 500 with nothing saved). getTranslatedArticle() persists whatever
+// got done so the NEXT request continues from there instead of starting over -
+// so a long article converges over a couple of page loads instead of 500ing
+// forever. Tune down if InfinityFree's actual limit turns out tighter than this.
+if (!defined('TRANSLATE_TIME_BUDGET_SECONDS')) {
+    define('TRANSLATE_TIME_BUDGET_SECONDS', 12);
+}
+
+// Translates a keyed list of DOMText nodes (key = stable position index from
+// collectTranslatableTextNodes order), batching several short ones into a
+// single MyMemory call (joined by a rare delimiter, then split back apart)
+// instead of firing one HTTP request per paragraph. Stops starting new batches
+// once $deadline (a microtime(true) timestamp) passes, leaving any remaining
+// nodes untouched (still English) for the caller to retry on a later request.
+// Falls back to translating a batch's items individually if the delimiter
+// didn't survive translation intact. Returns the list of keys that were
+// actually attempted this run (translated successfully OR fell back to
+// English after a real MyMemory call) - NOT keys skipped purely due to the
+// time budget, so the caller knows exactly what still needs retrying.
+function translateTextNodesBatched(array $nodes, string $targetLang, ?float $deadline = null): array {
     $delimiter = " \u{2016} ";
     $maxBatchLen = 420;
     $batch = [];
     $batchLen = 0;
+    $attempted = [];
 
-    $flush = function () use (&$batch, &$batchLen, $targetLang, $delimiter) {
+    $flush = function () use (&$batch, &$batchLen, $targetLang, $delimiter, &$attempted) {
         if (empty($batch)) return;
         if (count($batch) === 1) {
             $item = $batch[0];
             $translated = translateTextViaMyMemory($item['core'], $targetLang);
             $item['node']->data = $item['lead'] . ($translated ?? $item['core']) . $item['trail'];
+            $attempted[] = $item['key'];
         } else {
             $joined = implode($delimiter, array_column($batch, 'core'));
             $translatedJoined = translateTextViaMyMemory($joined, $targetLang);
@@ -944,12 +962,14 @@ function translateTextNodesBatched(array $nodes, string $targetLang): void {
             if ($parts !== null && count($parts) === count($batch)) {
                 foreach ($batch as $i => $item) {
                     $item['node']->data = $item['lead'] . trim($parts[$i]) . $item['trail'];
+                    $attempted[] = $item['key'];
                 }
             } else {
                 // Delimiter got mangled in translation - fall back to one call per item.
                 foreach ($batch as $item) {
                     $translated = translateTextViaMyMemory($item['core'], $targetLang);
                     $item['node']->data = $item['lead'] . ($translated ?? $item['core']) . $item['trail'];
+                    $attempted[] = $item['key'];
                 }
             }
         }
@@ -957,41 +977,73 @@ function translateTextNodesBatched(array $nodes, string $targetLang): void {
         $batchLen = 0;
     };
 
-    foreach ($nodes as $node) {
+    foreach ($nodes as $key => $node) {
+        if ($deadline !== null && microtime(true) >= $deadline) {
+            break; // out of time budget - leave the rest for a later request
+        }
         preg_match('/^(\s*)(.*?)(\s*)$/s', $node->data, $m);
         [, $lead, $core, $trail] = $m;
         if ($core === '') continue;
         if (mb_strlen($core) > $maxBatchLen) {
             $flush();
             $node->data = $lead . translateTextChunked($core, $targetLang) . $trail;
+            $attempted[] = $key;
             continue;
         }
         if ($batch && $batchLen + mb_strlen($core) + 3 > $maxBatchLen) {
             $flush();
         }
-        $batch[] = ['node' => $node, 'lead' => $lead, 'core' => $core, 'trail' => $trail];
+        $batch[] = ['key' => $key, 'node' => $node, 'lead' => $lead, 'core' => $core, 'trail' => $trail];
         $batchLen += mb_strlen($core) + 3;
     }
     $flush();
+    return $attempted;
 }
 
-// Translates article body HTML (as authored via Quill) without disturbing markup.
-function translateHtmlContent(string $html, string $targetLang): string {
-    if (trim($html) === '') return $html;
+// Translates article body HTML (as authored via Quill) without disturbing
+// markup. $progress is a [nodeIndex => translatedText] map from a prior
+// partial run (see getTranslatedArticle) - those nodes are restored for free
+// (no API call) before translating whatever's left, up to
+// TRANSLATE_TIME_BUDGET_SECONDS. Returns:
+//   'html'     => the article HTML with everything translated so far applied
+//   'progress' => updated [nodeIndex => translatedText] map to persist
+//   'complete' => true only if every text node has now been translated
+// Node indices come from collectTranslatableTextNodes's document-order walk,
+// which is deterministic for a given $html - safe to reuse across requests as
+// long as the source content (and therefore the hash) hasn't changed.
+function translateHtmlContent(string $html, string $targetLang, array $progress = []): array {
+    if (trim($html) === '') return ['html' => $html, 'progress' => [], 'complete' => true];
     libxml_use_internal_errors(true);
     $dom = new DOMDocument('1.0', 'UTF-8');
     $dom->loadHTML('<?xml encoding="utf-8"?><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
     libxml_clear_errors();
     $root = $dom->getElementsByTagName('div')->item(0);
-    if (!$root) return $html;
+    if (!$root) return ['html' => $html, 'progress' => [], 'complete' => true];
     $textNodes = [];
     collectTranslatableTextNodes($root, $textNodes);
-    translateTextNodesBatched($textNodes, $targetLang);
+
+    $remaining = [];
+    foreach ($textNodes as $i => $node) {
+        if (array_key_exists($i, $progress)) {
+            $node->data = $progress[$i]; // already translated in a prior run - free
+        } else {
+            $remaining[$i] = $node;
+        }
+    }
+
+    $deadline = microtime(true) + TRANSLATE_TIME_BUDGET_SECONDS;
+    $attempted = translateTextNodesBatched($remaining, $targetLang, $deadline);
+    foreach ($attempted as $i) {
+        $progress[$i] = $textNodes[$i]->data;
+    }
+
+    $complete = count($progress) >= count($textNodes);
+
     $out = '';
     foreach ($root->childNodes as $child) {
         $out .= $dom->saveHTML($child);
     }
-    return $out;
+    return ['html' => $out, 'progress' => $progress, 'complete' => $complete];
 }
 
 function computeArticleSourceHash(array $article): string {
@@ -1008,12 +1060,14 @@ function getCachedTranslation(int $articleId, string $lang): ?array {
     return $row ?: null;
 }
 
-function upsertArticleTranslation(int $articleId, string $lang, ?string $title, ?string $content, string $hash): void {
+function upsertArticleTranslation(int $articleId, string $lang, ?string $title, ?string $content, string $hash, array $progress = [], bool $complete = true): void {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO article_translations (article_id, lang, title, content, source_hash, updated_at)
-        VALUES (?, ?, ?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE title = VALUES(title), content = VALUES(content), source_hash = VALUES(source_hash), updated_at = NOW()");
-    $stmt->bind_param('issss', $articleId, $lang, $title, $content, $hash);
+    $progressJson = empty($progress) ? null : json_encode($progress);
+    $isComplete = $complete ? 1 : 0;
+    $stmt = $db->prepare("INSERT INTO article_translations (article_id, lang, title, content, source_hash, progress_json, is_complete, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE title = VALUES(title), content = VALUES(content), source_hash = VALUES(source_hash), progress_json = VALUES(progress_json), is_complete = VALUES(is_complete), updated_at = NOW()");
+    $stmt->bind_param('isssssi', $articleId, $lang, $title, $content, $hash, $progressJson, $isComplete);
     $stmt->execute();
     $stmt->close();
 }
@@ -1025,13 +1079,22 @@ function getTranslatedTitle(array $article, string $lang): string {
     if ($lang === '') return $article['title'];
     $hash = computeArticleSourceHash($article);
     $cached = getCachedTranslation((int)$article['id'], $lang);
-    if ($cached && $cached['source_hash'] === $hash && $cached['title'] !== null) {
+    $sameHash = $cached && $cached['source_hash'] === $hash;
+    if ($sameHash && $cached['title'] !== null) {
         return $cached['title'];
     }
     $translated = translateTextViaMyMemory($article['title'], $lang);
     if ($translated === null) return $article['title'];
-    $freshContent = ($cached && $cached['source_hash'] === $hash) ? $cached['content'] : null;
-    upsertArticleTranslation((int)$article['id'], $lang, $translated, $freshContent, $hash);
+    $freshContent = $sameHash ? $cached['content'] : null;
+    $freshProgress = [];
+    if ($sameHash && !empty($cached['progress_json'])) {
+        $decoded = json_decode($cached['progress_json'], true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $k => $v) $freshProgress[(int)$k] = $v;
+        }
+    }
+    $freshComplete = $sameHash && (int)($cached['is_complete'] ?? 0) === 1;
+    upsertArticleTranslation((int)$article['id'], $lang, $translated, $freshContent, $hash, $freshProgress, $freshComplete);
     return $translated;
 }
 
@@ -1041,15 +1104,32 @@ function getTranslatedArticle(array $article, string $lang): array {
     if ($lang === '') return [$article['title'], $article['content']];
     $hash = computeArticleSourceHash($article);
     $cached = getCachedTranslation((int)$article['id'], $lang);
-    if ($cached && $cached['source_hash'] === $hash && $cached['title'] !== null && $cached['content'] !== null) {
+    $sameHash = $cached && $cached['source_hash'] === $hash;
+
+    // Fast path: fully translated and cached already - no MyMemory calls at all.
+    if ($sameHash && (int)($cached['is_complete'] ?? 0) === 1 && $cached['title'] !== null && $cached['content'] !== null) {
         return [$cached['title'], $cached['content']];
     }
-    $title = ($cached && $cached['source_hash'] === $hash && $cached['title'] !== null)
+
+    $title = ($sameHash && $cached['title'] !== null)
         ? $cached['title']
         : (translateTextViaMyMemory($article['title'], $lang) ?? $article['title']);
-    $content = translateHtmlContent($article['content'], $lang);
-    upsertArticleTranslation((int)$article['id'], $lang, $title, $content, $hash);
-    return [$title, $content];
+
+    // Resume from whatever a prior (possibly time-budget-cut-short) run already
+    // translated, instead of re-translating the whole article from scratch.
+    $progress = [];
+    if ($sameHash && !empty($cached['progress_json'])) {
+        $decoded = json_decode($cached['progress_json'], true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $k => $v) $progress[(int)$k] = $v;
+        }
+    }
+
+    $result = translateHtmlContent($article['content'], $lang, $progress);
+    upsertArticleTranslation((int)$article['id'], $lang, $title, $result['html'], $hash, $result['progress'], $result['complete']);
+    // Even mid-translation, return the best available mix (translated so far +
+    // English fallback for the rest) rather than nothing - never a 500 for this.
+    return [$title, $result['html']];
 }
 
 // Convenience wrappers so page code doesn't need to resolve the preference itself.
