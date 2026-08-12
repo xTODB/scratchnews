@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['is_admin'] = false;
             $_SESSION['is_moderator'] = false;
             $_SESSION['dark_mode'] = $darkMode;
+            $_SESSION['translate_lang'] = '';
             header('Location: /?justregistered=1');
             exit;
         }
@@ -102,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Sign Up - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=21">
 <style>
 .google-signin-row { display:flex; justify-content:center; margin-bottom:1rem; }
 .wizard-or-divider { text-align:center; color:#888; margin:0.75rem 0; font-size:0.85rem; }

@@ -46,6 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setAutocolorLinksPreference($user['id'], $enabled);
         $user['autocolor_links'] = $enabled ? 1 : 0;
         $message = 'Auto-color links preference saved.';
+    } elseif ($action === 'update_translate') {
+        $lang = trim($_POST['translate_lang'] ?? '');
+        if (!array_key_exists($lang, translateLanguageOptions())) $lang = '';
+        setTranslatePreference($user['id'], $lang);
+        $_SESSION['translate_lang'] = $lang;
+        $user['translate_lang'] = $lang !== '' ? $lang : null;
+        $message = $lang !== '' ? 'Translation preference saved.' : 'Translation turned off.';
     } elseif ($action === 'change_username') {
         $result = changeUsername($user['id'], trim($_POST['new_username'] ?? ''));
         if ($result === 'ok') {
@@ -76,7 +83,7 @@ $usernameCooldown = canChangeUsername($user);
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Settings - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=21">
 <style>
 .settings-layout { display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap; }
 .settings-tabs { display: flex; flex-direction: column; gap: 0.5rem; min-width: 180px; }
@@ -184,6 +191,23 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                         <?= !empty($user['autocolor_links']) ? 'Turn Off' : 'Turn On' ?>
                     </button>
                 </form>
+                <div class="settings-row" style="display:block;">
+                    <div>
+                        <div class="settings-label">Translate Articles</div>
+                        <div class="settings-sub">Automatically translate article titles and content into your preferred language.</div>
+                    </div>
+                    <form method="post" style="margin-top:0.6rem; display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="update_translate">
+                        <select name="translate_lang">
+                            <option value="" <?= empty($user['translate_lang']) ? 'selected' : '' ?>>Off (English)</option>
+                            <?php foreach (translateLanguageOptions() as $code => $label): ?>
+                                <option value="<?= e($code) ?>" <?= ($user['translate_lang'] ?? '') === $code ? 'selected' : '' ?>><?= e($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button type="submit" class="btn">Save</button>
+                    </form>
+                </div>
                 <div class="settings-row">
                     <div>
                         <div class="settings-label">Avatar, Banner &amp; Bio</div>

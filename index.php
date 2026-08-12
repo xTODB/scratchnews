@@ -13,7 +13,7 @@ $popular = getPopularArticles(4);
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= e(SITE_NAME) ?></title>
 <meta name="description" content="ScratchNews is a community-run news site covering updates, features, and stories from the Scratch programming community.">
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=21">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -75,7 +75,7 @@ $popular = getPopularArticles(4);
                     <img src="<?= e($featured['image_url']) ?>" alt="" class="hero-featured-img">
                 <?php endif; ?>
                 <div class="hero-featured-body">
-                    <h2><?= e($featured['title']) ?></h2>
+                    <h2><?= e(translatedTitle($featured)) ?></h2>
                     <div class="meta">By <?= e($featured['author']) ?> &middot; <?= utcTimeTag($featured['created_at']) ?></div>
                 </div>
             </a>
@@ -86,7 +86,7 @@ $popular = getPopularArticles(4);
                         <?php if (!empty($a['image_url'])): ?>
                             <img src="<?= e($a['image_url']) ?>" alt="" class="hero-side-img">
                         <?php endif; ?>
-                        <div class="hero-side-title"><?= e($a['title']) ?></div>
+                        <div class="hero-side-title"><?= e(translatedTitle($a)) ?></div>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -104,7 +104,7 @@ $popular = getPopularArticles(4);
                         <?php else: ?>
                             <div class="row-card-img row-card-img-placeholder"></div>
                         <?php endif; ?>
-                        <div class="row-card-title"><?= e($a['title']) ?></div>
+                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -122,7 +122,7 @@ $popular = getPopularArticles(4);
                         <?php else: ?>
                             <div class="row-card-img row-card-img-placeholder"></div>
                         <?php endif; ?>
-                        <div class="row-card-title"><?= e($a['title']) ?></div>
+                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
                     </a>
                 <?php endforeach; ?>
             </div>

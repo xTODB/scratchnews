@@ -76,6 +76,8 @@ $isSaved = ($article && !empty($_SESSION['reader_id'])) ? isArticleSaved($articl
 if (!$article) {
     http_response_code(404);
 }
+
+[$displayTitle, $displayContent] = $article ? translatedArticleFields($article) : ['', ''];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -83,21 +85,21 @@ if (!$article) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<title><?= $article ? e($article['title']) . ' - ' . e(SITE_NAME) : 'Article not found' ?></title>
+<title><?= $article ? e($displayTitle) . ' - ' . e(SITE_NAME) : 'Article not found' ?></title>
 <?php if ($article): ?>
 <meta name="description" content="<?= e(mb_strimwidth($article['summary'], 0, 160, '...')) ?>">
 <script type="application/ld+json">
 <?= json_encode([
     "@context" => "https://schema.org",
     "@type" => "NewsArticle",
-    "headline" => $article['title'],
+    "headline" => $displayTitle,
     "datePublished" => date('c', strtotime($article['created_at'])),
     "dateModified" => date('c', strtotime($article['updated_at'])),
     "author" => ["@type" => "Person", "name" => $article['author']],
 ]) ?>
 </script>
 <?php endif; ?>
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=21">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -115,7 +117,7 @@ if (!$article) {
     <a class="back-link" href="/">&larr; Back to all articles</a>
     <?php if ($article): ?>
         <div class="full-article">
-            <h1><?= e($article['title']) ?></h1>
+            <h1><?= e($displayTitle) ?></h1>
             <?php if (!empty($article['image_url'])): ?>
                 <img src="<?= e($article['image_url']) ?>" alt="" class="article-cover-image" style="max-width:100%;height:auto;">
             <?php endif; ?>
@@ -178,7 +180,7 @@ if (!$article) {
             <?php if ($isBanned): ?>
                 <p class="meta">Your account is restricted from liking and commenting.</p>
             <?php endif; ?>
-            <div class="content"><?= $article['content'] ?></div>
+            <div class="content"><?= $displayContent ?></div>
             <div class="comments-section" id="comments">
     <h3>Comments (<?= count($comments) ?>)</h3>
     <?php if (!empty($_SESSION['reader_id']) && !$isBanned): ?>
@@ -272,7 +274,7 @@ document.addEventListener('click', function(e) {
     });
     shareMenu.addEventListener('click', function(e) { e.stopPropagation(); });
     var pageUrl = window.location.href;
-    var pageTitle = <?= json_encode($article['title'] ?? '') ?>;
+    var pageTitle = <?= json_encode($displayTitle ?? '') ?>;
     var shareMoreBtn = document.getElementById('shareMoreBtn');
     if (navigator.share) shareMoreBtn.style.display = 'block';
     shareMenu.querySelectorAll('.share-option').forEach(function(btn) {

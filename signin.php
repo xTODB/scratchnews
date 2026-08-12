@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['is_admin'] = !empty($user['is_admin']);
     $_SESSION['is_moderator'] = !empty($user['is_moderator']);
     $_SESSION['dark_mode'] = $user['dark_mode'];
+    $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
     $token = setRememberToken($user['id']);
     setcookie('remember_me', $user['id'] . ':' . $token, [
         'expires' => time() + 60 * 60 * 24 * 30,
@@ -42,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Log In - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=21">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <header>

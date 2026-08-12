@@ -715,6 +715,10 @@ body.dark .footer-col a { color: #ccc; }
 .footer-col a:hover { text-decoration: underline; }
 .footer-copyright { padding: 0.8rem 1.5rem; border-top: 1px solid rgba(0,0,0,0.1); color: #666; font-size: 0.8rem; text-align: left; }
 body.dark .footer-copyright { border-top: 1px solid rgba(255,255,255,0.1); color: #888; }
+.footer-language { padding: 0 1.5rem 0.8rem; }
+.footer-language select { padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid #ccc; font-size: 0.85rem; background: #fff; color: #333; }
+body.dark .footer-language select { background: #222; color: #eee; border-color: #444; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 .search-form button { display: flex; align-items: center; justify-content: center; }
 .api-code-block {

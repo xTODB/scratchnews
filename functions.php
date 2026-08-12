@@ -749,6 +749,7 @@ function startSession(): void {
                 $_SESSION['is_admin'] = !empty($user['is_admin']);
                 $_SESSION['is_moderator'] = !empty($user['is_moderator']);
                 $_SESSION['dark_mode'] = $user['dark_mode'];
+                $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
                 $newToken = setRememberToken($user['id']);
                 setcookie('remember_me', $user['id'] . ':' . $newToken, [
                     'expires' => time() + 60 * 60 * 24 * 30,
@@ -789,6 +790,211 @@ function setAutocolorLinksPreference(int $userId, bool $enabled): void {
     $stmt->bind_param('ii', $val, $userId);
     $stmt->execute();
     $stmt->close();
+}
+
+// ---- Article translation (MyMemory, no signup/billing required - chosen because
+// TODB is a minor and can't use anything needing a credit card). Free tier is
+// rate-limited (5000 words/day tracked by IP, or 50000/day if a contact email is
+// passed via &de=), so every translated title+content is cached in
+// article_translations keyed by (article_id, lang) and only re-requested if the
+// article's title/content actually changed (source_hash). ----
+
+function translateLanguageOptions(): array {
+    return [
+        'es' => 'Español',
+        'fr' => 'Français',
+        'de' => 'Deutsch',
+        'pt' => 'Português',
+        'ru' => 'Русский',
+        'it' => 'Italiano',
+        'pl' => 'Polski',
+    ];
+}
+
+// '' means off / show the original English. Logged-in preference lives on the
+// users row (hydrated into the session at login, same pattern as dark_mode).
+// Guests get a cookie set by set-language.php.
+function getTranslateTarget(): string {
+    if (!empty($_SESSION['reader_id'])) {
+        $lang = $_SESSION['translate_lang'] ?? '';
+        return array_key_exists($lang, translateLanguageOptions()) ? $lang : '';
+    }
+    $lang = $_COOKIE['sn_translate_lang'] ?? '';
+    return array_key_exists($lang, translateLanguageOptions()) ? $lang : '';
+}
+
+function setTranslatePreference(int $userId, string $lang): void {
+    if (!array_key_exists($lang, translateLanguageOptions())) $lang = '';
+    $db = getDB();
+    $langOrNull = $lang !== '' ? $lang : null;
+    $stmt = $db->prepare("UPDATE users SET translate_lang = ? WHERE id = ?");
+    $stmt->bind_param('si', $langOrNull, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Single MyMemory call for one chunk of plain text. Returns null on any failure
+// (network, non-200, or MyMemory's quota-exceeded message riding along inside a
+// 200 response) so callers can fall back to showing the original English.
+function translateTextViaMyMemory(string $text, string $targetLang): ?string {
+    $text = trim($text);
+    if ($text === '') return $text;
+    $email = defined('MYMEMORY_CONTACT_EMAIL') && MYMEMORY_CONTACT_EMAIL !== ''
+        ? MYMEMORY_CONTACT_EMAIL
+        : (defined('BREVO_SENDER_EMAIL') ? BREVO_SENDER_EMAIL : '');
+    $url = 'https://api.mymemory.translated.net/get?q=' . rawurlencode($text)
+        . '&langpair=en|' . rawurlencode($targetLang)
+        . ($email !== '' ? '&de=' . rawurlencode($email) : '');
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'ScratchNews-Translate/1.0');
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $httpCode !== 200) return null;
+    $data = json_decode($response, true);
+    $translated = $data['responseData']['translatedText'] ?? null;
+    if (!is_string($translated) || $translated === '') return null;
+    // MyMemory sometimes returns a 200 with a warning sentence AS the translated
+    // text instead of a clean error (e.g. quota exceeded) - catch that here.
+    if (stripos($translated, 'QUERY LENGTH LIMIT') !== false || stripos($translated, 'MYMEMORY WARNING') !== false) {
+        return null;
+    }
+    return html_entity_decode($translated, ENT_QUOTES, 'UTF-8');
+}
+
+// Splits plain text into <=$maxLen chunks (MyMemory caps around 500 chars per
+// request), preferring to cut on sentence boundaries so chunks translate cleanly.
+function splitTextIntoChunks(string $text, int $maxLen = 480): array {
+    if (mb_strlen($text) <= $maxLen) return [$text];
+    $chunks = [];
+    $remaining = $text;
+    while (mb_strlen($remaining) > $maxLen) {
+        $slice = mb_substr($remaining, 0, $maxLen);
+        $candidates = [];
+        foreach (['. ', '! ', '? ', "\n"] as $sep) {
+            $pos = mb_strrpos($slice, $sep);
+            if ($pos !== false) $candidates[] = $pos + mb_strlen($sep) - 1;
+        }
+        $cut = $candidates ? max($candidates) : false;
+        if ($cut === false || $cut < $maxLen * 0.3) {
+            $spacePos = mb_strrpos($slice, ' ');
+            $cut = $spacePos !== false ? $spacePos : $maxLen - 1;
+        }
+        $chunks[] = mb_substr($remaining, 0, $cut + 1);
+        $remaining = mb_substr($remaining, $cut + 1);
+    }
+    if ($remaining !== '') $chunks[] = $remaining;
+    return $chunks;
+}
+
+function translateTextChunked(string $text, string $targetLang): string {
+    $out = '';
+    foreach (splitTextIntoChunks($text) as $chunk) {
+        $out .= translateTextViaMyMemory($chunk, $targetLang) ?? $chunk;
+    }
+    return $out;
+}
+
+// Walks a DOM subtree translating only text nodes, leaving tags/attributes
+// (and anything inside <script>/<style>/<code>/<pre>) untouched.
+function translateDomTextNodes(DOMNode $node, string $targetLang): void {
+    foreach (iterator_to_array($node->childNodes) as $child) {
+        if ($child->nodeType === XML_TEXT_NODE) {
+            if (trim($child->data) === '') continue;
+            $child->data = translateTextChunked($child->data, $targetLang);
+        } elseif ($child->nodeType === XML_ELEMENT_NODE) {
+            if (in_array(strtolower($child->nodeName), ['script', 'style', 'code', 'pre'], true)) continue;
+            translateDomTextNodes($child, $targetLang);
+        }
+    }
+}
+
+// Translates article body HTML (as authored via Quill) without disturbing markup.
+function translateHtmlContent(string $html, string $targetLang): string {
+    if (trim($html) === '') return $html;
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument('1.0', 'UTF-8');
+    $dom->loadHTML('<?xml encoding="utf-8"?><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+    $root = $dom->getElementsByTagName('div')->item(0);
+    if (!$root) return $html;
+    translateDomTextNodes($root, $targetLang);
+    $out = '';
+    foreach ($root->childNodes as $child) {
+        $out .= $dom->saveHTML($child);
+    }
+    return $out;
+}
+
+function computeArticleSourceHash(array $article): string {
+    return md5(($article['title'] ?? '') . '|' . ($article['content'] ?? ''));
+}
+
+function getCachedTranslation(int $articleId, string $lang): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM article_translations WHERE article_id = ? AND lang = ?");
+    $stmt->bind_param('is', $articleId, $lang);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function upsertArticleTranslation(int $articleId, string $lang, ?string $title, ?string $content, string $hash): void {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO article_translations (article_id, lang, title, content, source_hash, updated_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE title = VALUES(title), content = VALUES(content), source_hash = VALUES(source_hash), updated_at = NOW()");
+    $stmt->bind_param('issss', $articleId, $lang, $title, $content, $hash);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Cheap path for listings: translates/caches just the title. Reuses a cached
+// content field if one already exists and is still fresh, so a later full-article
+// view doesn't get its cached content clobbered back to null by this function.
+function getTranslatedTitle(array $article, string $lang): string {
+    if ($lang === '') return $article['title'];
+    $hash = computeArticleSourceHash($article);
+    $cached = getCachedTranslation((int)$article['id'], $lang);
+    if ($cached && $cached['source_hash'] === $hash && $cached['title'] !== null) {
+        return $cached['title'];
+    }
+    $translated = translateTextViaMyMemory($article['title'], $lang);
+    if ($translated === null) return $article['title'];
+    $freshContent = ($cached && $cached['source_hash'] === $hash) ? $cached['content'] : null;
+    upsertArticleTranslation((int)$article['id'], $lang, $translated, $freshContent, $hash);
+    return $translated;
+}
+
+// Full path for the article page: translates/caches both title and content.
+// Returns [title, content].
+function getTranslatedArticle(array $article, string $lang): array {
+    if ($lang === '') return [$article['title'], $article['content']];
+    $hash = computeArticleSourceHash($article);
+    $cached = getCachedTranslation((int)$article['id'], $lang);
+    if ($cached && $cached['source_hash'] === $hash && $cached['title'] !== null && $cached['content'] !== null) {
+        return [$cached['title'], $cached['content']];
+    }
+    $title = ($cached && $cached['source_hash'] === $hash && $cached['title'] !== null)
+        ? $cached['title']
+        : (translateTextViaMyMemory($article['title'], $lang) ?? $article['title']);
+    $content = translateHtmlContent($article['content'], $lang);
+    upsertArticleTranslation((int)$article['id'], $lang, $title, $content, $hash);
+    return [$title, $content];
+}
+
+// Convenience wrappers so page code doesn't need to resolve the preference itself.
+function translatedTitle(array $article): string {
+    $lang = getTranslateTarget();
+    return $lang === '' ? $article['title'] : getTranslatedTitle($article, $lang);
+}
+
+function translatedArticleFields(array $article): array {
+    $lang = getTranslateTarget();
+    return $lang === '' ? [$article['title'], $article['content']] : getTranslatedArticle($article, $lang);
 }
 
 // Lightweight draft-only autosave for admin-authored articles (admin/create.php and
@@ -1762,6 +1968,7 @@ function impersonateUser(int $adminId, int $targetUserId): bool {
     $_SESSION['is_admin'] = (bool)$target['is_admin'];
     $_SESSION['is_moderator'] = !empty($target['is_moderator']);
     $_SESSION['dark_mode'] = (bool)$target['dark_mode'];
+    $_SESSION['translate_lang'] = $target['translate_lang'] ?? '';
     return true;
 }
 
@@ -1781,6 +1988,7 @@ function stopImpersonation(): bool {
     $_SESSION['is_admin'] = (bool)$admin['is_admin'];
     $_SESSION['is_moderator'] = !empty($admin['is_moderator']);
     $_SESSION['dark_mode'] = (bool)$admin['dark_mode'];
+    $_SESSION['translate_lang'] = $admin['translate_lang'] ?? '';
     unset($_SESSION['impersonator_admin_id'], $_SESSION['impersonator_admin_username']);
     return true;
 }

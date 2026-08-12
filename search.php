@@ -14,7 +14,7 @@ $results = $query !== '' ? searchArticles($query) : [];
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Search - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=21">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -43,7 +43,7 @@ $results = $query !== '' ? searchArticles($query) : [];
                     <?php endif; ?>
                     <div class="search-result-body">
                         <div>
-                            <div class="search-result-title"><?= e($a['title']) ?></div>
+                            <div class="search-result-title"><?= e(translatedTitle($a)) ?></div>
                             <div class="meta">By <?= e($a['author']) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
                             <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                         </div>

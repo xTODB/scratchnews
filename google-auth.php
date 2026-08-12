@@ -42,6 +42,7 @@ if ($user) {
     $_SESSION['is_admin'] = !empty($user['is_admin']);
     $_SESSION['is_moderator'] = !empty($user['is_moderator']);
     $_SESSION['dark_mode'] = $user['dark_mode'];
+    $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
 
     $token = setRememberToken($user['id']);
     setcookie('remember_me', $user['id'] . ':' . $token, [
