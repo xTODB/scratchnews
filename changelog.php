@@ -16,7 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
-    <p>[Aug12] v0.22 - Added automatic translations to the site (8 languages)
+    <p>[Aug12] v0.22 - Added automatic translations to the site (8 languages), "Translate Articles" feature in Settings and language bar at the footer. Next update gon be a lil fire trust 🤞</p>
     <p>[Aug11] v0.21 - Fixed nav bar cutoff for some smaller PCs, clear formatting button now also just resets all formatting when clicked and nothing's selected, Autosave (autosaves your article), Auto-Color Links (color links blue when making article, available in settings)</p>
     <p>[Aug10] v0.2 - Mild update! Articles FINALLY linked to user, profile picture next to article/profile comments/replies, and...DESKTOP APP! That's right, ScratchNews has an app now! Scroll down to the footer, More and Download! The app updates sync with the website's. It's free, like everything ScratchNews-related!</p>
     <p>0.19.1 - Super duper tiny, made message number and orange margin bigger and fixed moderation words margin in admin</p>
