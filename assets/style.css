@@ -208,7 +208,7 @@ html {
     padding: 0;
     box-shadow: none;
     max-width: none;
-    flex: 0 1 340px;
+    width: 340px;
     min-width: 0;
     position: absolute;
     left: 50%;
