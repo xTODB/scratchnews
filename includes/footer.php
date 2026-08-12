@@ -27,20 +27,22 @@
             </div>
         </div>
     </div>
-    <div class="footer-language">
-        <form method="post" action="/set-language.php" id="footerLangForm">
-            <?= csrfField() ?>
-            <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI'] ?? '/') ?>">
-            <label for="footerLangSelect" class="visually-hidden">Translate articles</label>
-            <select name="translate_lang" id="footerLangSelect" onchange="document.getElementById('footerLangForm').submit();">
-                <option value="" <?= getTranslateTarget() === '' ? 'selected' : '' ?>>🌐 English (original)</option>
-                <?php foreach (translateLanguageOptions() as $code => $label): ?>
-                    <option value="<?= e($code) ?>" <?= getTranslateTarget() === $code ? 'selected' : '' ?>><?= e($label) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </form>
+    <div class="footer-bottom">
+        <div class="footer-copyright">&copy; <?= e(SITE_NAME) ?> v<?= e(SITE_VERSION) ?></div>
+        <div class="footer-language">
+            <form method="post" action="/set-language.php" id="footerLangForm">
+                <?= csrfField() ?>
+                <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI'] ?? '/') ?>">
+                <label for="footerLangSelect" class="visually-hidden">Translate articles</label>
+                <select name="translate_lang" id="footerLangSelect" onchange="document.getElementById('footerLangForm').submit();">
+                    <option value="" <?= getTranslateTarget() === '' ? 'selected' : '' ?>>🌐 English (original)</option>
+                    <?php foreach (translateLanguageOptions() as $code => $label): ?>
+                        <option value="<?= e($code) ?>" <?= getTranslateTarget() === $code ? 'selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </form>
+        </div>
     </div>
-    <div class="footer-copyright">&copy; <?= e(SITE_NAME) ?> v<?= e(SITE_VERSION) ?></div>
 </footer>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
