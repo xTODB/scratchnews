@@ -837,16 +837,23 @@ function setTranslatePreference(int $userId, string $lang): void {
 // (network, non-200, or MyMemory's quota-exceeded message riding along inside a
 // 200 response) so callers can fall back to showing the original English.
 function translateTextViaMyMemory(string $text, string $targetLang): ?string {
-    $text = trim($text);
-    if ($text === '') return $text;
+    if (trim($text) === '') return $text;
+    // Preserve leading/trailing whitespace ourselves - MyMemory trims the query
+    // and doesn't hand it back, so without this, adjacent text nodes/chunks that
+    // relied on a boundary space get silently glued together after translation
+    // (e.g. "xelna has released" + "Prerendered Clockwork..." -> "...releasedPrerendered...").
+    preg_match('/^(\s*)(.*?)(\s*)$/s', $text, $m);
+    [, $lead, $core, $trail] = $m;
+    if ($core === '') return $text;
     $email = defined('MYMEMORY_CONTACT_EMAIL') && MYMEMORY_CONTACT_EMAIL !== ''
         ? MYMEMORY_CONTACT_EMAIL
         : (defined('BREVO_SENDER_EMAIL') ? BREVO_SENDER_EMAIL : '');
-    $url = 'https://api.mymemory.translated.net/get?q=' . rawurlencode($text)
+    $url = 'https://api.mymemory.translated.net/get?q=' . rawurlencode($core)
         . '&langpair=en|' . rawurlencode($targetLang)
         . ($email !== '' ? '&de=' . rawurlencode($email) : '');
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
     curl_setopt($ch, CURLOPT_TIMEOUT, 6);
     curl_setopt($ch, CURLOPT_USERAGENT, 'ScratchNews-Translate/1.0');
     $response = curl_exec($ch);
@@ -861,7 +868,7 @@ function translateTextViaMyMemory(string $text, string $targetLang): ?string {
     if (stripos($translated, 'QUERY LENGTH LIMIT') !== false || stripos($translated, 'MYMEMORY WARNING') !== false) {
         return null;
     }
-    return html_entity_decode($translated, ENT_QUOTES, 'UTF-8');
+    return $lead . html_entity_decode($translated, ENT_QUOTES, 'UTF-8') . $trail;
 }
 
 // Splits plain text into <=$maxLen chunks (MyMemory caps around 500 chars per
@@ -897,18 +904,75 @@ function translateTextChunked(string $text, string $targetLang): string {
     return $out;
 }
 
-// Walks a DOM subtree translating only text nodes, leaving tags/attributes
-// (and anything inside <script>/<style>/<code>/<pre>) untouched.
-function translateDomTextNodes(DOMNode $node, string $targetLang): void {
+// Collects text nodes eligible for translation from a DOM subtree, in document
+// order, skipping whitespace-only nodes and anything inside <script>/<style>/
+// <code>/<pre>.
+function collectTranslatableTextNodes(DOMNode $node, array &$out): void {
     foreach (iterator_to_array($node->childNodes) as $child) {
         if ($child->nodeType === XML_TEXT_NODE) {
-            if (trim($child->data) === '') continue;
-            $child->data = translateTextChunked($child->data, $targetLang);
+            if (trim($child->data) !== '') $out[] = $child;
         } elseif ($child->nodeType === XML_ELEMENT_NODE) {
             if (in_array(strtolower($child->nodeName), ['script', 'style', 'code', 'pre'], true)) continue;
-            translateDomTextNodes($child, $targetLang);
+            collectTranslatableTextNodes($child, $out);
         }
     }
+}
+
+// Translates a list of DOMText nodes, batching several short ones into a single
+// MyMemory call (joined by a rare delimiter, then split back apart) instead of
+// firing one HTTP request per paragraph. A long article can easily have dozens of
+// text nodes; translating each with its own round trip was blowing past
+// InfinityFree's execution time limit before the request could finish and get
+// cached, so it 500'd on every attempt. Falls back to translating a batch's items
+// individually if the delimiter didn't survive translation intact.
+function translateTextNodesBatched(array $nodes, string $targetLang): void {
+    $delimiter = " \u{2016} ";
+    $maxBatchLen = 420;
+    $batch = [];
+    $batchLen = 0;
+
+    $flush = function () use (&$batch, &$batchLen, $targetLang, $delimiter) {
+        if (empty($batch)) return;
+        if (count($batch) === 1) {
+            $item = $batch[0];
+            $translated = translateTextViaMyMemory($item['core'], $targetLang);
+            $item['node']->data = $item['lead'] . ($translated ?? $item['core']) . $item['trail'];
+        } else {
+            $joined = implode($delimiter, array_column($batch, 'core'));
+            $translatedJoined = translateTextViaMyMemory($joined, $targetLang);
+            $parts = $translatedJoined !== null ? explode(trim($delimiter), $translatedJoined) : null;
+            if ($parts !== null && count($parts) === count($batch)) {
+                foreach ($batch as $i => $item) {
+                    $item['node']->data = $item['lead'] . trim($parts[$i]) . $item['trail'];
+                }
+            } else {
+                // Delimiter got mangled in translation - fall back to one call per item.
+                foreach ($batch as $item) {
+                    $translated = translateTextViaMyMemory($item['core'], $targetLang);
+                    $item['node']->data = $item['lead'] . ($translated ?? $item['core']) . $item['trail'];
+                }
+            }
+        }
+        $batch = [];
+        $batchLen = 0;
+    };
+
+    foreach ($nodes as $node) {
+        preg_match('/^(\s*)(.*?)(\s*)$/s', $node->data, $m);
+        [, $lead, $core, $trail] = $m;
+        if ($core === '') continue;
+        if (mb_strlen($core) > $maxBatchLen) {
+            $flush();
+            $node->data = $lead . translateTextChunked($core, $targetLang) . $trail;
+            continue;
+        }
+        if ($batch && $batchLen + mb_strlen($core) + 3 > $maxBatchLen) {
+            $flush();
+        }
+        $batch[] = ['node' => $node, 'lead' => $lead, 'core' => $core, 'trail' => $trail];
+        $batchLen += mb_strlen($core) + 3;
+    }
+    $flush();
 }
 
 // Translates article body HTML (as authored via Quill) without disturbing markup.
@@ -920,7 +984,9 @@ function translateHtmlContent(string $html, string $targetLang): string {
     libxml_clear_errors();
     $root = $dom->getElementsByTagName('div')->item(0);
     if (!$root) return $html;
-    translateDomTextNodes($root, $targetLang);
+    $textNodes = [];
+    collectTranslatableTextNodes($root, $textNodes);
+    translateTextNodesBatched($textNodes, $targetLang);
     $out = '';
     foreach ($root->childNodes as $child) {
         $out .= $dom->saveHTML($child);
