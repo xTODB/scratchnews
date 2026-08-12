@@ -16,7 +16,7 @@ $conversionRate = $totalUniqueIps > 0 ? round(($totalSignups / $totalUniqueIps) 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Stats - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=19">
 </head>
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
 <?php require_once __DIR__ . '/nav.php'; ?>
@@ -26,11 +26,6 @@ $conversionRate = $totalUniqueIps > 0 ? round(($totalSignups / $totalUniqueIps) 
 
     <p><strong>Overall conversion rate:</strong> <?= e($conversionRate) ?>%
         (<?= (int)$totalSignups ?> unique-IP signups / <?= (int)$totalUniqueIps ?> unique visitor IPs, all-time within retention window)</p>
-
-    <h3 style="margin-top:2rem;">Visitor Map (last 90 days)</h3>
-    <div id="visitorMap" style="height:400px; background:#222; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#888;">
-        Map rendering — needs a follow-up session to wire up (Leaflet/simple SVG world map + click-into-region), have the lat/long data now.
-    </div>
 
 <h3 style="margin-top:2rem;">Collective Time</h3>
     <?php $ct = getCollectiveTimeStats(); ?>

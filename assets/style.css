@@ -209,8 +209,11 @@ html {
     box-shadow: none;
     max-width: none;
     flex: 0 1 340px;
-    margin: 0 auto;
     min-width: 0;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 .search-form input[type="text"] {
     width: 100%;
@@ -241,6 +244,8 @@ header.shrink .search-form input[type="text"] { padding: 0.3rem 2rem 0.3rem 0.7r
         position: static;
     }
     .search-form {
+        position: static;
+        transform: none;
         margin: 0.7rem 0 0;
     }
     .search-form input[type="text"] {
