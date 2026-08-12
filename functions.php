@@ -801,13 +801,13 @@ function setAutocolorLinksPreference(int $userId, bool $enabled): void {
 
 function translateLanguageOptions(): array {
     return [
-        'es' => 'Español',
-        'fr' => 'Français',
-        'de' => 'Deutsch',
-        'pt' => 'Português',
-        'ru' => 'Русский',
-        'it' => 'Italiano',
-        'pl' => 'Polski',
+        'es' => '🇪🇸 Español',
+        'fr' => '🇫🇷 Français',
+        'de' => '🇩🇪 Deutsch',
+        'pt' => '🇵🇹 Português',
+        'ru' => '🇷🇺 Русский',
+        'it' => '🇮🇹 Italiano',
+        'pl' => '🇵🇱 Polski',
     ];
 }
 
