@@ -1,4 +1,9 @@
 RewriteEngine On
+# InfinityFree runs PHP via CGI/FastCGI, which strips the Authorization
+# header before PHP sees it. Without this, $_SERVER['HTTP_AUTHORIZATION']
+# is always empty, so Bearer API keys are silently never read.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 # /article/123  ->  article.php?id=123
 RewriteRule ^article/([0-9]+)/?$ article.php?id=$1 [L,QSA]
 RewriteRule ^verify$ verify.php [L]
@@ -27,9 +32,6 @@ RewriteRule ^community-guidelines/?$ community-guidelines.php [L,QSA]
 RewriteRule ^feedback/?$ feedback.php [L,QSA]
 RewriteRule ^random-article/?$ random-article.php [L,QSA]
 RewriteRule ^heartbeat/?$ heartbeat.php [L,QSA]
-RewriteRule ^subscribe/?$ subscribe.php [L,QSA]
-RewriteRule ^unsubscribe/?$ unsubscribe.php [L,QSA]
-RewriteRule ^confirm-subscription/?$ confirm-subscription.php [L,QSA]
 RewriteRule ^stop-impersonating/?$ stop-impersonating.php [L,QSA]
 RewriteRule ^follow/?$ follow.php [L,QSA]
 RewriteRule ^update-profile/?$ update-profile.php [L,QSA]
