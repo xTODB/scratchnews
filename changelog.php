@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Aug14] v0.23 Alpha - Added icons instead of text in header, Profiles page, new simple Search page</p>
     <p>[Aug12] v0.22 - Added automatic translations to the site (8 languages), "Translate Articles" feature in Settings and language bar at the footer. Next update gon be a lil fire trust 🤞</p>
     <p>[Aug11] v0.21 - Fixed nav bar cutoff for some smaller PCs, clear formatting button now also just resets all formatting when clicked and nothing's selected, Autosave (autosaves your article), Auto-Color Links (color links blue when making article, available in settings)</p>
     <p>[Aug10] v0.2 - Mild update! Articles FINALLY linked to user, profile picture next to article/profile comments/replies, and...DESKTOP APP! That's right, ScratchNews has an app now! Scroll down to the footer, More and Download! The app updates sync with the website's. It's free, like everything ScratchNews-related!</p>
@@ -31,8 +32,8 @@ startSession();
     <p>[Jul29] v0.15 - Changed API IP Allow to API Key Allow, everyone gets free 30 a minute API requests. Added views and article-to-user tying for admins.</p>
     <p>[Jul27/28] v0.14.2 - ScratchNews Bot</p>
     <p>[Jul27] v0.14.1 - Added Read-only API</p>
-    <p>v0.14 - Like v0.14 Preview but with bug fixes, removed search icon cuz it made bugs on mobile</p>
-    <p>[Jul26] v0.14 Preview - To congratulate hitting 15 users... HUGE update! Explore page, filter in Explore page, categories, and email subscription!<br>Submit Article and Explore buttons added!<br>We know that there still are some bugs (like search icon in wrong position for mobile, explore text looking weird). We promise to fix them today!! Stay tuned and check ScratchNews every now and then to see new updates.</p>
+    <p>v0.14 - Like v0.14 Beta but with bug fixes, removed search icon cuz it made bugs on mobile</p>
+    <p>[Jul26] v0.14 Beta - To congratulate hitting 15 users... HUGE update! Explore page, filter in Explore page, categories, and email subscription!<br>Submit Article and Explore buttons added!<br>We know that there still are some bugs (like search icon in wrong position for mobile, explore text looking weird). We promise to fix them today!! Stay tuned and check ScratchNews every now and then to see new updates.</p>
     <p>[Jul25] v0.13.4 - Added articles showing in profile pages</p>
     <p>[Jul22] v0.13.3 - SEO</p>
     <p>[Jul20] v0.13.2 - Admin 'log in as' feature to protect against bots. But more importantly, first ever non-admin article and 5 users.</p>
