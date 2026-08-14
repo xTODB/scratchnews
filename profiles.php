@@ -46,16 +46,18 @@ $myId = $_SESSION['reader_id'] ?? 0;
                         <div class="profile-card-tagline"><?= $bioFirstLine !== '' ? e($bioFirstLine) : '&nbsp;' ?></div>
                     </div>
                 </a>
-                <?php if ($myId && (int)$myId !== (int)$u['id']): ?>
-                <form method="post" action="/follow" class="profile-card-follow-form">
-                    <?= csrfField() ?>
-                    <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                    <input type="hidden" name="redirect" value="/profiles?sort=<?= e($sort) ?>">
-                    <button type="submit" class="profile-card-follow-btn <?= $following ? 'following' : '' ?>"><?= $following ? 'Following' : 'Follow' ?></button>
-                </form>
-                <?php endif; ?>
                 <div class="profile-card-hover">
-                    <a href="/@<?= urlencode($u['username']) ?>" class="profile-card-visit">Visit Profile</a>
+                    <div class="profile-card-hover-top">
+                        <a href="/@<?= urlencode($u['username']) ?>" class="profile-card-visit">Visit Profile</a>
+                        <?php if ($myId && (int)$myId !== (int)$u['id']): ?>
+                        <form method="post" action="/follow" class="profile-card-follow-form">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="redirect" value="/profiles?sort=<?= e($sort) ?>">
+                            <button type="submit" class="profile-card-follow-btn <?= $following ? 'following' : '' ?>"><?= $following ? 'Following' : 'Follow' ?></button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
                     <?php if ($myId): ?>
                     <form method="post" action="/profile-comment" class="profile-card-comment-form">
                         <?= csrfField() ?>
