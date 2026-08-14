@@ -11,21 +11,39 @@
             <a href="https://ko-fi.com/scratchnews" class="header-quick-link">Donate</a>
         </div>
     </div>
-<form method="get" action="/search" class="search-form">
-    <input type="text" name="q" placeholder="Search articles...">
-</form>
+<?php
+    // Which nav icon is "active" - based on the physical PHP file being run,
+    // which stays reliable even through the clean-URL rewrites in .htaccess.
+    $__navPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
+    $__unreadCount = !empty($_SESSION['reader_id']) ? getUnreadNotificationCount($_SESSION['reader_id']) : 0;
+?>
+<div class="header-icon-nav">
+    <a href="/" class="header-icon-link <?= $__navPage === 'index.php' ? 'active' : '' ?>" title="Home">
+        <img src="/assets/icons/nav-home.svg" alt="Home" class="header-icon-svg">
+    </a>
+    <a href="/explore" class="header-icon-link <?= $__navPage === 'explore.php' ? 'active' : '' ?>" title="Explore">
+        <img src="/assets/icons/nav-explore.svg" alt="Explore" class="header-icon-svg">
+    </a>
+    <a href="<?= !empty($_SESSION['reader_username']) ? '/@' . e($_SESSION['reader_username']) : '/register' ?>" class="header-icon-link <?= $__navPage === 'profile.php' ? 'active' : '' ?>" title="Profiles">
+        <img src="/assets/icons/nav-profiles.svg" alt="Profiles" class="header-icon-svg">
+    </a>
+    <?php if (!empty($_SESSION['reader_username'])): ?>
+    <a href="/messages" class="header-icon-link header-icon-messages <?= $__navPage === 'messages.php' ? 'active' : '' ?>" title="Messages">
+        <img src="/assets/icons/message.svg" alt="Messages" class="header-icon-svg">
+        <?php if ($__unreadCount > 0): ?>
+            <span class="nav-messages-badge"><?= $__unreadCount > 99 ? '99+' : $__unreadCount ?></span>
+        <?php endif; ?>
+    </a>
+    <?php endif; ?>
+    <a href="/search" class="header-icon-link <?= $__navPage === 'search.php' ? 'active' : '' ?>" title="Search">
+        <img src="/assets/icons/nav-search.svg" alt="Search" class="header-icon-svg">
+    </a>
+</div>
 <nav>
     <?php if (!empty($_SESSION['reader_username'])):
         $navUser = getUserById($_SESSION['reader_id']);
         $navAvatar = $navUser['avatar_url'] ?? null;
-        $unreadCount = getUnreadNotificationCount($_SESSION['reader_id']);
     ?>
-        <a href="/messages" class="nav-messages-link" title="Messages">
-            <img src="/assets/icons/message.svg" class="icon-svg" alt="Messages">
-            <?php if ($unreadCount > 0): ?>
-                <span class="nav-messages-badge"><?= $unreadCount > 99 ? '99+' : $unreadCount ?></span>
-            <?php endif; ?>
-        </a>
         <div class="user-nav">
             <button class="user-nav-toggle" onclick="document.getElementById('userMenu').classList.toggle('open')">
                 <?php if ($navAvatar): ?>
@@ -53,14 +71,26 @@
     <?php endif; ?>
 </nav>
 <style>
-.nav-messages-link { position: relative; display: inline-flex; align-items: center; align-self: center; vertical-align: middle; margin: 0 1.5rem 0 0.75rem; }
-.nav-messages-link .icon-svg { width: 30px; height: 30px; vertical-align: middle; }
+.header-icon-nav { display: flex; align-items: center; gap: 0.6rem; }
+.header-icon-link {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    padding-bottom: 3px;
+    border-bottom: 2px solid transparent;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.header-icon-link:hover { background: rgba(255,255,255,0.12); }
+.header-icon-link.active { border-bottom-color: #fff; }
+.header-icon-svg { width: 20px; height: 20px; object-fit: contain; }
+.header-icon-messages { overflow: visible; }
 .nav-messages-badge {
-    position: absolute; top: -9px; right: -11px;
+    position: absolute; top: -6px; right: -8px;
     background: #ff9c2b; color: #fff;
-    font-size: 0.8rem; font-weight: 700;
-    line-height: 1; padding: 3px 7px;
-    border-radius: 999px; min-width: 22px; text-align: center;
+    font-size: 0.7rem; font-weight: 700;
+    line-height: 1; padding: 2px 5px;
+    border-radius: 999px; min-width: 18px; text-align: center;
 }
 </style>
 </header>
