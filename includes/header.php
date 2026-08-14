@@ -34,6 +34,9 @@
     <a href="/search" class="header-icon-link <?= $__navPage === 'search.php' ? 'active' : '' ?>" title="Search">
         <img src="/assets/icons/nav-search.svg" alt="Search" class="header-icon-svg">
     </a>
+        <a href="https://ko-fi.com/scratchnews" class="header-icon-link <?= $__navPage === '' ? 'active' : '' ?>" title="Donate">
+        <img src="/assets/icons/nav-donate.svg" alt="Donate" class="header-icon-svg">
+    </a>
 </div>
 <nav>
     <?php if (!empty($_SESSION['reader_username'])):
