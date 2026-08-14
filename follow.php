@@ -20,5 +20,11 @@ if ($target && $targetId !== $followerId) {
     }
 }
 
-header('Location: /@' . urlencode($target['username'] ?? ''));
+$fallback = '/@' . urlencode($target['username'] ?? '');
+$redirect = $_POST['redirect'] ?? '';
+// Only allow same-site relative paths, never an absolute URL, to avoid an open redirect.
+if ($redirect === '' || $redirect[0] !== '/' || strpos($redirect, '//') === 0) {
+    $redirect = $fallback;
+}
+header('Location: ' . $redirect);
 exit;

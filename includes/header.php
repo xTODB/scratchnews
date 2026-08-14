@@ -3,13 +3,6 @@
         <a href="/" class="logo-link">
 <svg viewBox="0,0,136.90609,31.33279" class="logo-svg" xmlns="http://www.w3.org/2000/svg"><g transform="translate(-172.33195,-164.3336)"><g stroke-miterlimit="10"><text transform="translate(217.16808,185.69599) scale(0.5,0.5)" font-size="40" fill="#ffffff" stroke="#ffaa33" stroke-width="3" font-family="Scratch" font-weight="normal" text-anchor="start"><tspan x="0" dy="0">ScratchNews</tspan></text><text transform="translate(217.16808,185.69599) scale(0.5,0.5)" font-size="40" fill="#ffffff" stroke="none" stroke-width="1" font-family="Scratch" font-weight="normal" text-anchor="start"><tspan x="0" dy="0">ScratchNews</tspan></text><path d="M181.04509,195.64879h-8.71313v-10.6397h8.71313z" fill="#cc8829" stroke="none"/><path d="M176.88045,195.6664v-20.46677l3.90302,-0.07587l0.09189,-5.0222h6.64479v20.71239l-3.91923,0.16783l-0.04923,4.68462z" fill="#ffaa33" stroke="none"/><path d="M201.40189,164.35122h8.71313v10.6397h-8.71313z" fill="#cc8829" stroke="none"/><path d="M205.56653,164.33361v20.46677l-3.90302,0.07587l-0.09189,5.0222h-6.64479v-20.71239l3.91923,-0.16783l0.04923,-4.68462z" fill="#ffaa33" stroke="none"/><path d="M190.06459,189.91166l-0.03808,-3.62362l-3.03158,-0.12982v-16.02128h5.13983l0.07108,3.88473l3.01904,0.05869v15.8313z" fill="#ffaa33" stroke="none"/></g></g></svg>
 </a>
-        <div class="header-quick-links">
-            <a href="/submit" class="header-quick-link">Submit Article</a>
-            <a href="/explore" class="header-quick-link">Explore</a>
-            <a href="/download" class="header-quick-link">Download</a>
-            <a href="/api.php" class="header-quick-link">API</a>
-            <a href="https://ko-fi.com/scratchnews" class="header-quick-link">Donate</a>
-        </div>
     </div>
 <?php
     // Which nav icon is "active" - based on the physical PHP file being run,
@@ -24,8 +17,11 @@
     <a href="/explore" class="header-icon-link <?= $__navPage === 'explore.php' ? 'active' : '' ?>" title="Explore">
         <img src="/assets/icons/nav-explore.svg" alt="Explore" class="header-icon-svg">
     </a>
-    <a href="<?= !empty($_SESSION['reader_username']) ? '/@' . e($_SESSION['reader_username']) : '/register' ?>" class="header-icon-link <?= $__navPage === 'profile.php' ? 'active' : '' ?>" title="Profiles">
+    <a href="/profiles" class="header-icon-link <?= $__navPage === 'profiles.php' ? 'active' : '' ?>" title="Profiles">
         <img src="/assets/icons/nav-profiles.svg" alt="Profiles" class="header-icon-svg">
+    </a>
+    <a href="/submit" class="header-icon-link <?= $__navPage === 'submit.php' ? 'active' : '' ?>" title="Submit Article">
+        <img src="/assets/icons/nav-submit.svg" alt="Submit Article" class="header-icon-svg">
     </a>
     <?php if (!empty($_SESSION['reader_username'])): ?>
     <a href="/messages" class="header-icon-link header-icon-messages <?= $__navPage === 'messages.php' ? 'active' : '' ?>" title="Messages">
@@ -71,19 +67,23 @@
     <?php endif; ?>
 </nav>
 <style>
-.header-icon-nav { display: flex; align-items: center; gap: 0.6rem; }
+.header-icon-nav {
+    display: flex; align-items: center; gap: 0.9rem;
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+}
 .header-icon-link {
     position: relative;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    padding-bottom: 3px;
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    padding-bottom: 4px;
     border-bottom: 2px solid transparent;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 .header-icon-link:hover { background: rgba(255,255,255,0.12); }
 .header-icon-link.active { border-bottom-color: #fff; }
-.header-icon-svg { width: 20px; height: 20px; object-fit: contain; }
+.header-icon-svg { width: 30px; height: 30px; object-fit: contain; }
 .header-icon-messages { overflow: visible; }
 .nav-messages-badge {
     position: absolute; top: -6px; right: -8px;
@@ -91,6 +91,9 @@
     font-size: 0.7rem; font-weight: 700;
     line-height: 1; padding: 2px 5px;
     border-radius: 999px; min-width: 18px; text-align: center;
+}
+@media (max-width: 700px) {
+    .header-icon-nav { position: static; transform: none; margin: 0.7rem 0 0; justify-content: center; }
 }
 </style>
 </header>

@@ -20,6 +20,12 @@ $results = $query !== '' ? searchArticles($query) : [];
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="home-main">
+    <form method="get" action="/search" class="page-search-form">
+        <input type="text" name="q" value="<?= e($query) ?>" placeholder="Search articles..." autofocus>
+        <button type="submit" aria-label="Search">
+            <img src="/assets/icons/nav-search.svg" alt="" class="icon-svg-sm">
+        </button>
+    </form>
     <h2>Search results<?= $query !== '' ? ' for "' . e($query) . '"' : '' ?></h2>
     <?php if ($query === ''): ?>
         <p>Type something in the search box above.</p>

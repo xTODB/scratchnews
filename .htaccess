@@ -18,6 +18,7 @@ RewriteRule ^delete-account/?$ delete_account.php [L,QSA]
 RewriteRule ^users/([A-Za-z0-9_]+)/?$ profile.php?username=$1 [L,QSA]
 RewriteRule ^@([A-Za-z0-9_]+)/?$ profile.php?username=$1 [L,QSA]
 RewriteRule ^search$ search.php [L]
+RewriteRule ^profiles/?$ profiles.php [L,QSA]
 RewriteRule ^explore/?$ explore.php [L,QSA]
 
 # Clean URLs: strip .php extension (top-level pages only, for now).

@@ -2511,6 +2511,27 @@ function isFollowing(int $followerId, int $followedId): bool {
     return $exists;
 }
 
+// Public-safe user listing for /profiles (v0.23). Only non-sensitive fields -
+// no email/ip/is_banned like getAllUsers(), which is admin-only.
+function getPublicUserList(string $sort = 'recent'): array {
+    $db = getDB();
+    if ($sort === 'followers') {
+        $sql = "SELECT u.id, u.username, u.avatar_url, u.bio, u.created_at, u.is_admin, u.is_moderator, u.is_fan,
+                       (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id) AS follower_count
+                FROM users u
+                WHERE u.is_banned = 0 AND u.username NOT LIKE 'deleted_user_%'
+                ORDER BY follower_count DESC, u.created_at DESC";
+    } else {
+        $sql = "SELECT u.id, u.username, u.avatar_url, u.bio, u.created_at, u.is_admin, u.is_moderator, u.is_fan,
+                       (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id) AS follower_count
+                FROM users u
+                WHERE u.is_banned = 0 AND u.username NOT LIKE 'deleted_user_%'
+                ORDER BY u.created_at DESC";
+    }
+    $result = $db->query($sql);
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+}
+
 function followUser(int $followerId, int $followedId): void {
     if ($followerId === $followedId) return;
     $db = getDB();
