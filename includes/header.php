@@ -20,10 +20,10 @@
     <a href="/profiles" class="header-icon-link <?= $__navPage === 'profiles.php' ? 'active' : '' ?>" title="Profiles">
         <img src="/assets/icons/nav-profiles.svg" alt="Profiles" class="header-icon-svg">
     </a>
+    <?php if (!empty($_SESSION['reader_username'])): ?>
     <a href="/submit" class="header-icon-link <?= $__navPage === 'submit.php' ? 'active' : '' ?>" title="Submit Article">
         <img src="/assets/icons/nav-submit.svg" alt="Submit Article" class="header-icon-svg">
     </a>
-    <?php if (!empty($_SESSION['reader_username'])): ?>
     <a href="/messages" class="header-icon-link header-icon-messages <?= $__navPage === 'messages.php' ? 'active' : '' ?>" title="Messages">
         <img src="/assets/icons/message.svg" alt="Messages" class="header-icon-svg">
         <?php if ($__unreadCount > 0): ?>

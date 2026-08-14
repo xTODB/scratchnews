@@ -150,7 +150,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/empty-header.php'; ?>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2><?= $formDraftId > 0 ? 'Edit Draft' : 'Submit an Article' ?></h2>
     <p><a href="/submission-guidelines">Read our submission guidelines</a> before submitting: it covers what gets approved and what doesn't.</p>

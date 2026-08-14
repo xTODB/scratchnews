@@ -52,10 +52,20 @@ main.home-main { max-width: 1080px; }
     align-items: center;
     gap: 0.5rem;
     max-width: 480px;
-    margin: 0 0 1.4rem;
+    margin: 0 auto 1.4rem;
     background: none;
     padding: 0;
     box-shadow: none;
+}
+main.home-main.search-empty {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+main.home-main.search-empty .page-search-form {
+    margin: 0;
+    width: 100%;
 }
 .page-search-form input[type="text"] {
     flex: 1;
@@ -404,6 +414,8 @@ body.dark .share-option:hover { background: #26292e; }
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    text-decoration: none;
+    color: inherit;
 }
 .row-card-link { display: block; text-decoration: none; color: inherit; }
 .row-card-img {
@@ -485,7 +497,7 @@ body.dark .share-option:hover { background: #26292e; }
     overflow: hidden;
     min-height: 92px;
 }
-.profile-card-top { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; }
+.profile-card-top { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; padding-right: 4.5rem; }
 .profile-card-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .profile-card-avatar-placeholder {
     display: flex; align-items: center; justify-content: center;
@@ -495,7 +507,7 @@ body.dark .share-option:hover { background: #26292e; }
 .profile-card-names { min-width: 0; }
 .profile-card-username { font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .profile-card-tagline { font-size: 0.8rem; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.profile-card-follow-form { margin-top: 0.7rem; }
+.profile-card-follow-form { position: absolute; top: 1rem; right: 1rem; margin: 0; }
 .profile-card-follow-btn {
     all: unset;
     box-sizing: border-box;
