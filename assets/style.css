@@ -511,8 +511,8 @@ body.dark .share-option:hover { background: #26292e; }
     display: inline-block;
     background: var(--accent-blue); color: #fff;
     font-weight: 700; font-size: 0.85rem;
-    padding: 0.35rem 0.9rem;
-    border-radius: 20px;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
     cursor: pointer;
 }
 .profile-card-follow-btn.following { background: #888; }

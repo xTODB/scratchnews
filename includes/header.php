@@ -78,19 +78,20 @@
     width: 44px; height: 44px;
     border-radius: 10px;
     padding-bottom: 4px;
+    background: rgba(0,0,0,0.12);
     border-bottom: 2px solid transparent;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
-.header-icon-link:hover { background: rgba(255,255,255,0.12); }
-.header-icon-link.active { border-bottom-color: #fff; }
+.header-icon-link:hover { background: rgba(0,0,0,0.22); }
+.header-icon-link.active { background: rgba(255,255,255,0.28); border-bottom-color: #fff; }
 .header-icon-svg { width: 30px; height: 30px; object-fit: contain; }
 .header-icon-messages { overflow: visible; }
 .nav-messages-badge {
-    position: absolute; top: -6px; right: -8px;
+    position: absolute; top: -8px; right: -10px;
     background: #ff9c2b; color: #fff;
-    font-size: 0.7rem; font-weight: 700;
-    line-height: 1; padding: 2px 5px;
-    border-radius: 999px; min-width: 18px; text-align: center;
+    font-size: 0.8rem; font-weight: 700;
+    line-height: 1; padding: 3px 6px;
+    border-radius: 999px; min-width: 20px; text-align: center;
 }
 @media (max-width: 700px) {
     .header-icon-nav { position: static; transform: none; margin: 0.7rem 0 0; justify-content: center; }
