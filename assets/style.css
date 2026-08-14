@@ -494,7 +494,7 @@ body.dark .share-option:hover { background: #26292e; }
     overflow: hidden;
     min-height: 92px;
 }
-.profile-card-top { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; padding-right: 5.5rem; }
+.profile-card-top { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; padding-right: 7rem; }
 .profile-card-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .profile-card-avatar-placeholder {
     display: flex; align-items: center; justify-content: center;
@@ -504,7 +504,7 @@ body.dark .share-option:hover { background: #26292e; }
 .profile-card-names { min-width: 0; }
 .profile-card-username { font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .profile-card-tagline { font-size: 0.8rem; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.profile-card-follow-form { position: absolute; top: 1rem; right: 1rem; margin: 0; }
+.profile-card-follow-form { position: absolute; top: 1rem; right: 1rem; margin: 0; background: none; padding: 0; box-shadow: none; max-width: none; }
 .profile-card-follow-btn {
     all: unset;
     box-sizing: border-box;
