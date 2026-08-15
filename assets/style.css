@@ -883,8 +883,8 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
     padding: 0.12rem 0.5rem; border-radius: 999px; color: #fff; vertical-align: middle;
     text-transform: uppercase;
 }
-.rank-badge.rank-writer { background: #6b8e4e; }
-.rank-badge.rank-featured-writer { background: #d97b1f; }
-.rank-badge.rank-fan { background: #d94f8c; }
-.rank-badge.rank-moderator { background: #3a6ea5; }
-.rank-badge.rank-dev { background: linear-gradient(135deg, #6a3fd9, #b23fd9); }
+.rank-badge.rank-writer { background: #00ddff; }
+.rank-badge.rank-featured-writer { background: #0022ff; }
+.rank-badge.rank-fan { background: #8000ff; }
+.rank-badge.rank-moderator { background: #ff00d0; }
+.rank-badge.rank-dev { background: linear-gradient(135deg, #ff0000, #910101); }
