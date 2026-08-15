@@ -188,7 +188,15 @@ if (!$article) {
             <?php if ($isBanned): ?>
                 <p class="meta">Your account is restricted from liking and commenting.</p>
             <?php endif; ?>
+            <button type="button" class="share-banner">
+                <img src="/assets/banners/sn-banner-4.svg" alt="Share this article" class="share-banner-img">
+                <span class="share-banner-label">Copy link to share</span>
+            </button>
             <div class="content"><?= $displayContent ?></div>
+            <button type="button" class="share-banner">
+                <img src="/assets/banners/sn-banner-4.svg" alt="Share this article" class="share-banner-img">
+                <span class="share-banner-label">Enjoyed it? Share the link</span>
+            </button>
             <div class="comments-section" id="comments">
     <h3>Comments (<?= count($comments) ?>)</h3>
     <?php if (!empty($_SESSION['reader_id']) && !$isBanned): ?>
@@ -309,6 +317,18 @@ document.addEventListener('click', function(e) {
                     btn.textContent = original;
                     shareMenu.classList.remove('open');
                 }, 900);
+            });
+        });
+    });
+
+    document.querySelectorAll('.share-banner').forEach(function(banner) {
+        banner.addEventListener('click', function() {
+            navigator.clipboard.writeText(pageUrl).then(function() {
+                var label = banner.querySelector('.share-banner-label');
+                if (!label) return;
+                var original = label.textContent;
+                label.textContent = 'Copied!';
+                setTimeout(function() { label.textContent = original; }, 900);
             });
         });
     });
