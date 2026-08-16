@@ -334,13 +334,15 @@ function renderBarChartSvg(array $data, array $opts = []): string {
     $max = max(max($values), 1);
     $padBottom = 22;
     $padTop = 8;
+    $padX = 20;
+    $drawWidth = $width - $padX * 2;
     $barGap = 3;
-    $barWidth = max(1, ($width - ($n - 1) * $barGap) / $n);
+    $barWidth = max(1, ($drawWidth - ($n - 1) * $barGap) / $n);
 
     $bars = '';
     foreach ($values as $i => $v) {
         $barHeight = ($height - $padBottom - $padTop) * ($v / $max);
-        $x = $i * ($barWidth + $barGap);
+        $x = $padX + $i * ($barWidth + $barGap);
         $y = $height - $padBottom - $barHeight;
         $fill = ($highlightLast && $i === $n - 1) ? $highlightColor : $color;
         $bars .= '<rect x="' . round($x, 1) . '" y="' . round($y, 1) . '" width="' . round($barWidth, 1) . '" height="' . round($barHeight, 1) . '" fill="' . $fill . '"><title>' . e($labels[$i]) . ': ' . e($v) . '</title></rect>';
@@ -348,7 +350,7 @@ function renderBarChartSvg(array $data, array $opts = []): string {
     $ticks = '';
     foreach ($labels as $i => $label) {
         if ($i % $labelEvery !== 0 && $i !== $n - 1) continue;
-        $x = $i * ($barWidth + $barGap) + $barWidth / 2;
+        $x = $padX + $i * ($barWidth + $barGap) + $barWidth / 2;
         $ticks .= '<text x="' . round($x, 1) . '" y="' . ($height - 6) . '" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">' . e(substr($label, 5)) . '</text>';
     }
     return '<svg viewBox="0 0 ' . $width . ' ' . $height . '" class="chart-svg" preserveAspectRatio="none" style="width:100%;height:' . $height . 'px;">' . $bars . $ticks . '</svg>';
@@ -372,11 +374,13 @@ function renderLineChartSvg(array $data, array $opts = []): string {
     $range = max($max - $min, 1);
     $padBottom = 22;
     $padTop = 8;
-    $stepX = $n > 1 ? $width / ($n - 1) : 0;
+    $padX = 20;
+    $drawWidth = $width - $padX * 2;
+    $stepX = $n > 1 ? $drawWidth / ($n - 1) : 0;
 
     $coords = [];
     foreach ($values as $i => $v) {
-        $x = $stepX * $i;
+        $x = $padX + $stepX * $i;
         $y = $padTop + ($height - $padBottom - $padTop) * (1 - (($v - $min) / $range));
         $coords[] = [round($x, 1), round($y, 1)];
     }
@@ -392,7 +396,7 @@ function renderLineChartSvg(array $data, array $opts = []): string {
     $ticks = '';
     foreach ($labels as $i => $label) {
         if ($i % $labelEvery !== 0 && $i !== $n - 1) continue;
-        $x = $stepX * $i;
+        $x = $padX + $stepX * $i;
         $ticks .= '<text x="' . round($x, 1) . '" y="' . ($height - 6) . '" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">' . e(substr($label, 5)) . '</text>';
     }
     return '<svg viewBox="0 0 ' . $width . ' ' . $height . '" class="chart-svg" preserveAspectRatio="none" style="width:100%;height:' . $height . 'px;">' . $polyline . $dots . $ticks . '</svg>';
@@ -415,7 +419,9 @@ function renderMultiLineChartSvg(array $series, array $opts = []): string {
     $max = max(max($allValues), 1);
     $padBottom = 22;
     $padTop = 8;
-    $stepX = $n > 1 ? $width / ($n - 1) : 0;
+    $padX = 20;
+    $drawWidth = $width - $padX * 2;
+    $stepX = $n > 1 ? $drawWidth / ($n - 1) : 0;
 
     $polylines = '';
     $legend = '';
@@ -424,7 +430,7 @@ function renderMultiLineChartSvg(array $series, array $opts = []): string {
         $color = $colors[$i % count($colors)];
         $points = [];
         foreach (array_values($vals) as $idx => $v) {
-            $x = $stepX * $idx;
+            $x = $padX + $stepX * $idx;
             $y = $padTop + ($height - $padBottom - $padTop) * (1 - ($v / $max));
             $points[] = round($x, 1) . ',' . round($y, 1);
         }
@@ -435,7 +441,7 @@ function renderMultiLineChartSvg(array $series, array $opts = []): string {
     $ticks = '';
     foreach ($labels as $idx => $label) {
         if ($idx % $labelEvery !== 0 && $idx !== $n - 1) continue;
-        $x = $stepX * $idx;
+        $x = $padX + $stepX * $idx;
         $ticks .= '<text x="' . round($x, 1) . '" y="' . ($height - 6) . '" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">' . e(substr($label, 5)) . '</text>';
     }
     $svg = '<svg viewBox="0 0 ' . $width . ' ' . $height . '" class="chart-svg" preserveAspectRatio="none" style="width:100%;height:' . $height . 'px;">' . $polylines . $ticks . '</svg>';
