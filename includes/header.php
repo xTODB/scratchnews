@@ -97,7 +97,20 @@
     border-radius: 999px; min-width: 20px; text-align: center;
 }
 @media (max-width: 700px) {
-    .header-icon-nav { position: static; transform: none; margin: 0.7rem 0 0; justify-content: center; }
+    .header-icon-nav {
+        position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+        transform: none;
+        margin: 0;
+        gap: 0;
+        justify-content: space-around;
+        padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom));
+        background: #d99d4a;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+        z-index: 500;
+    }
+    .header-icon-link { width: 42px; height: 42px; border-radius: 8px; }
+    .header-icon-svg { width: 26px; height: 26px; }
+    body { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
 }
 </style>
 </header>
