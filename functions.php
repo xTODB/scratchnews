@@ -193,10 +193,11 @@ function getTimeOnSiteStats(int $days = 7): array {
 // Generic "count per day for the last N days" helper, zero-filled for days with no rows.
 function getDailyCounts(string $table, string $dateExpr, int $days, string $extraWhere = ''): array {
     $db = getDB();
+    $rangeDays = max(0, $days - 1);
     $sql = "SELECT $dateExpr AS d, COUNT(*) AS c FROM $table WHERE $dateExpr >= DATE_SUB(CURDATE(), INTERVAL ? DAY)"
          . ($extraWhere !== '' ? " AND $extraWhere" : '') . " GROUP BY d ORDER BY d";
     $stmt = $db->prepare($sql);
-    $stmt->bind_param('i', $days);
+    $stmt->bind_param('i', $rangeDays);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
@@ -213,8 +214,9 @@ function getDailyCounts(string $table, string $dateExpr, int $days, string $extr
 
 function getDailyCollectiveTimeHours(int $days): array {
     $db = getDB();
+    $rangeDays = max(0, $days - 1);
     $stmt = $db->prepare("SELECT visit_date, total_seconds FROM time_totals_daily WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)");
-    $stmt->bind_param('i', $days);
+    $stmt->bind_param('i', $rangeDays);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
@@ -231,8 +233,9 @@ function getDailyCollectiveTimeHours(int $days): array {
 
 function getDailyArticleViewCounts(int $days): array {
     $db = getDB();
+    $rangeDays = max(0, $days - 1);
     $stmt = $db->prepare("SELECT view_date, view_count FROM daily_article_views WHERE view_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)");
-    $stmt->bind_param('i', $days);
+    $stmt->bind_param('i', $rangeDays);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
