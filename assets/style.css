@@ -906,9 +906,5 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
     transition: transform 0.15s ease;
 }
 .share-banner:hover { transform: scale(1.02); }
+.share-banner.copied { transform: scale(1.02); filter: brightness(1.15); }
 .share-banner-img { display: block; width: 100%; height: auto; }
-.share-banner-label {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 1rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-}
