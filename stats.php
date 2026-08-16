@@ -1,13 +1,19 @@
 <?php
-require_once __DIR__ . '/../functions.php';
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/functions.php';
+startSession();
+
+$days = 30;
+$userCounts = getCumulativeUserCounts($days);
+$topByViews = getTopArticlesByViews(5);
+$topByLikes = getTopArticlesByLikes(5);
+$topUsersByArticles = getTopUsersByArticleCount(5);
+$topUsersByFollowers = getTopUsersByFollowerCount(5);
 
 $db = getDB();
-$daily = $db->query("SELECT visit_date, COUNT(*) AS unique_visitors FROM daily_unique_visitors GROUP BY visit_date ORDER BY visit_date DESC LIMIT 30")->fetch_all(MYSQLI_ASSOC);
-
-$totalUniqueIps = $db->query("SELECT COUNT(DISTINCT ip_address) AS c FROM daily_unique_visitors")->fetch_assoc()['c'];
-$totalSignups = $db->query("SELECT COUNT(DISTINCT ip) AS c FROM signup_attempts WHERE successful = 1")->fetch_assoc()['c'];
-$conversionRate = $totalUniqueIps > 0 ? round(($totalSignups / $totalUniqueIps) * 100, 2) : 0;
+$totalUsers = (int)($db->query("SELECT COUNT(*) AS c FROM users WHERE is_banned = 0")->fetch_assoc()['c'] ?? 0);
+$totalArticles = (int)($db->query("SELECT COUNT(*) AS c FROM articles WHERE status = 'published'")->fetch_assoc()['c'] ?? 0);
+$totalComments = (int)($db->query("SELECT COUNT(*) AS c FROM comments")->fetch_assoc()['c'] ?? 0);
+$totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()['c'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -16,38 +22,64 @@ $conversionRate = $totalUniqueIps > 0 ? round(($totalSignups / $totalUniqueIps) 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Stats - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=21">
+<link rel="stylesheet" href="/assets/style.css?v=22">
 </head>
-<body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
-<?php require_once __DIR__ . '/nav.php'; ?>
+<body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
+<script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
+<?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
-    <h2>Stats (Admin)</h2>
-    <p><a href="/stats.php">View public stats page &rarr;</a></p>
+    <h2>Stats</h2>
+    <p>A look at how <?= e(SITE_NAME) ?> is growing.</p>
 
-    <p><strong>Overall conversion rate:</strong> <?= e($conversionRate) ?>%
-        (<?= (int)$totalSignups ?> unique-IP signups / <?= (int)$totalUniqueIps ?> unique visitor IPs, all-time within retention window)</p>
+    <div class="stat-cards">
+        <div class="stat-card"><p class="stat-card-label">Users</p><p class="stat-card-value"><?= number_format($totalUsers) ?></p></div>
+        <div class="stat-card"><p class="stat-card-label">Articles</p><p class="stat-card-value"><?= number_format($totalArticles) ?></p></div>
+        <div class="stat-card"><p class="stat-card-label">Comments</p><p class="stat-card-value"><?= number_format($totalComments) ?></p></div>
+        <div class="stat-card"><p class="stat-card-label">Likes</p><p class="stat-card-value"><?= number_format($totalLikes) ?></p></div>
+    </div>
 
-<h3 style="margin-top:2rem;">Collective Time</h3>
-    <?php $ct = getCollectiveTimeStats(); ?>
-    <p>All-time: <strong><?= number_format($ct['all_time_hours'], 1) ?> hours</strong>
-        &nbsp;|&nbsp; Today: <strong><?= number_format($ct['today_hours'], 1) ?> hours</strong></p>
+    <div class="chart-block">
+        <h4>User Count (last <?= $days ?> days)</h4>
+        <p class="chart-caption">Total registered users over time.</p>
+        <?= renderLineChartSvg($userCounts, ['color' => '#0084ff']) ?>
+    </div>
 
-    <h3 style="margin-top:2rem;">Time on Site (last 7 days)</h3>
-    <?php $tos = getTimeOnSiteStats(7); ?>
-    <?php if ($tos['count'] > 0): ?>
-        <p>Average: <?= (int)floor($tos['avg_seconds'] / 60) ?>m <?= (int)($tos['avg_seconds'] % 60) ?>s
-            &nbsp;|&nbsp; Median: <?= (int)floor($tos['median_seconds'] / 60) ?>m <?= (int)($tos['median_seconds'] % 60) ?>s
-            &nbsp;|&nbsp; Sessions counted: <?= (int)$tos['count'] ?></p>
-    <?php else: ?>
-        <p style="color:#888;">No session data yet — will populate as visitors browse with the heartbeat script live.</p>
-    <?php endif; ?>
-    <h3 style="margin-top:2rem;">Daily Unique Visitors (last 30 days)</h3>
-    <table>
-        <tr><th>Date</th><th>Unique Visitors</th></tr>
-        <?php foreach ($daily as $d): ?>
-            <tr><td><?= e($d['visit_date']) ?></td><td><?= (int)$d['unique_visitors'] ?></td></tr>
-        <?php endforeach; ?>
-    </table>
+    <h3 style="margin-top:2rem;">Most Popular Articles</h3>
+    <p class="chart-caption">By views</p>
+    <ul class="stat-list">
+        <?php if (empty($topByViews)): ?>
+            <li>No articles yet.</li>
+        <?php else: foreach ($topByViews as $a): ?>
+            <li><a href="/article/<?= (int)$a['id'] ?>"><?= e($a['title']) ?></a> <span class="stat-list-value"><?= number_format((int)$a['views']) ?> views</span></li>
+        <?php endforeach; endif; ?>
+    </ul>
+    <p class="chart-caption">By likes</p>
+    <ul class="stat-list">
+        <?php if (empty($topByLikes)): ?>
+            <li>No liked articles yet.</li>
+        <?php else: foreach ($topByLikes as $a): ?>
+            <li><a href="/article/<?= (int)$a['id'] ?>"><?= e($a['title']) ?></a> <span class="stat-list-value"><?= number_format((int)$a['like_count']) ?> likes</span></li>
+        <?php endforeach; endif; ?>
+    </ul>
+
+    <h3 style="margin-top:2rem;">Most Popular Users</h3>
+    <p class="chart-caption">By articles published</p>
+    <ul class="stat-list">
+        <?php if (empty($topUsersByArticles)): ?>
+            <li>No published articles yet.</li>
+        <?php else: foreach ($topUsersByArticles as $u): ?>
+            <li><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a> <span class="stat-list-value"><?= (int)$u['article_count'] ?> articles</span></li>
+        <?php endforeach; endif; ?>
+    </ul>
+    <p class="chart-caption">By followers</p>
+    <ul class="stat-list">
+        <?php if (empty($topUsersByFollowers)): ?>
+            <li>No follows yet.</li>
+        <?php else: foreach ($topUsersByFollowers as $u): ?>
+            <li><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a> <span class="stat-list-value"><?= (int)$u['follower_count'] ?> followers</span></li>
+        <?php endforeach; endif; ?>
+    </ul>
 </main>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
 </html>

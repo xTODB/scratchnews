@@ -908,3 +908,26 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .share-banner:hover { transform: scale(1.02); }
 .share-banner.copied { transform: scale(1.02); filter: brightness(1.15); }
 .share-banner-img { display: block; width: 100%; height: auto; }
+/* v0.23 Beta stats pages */
+.stat-cards { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0 1.5rem; }
+.stat-card {
+    border: 1px solid #ccc; border-radius: 8px; padding: 0.9rem 1.1rem;
+    flex: 1 1 160px; min-width: 140px;
+}
+body.dark .stat-card { border-color: #444; }
+.stat-card-label { font-size: 0.8rem; opacity: 0.7; margin: 0 0 0.25rem; }
+.stat-card-value { font-size: 1.5rem; font-weight: 700; margin: 0; }
+.chart-block { margin: 0.5rem 0 2rem; }
+.chart-block h4 { margin-bottom: 0.2rem; }
+.chart-caption { font-size: 0.8rem; opacity: 0.65; margin: 0 0 0.6rem; }
+.chart-svg { display: block; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-bottom: 0.4rem; font-size: 0.8rem; }
+.chart-legend-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+.chart-legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.stat-list { list-style: none; padding: 0; margin: 0 0 1.5rem; }
+.stat-list li {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding: 0.4rem 0; border-bottom: 1px solid #eee;
+}
+body.dark .stat-list li { border-bottom-color: #333; }
+.stat-list-value { opacity: 0.75; white-space: nowrap; }

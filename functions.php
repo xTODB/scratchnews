@@ -188,6 +188,260 @@ function getTimeOnSiteStats(int $days = 7): array {
     return ['count' => $count, 'avg_seconds' => round($avg), 'median_seconds' => round($median)];
 }
 
+// ---- Stats pages: daily time-series helpers + tiny inline-SVG charts (no JS/CDN dependency) ----
+
+// Generic "count per day for the last N days" helper, zero-filled for days with no rows.
+function getDailyCounts(string $table, string $dateExpr, int $days, string $extraWhere = ''): array {
+    $db = getDB();
+    $sql = "SELECT $dateExpr AS d, COUNT(*) AS c FROM $table WHERE $dateExpr >= DATE_SUB(CURDATE(), INTERVAL ? DAY)"
+         . ($extraWhere !== '' ? " AND $extraWhere" : '') . " GROUP BY d ORDER BY d";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $out = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $out[date('Y-m-d', strtotime("-$i days"))] = 0;
+    }
+    foreach ($rows as $r) {
+        $out[$r['d']] = (int)$r['c'];
+    }
+    return $out;
+}
+
+function getDailyCollectiveTimeHours(int $days): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT visit_date, total_seconds FROM time_totals_daily WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)");
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $out = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $out[date('Y-m-d', strtotime("-$i days"))] = 0;
+    }
+    foreach ($rows as $r) {
+        $out[$r['visit_date']] = round($r['total_seconds'] / 3600, 1);
+    }
+    return $out;
+}
+
+function getDailyArticleViewCounts(int $days): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT view_date, view_count FROM daily_article_views WHERE view_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)");
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $out = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $out[date('Y-m-d', strtotime("-$i days"))] = 0;
+    }
+    foreach ($rows as $r) {
+        $out[$r['view_date']] = (int)$r['view_count'];
+    }
+    return $out;
+}
+
+function getDailyConversionRate(int $days): array {
+    $visitors = getDailyCounts('daily_unique_visitors', 'visit_date', $days);
+    $signups = getDailyCounts('signup_attempts', 'DATE(created_at)', $days, 'successful = 1');
+    $out = [];
+    foreach ($visitors as $date => $v) {
+        $s = $signups[$date] ?? 0;
+        $out[$date] = $v > 0 ? round(($s / $v) * 100, 1) : 0;
+    }
+    return $out;
+}
+
+// Cumulative signup count by day, for the public "user count over time" graph.
+function getCumulativeUserCounts(int $days): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE created_at < DATE_SUB(CURDATE(), INTERVAL ? DAY)");
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $baseline = (int)$stmt->get_result()->fetch_row()[0];
+    $stmt->close();
+
+    $out = [];
+    $running = $baseline;
+    foreach (getDailyCounts('users', 'DATE(created_at)', $days) as $date => $count) {
+        $running += $count;
+        $out[$date] = $running;
+    }
+    return $out;
+}
+
+function getTopArticlesByViews(int $limit = 5): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id, title, views FROM articles WHERE status = 'published' ORDER BY views DESC LIMIT ?");
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getTopArticlesByLikes(int $limit = 5): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT a.id, a.title, COUNT(l.id) AS like_count FROM articles a JOIN likes l ON l.article_id = a.id WHERE a.status = 'published' GROUP BY a.id ORDER BY like_count DESC LIMIT ?");
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getTopUsersByArticleCount(int $limit = 5): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT u.id, u.username, COUNT(a.id) AS article_count FROM users u JOIN articles a ON a.user_id = u.id AND a.status = 'published' WHERE u.is_banned = 0 GROUP BY u.id ORDER BY article_count DESC LIMIT ?");
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getTopUsersByFollowerCount(int $limit = 5): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT u.id, u.username, COUNT(f.follower_id) AS follower_count FROM users u JOIN follows f ON f.followed_id = u.id WHERE u.is_banned = 0 GROUP BY u.id ORDER BY follower_count DESC LIMIT ?");
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+// Renders a small bar chart from a 'label' => value array. $opts['highlight_last']
+// draws the final bar in a lighter color (used for "today", since it's always a
+// partial day of data).
+function renderBarChartSvg(array $data, array $opts = []): string {
+    $width = $opts['width'] ?? 700;
+    $height = $opts['height'] ?? 160;
+    $color = $opts['color'] ?? '#ff8c1a';
+    $highlightColor = $opts['highlight_color'] ?? '#ffcf8a';
+    $highlightLast = $opts['highlight_last'] ?? false;
+
+    $values = array_values($data);
+    $labels = array_keys($data);
+    $n = count($values);
+    if ($n === 0) return '<p style="opacity:0.6;">No data yet.</p>';
+    $labelEvery = $opts['label_every'] ?? max(1, (int)ceil($n / 10));
+    $max = max(max($values), 1);
+    $padBottom = 22;
+    $padTop = 8;
+    $barGap = 3;
+    $barWidth = max(1, ($width - ($n - 1) * $barGap) / $n);
+
+    $bars = '';
+    foreach ($values as $i => $v) {
+        $barHeight = ($height - $padBottom - $padTop) * ($v / $max);
+        $x = $i * ($barWidth + $barGap);
+        $y = $height - $padBottom - $barHeight;
+        $fill = ($highlightLast && $i === $n - 1) ? $highlightColor : $color;
+        $bars .= '<rect x="' . round($x, 1) . '" y="' . round($y, 1) . '" width="' . round($barWidth, 1) . '" height="' . round($barHeight, 1) . '" fill="' . $fill . '"><title>' . e($labels[$i]) . ': ' . e($v) . '</title></rect>';
+    }
+    $ticks = '';
+    foreach ($labels as $i => $label) {
+        if ($i % $labelEvery !== 0 && $i !== $n - 1) continue;
+        $x = $i * ($barWidth + $barGap) + $barWidth / 2;
+        $ticks .= '<text x="' . round($x, 1) . '" y="' . ($height - 6) . '" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">' . e(substr($label, 5)) . '</text>';
+    }
+    return '<svg viewBox="0 0 ' . $width . ' ' . $height . '" class="chart-svg" preserveAspectRatio="none" style="width:100%;height:' . $height . 'px;">' . $bars . $ticks . '</svg>';
+}
+
+// Renders a small line chart from a 'label' => value array. $opts['highlight_last']
+// marks the final point in red (used for "today", since it's always partial).
+function renderLineChartSvg(array $data, array $opts = []): string {
+    $width = $opts['width'] ?? 700;
+    $height = $opts['height'] ?? 160;
+    $color = $opts['color'] ?? '#ff8c1a';
+    $highlightLast = $opts['highlight_last'] ?? false;
+
+    $values = array_values($data);
+    $labels = array_keys($data);
+    $n = count($values);
+    if ($n === 0) return '<p style="opacity:0.6;">No data yet.</p>';
+    $labelEvery = $opts['label_every'] ?? max(1, (int)ceil($n / 10));
+    $max = max(max($values), 1);
+    $min = min(0, min($values));
+    $range = max($max - $min, 1);
+    $padBottom = 22;
+    $padTop = 8;
+    $stepX = $n > 1 ? $width / ($n - 1) : 0;
+
+    $coords = [];
+    foreach ($values as $i => $v) {
+        $x = $stepX * $i;
+        $y = $padTop + ($height - $padBottom - $padTop) * (1 - (($v - $min) / $range));
+        $coords[] = [round($x, 1), round($y, 1)];
+    }
+    $polyline = '<polyline points="' . implode(' ', array_map(fn($c) => $c[0] . ',' . $c[1], $coords)) . '" fill="none" stroke="' . $color . '" stroke-width="2"/>';
+
+    $dots = '';
+    foreach ($coords as $i => [$x, $y]) {
+        $isLast = $i === $n - 1;
+        $r = ($isLast && $highlightLast) ? 4 : 2.5;
+        $fill = ($isLast && $highlightLast) ? '#ff3a3a' : $color;
+        $dots .= '<circle cx="' . $x . '" cy="' . $y . '" r="' . $r . '" fill="' . $fill . '"><title>' . e($labels[$i]) . ': ' . e($values[$i]) . '</title></circle>';
+    }
+    $ticks = '';
+    foreach ($labels as $i => $label) {
+        if ($i % $labelEvery !== 0 && $i !== $n - 1) continue;
+        $x = $stepX * $i;
+        $ticks .= '<text x="' . round($x, 1) . '" y="' . ($height - 6) . '" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">' . e(substr($label, 5)) . '</text>';
+    }
+    return '<svg viewBox="0 0 ' . $width . ' ' . $height . '" class="chart-svg" preserveAspectRatio="none" style="width:100%;height:' . $height . 'px;">' . $polyline . $dots . $ticks . '</svg>';
+}
+
+// Renders several lines on one chart with a legend. $series: 'name' => ['label' => value, ...],
+// all series must share the same set of labels/order (build them from the same $days window).
+function renderMultiLineChartSvg(array $series, array $opts = []): string {
+    $width = $opts['width'] ?? 700;
+    $height = $opts['height'] ?? 220;
+    $colors = $opts['colors'] ?? ['#ff8c1a', '#0084ff', '#8000ff', '#00b368'];
+
+    $first = reset($series);
+    $labels = $first ? array_keys($first) : [];
+    $n = count($labels);
+    if ($n === 0) return '<p style="opacity:0.6;">No data yet.</p>';
+    $labelEvery = $opts['label_every'] ?? max(1, (int)ceil($n / 10));
+    $allValues = [];
+    foreach ($series as $vals) $allValues = array_merge($allValues, array_values($vals));
+    $max = max(max($allValues), 1);
+    $padBottom = 22;
+    $padTop = 8;
+    $stepX = $n > 1 ? $width / ($n - 1) : 0;
+
+    $polylines = '';
+    $legend = '';
+    $i = 0;
+    foreach ($series as $name => $vals) {
+        $color = $colors[$i % count($colors)];
+        $points = [];
+        foreach (array_values($vals) as $idx => $v) {
+            $x = $stepX * $idx;
+            $y = $padTop + ($height - $padBottom - $padTop) * (1 - ($v / $max));
+            $points[] = round($x, 1) . ',' . round($y, 1);
+        }
+        $polylines .= '<polyline points="' . implode(' ', $points) . '" fill="none" stroke="' . $color . '" stroke-width="2"/>';
+        $legend .= '<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:' . $color . '"></span>' . e($name) . '</span>';
+        $i++;
+    }
+    $ticks = '';
+    foreach ($labels as $idx => $label) {
+        if ($idx % $labelEvery !== 0 && $idx !== $n - 1) continue;
+        $x = $stepX * $idx;
+        $ticks .= '<text x="' . round($x, 1) . '" y="' . ($height - 6) . '" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">' . e(substr($label, 5)) . '</text>';
+    }
+    $svg = '<svg viewBox="0 0 ' . $width . ' ' . $height . '" class="chart-svg" preserveAspectRatio="none" style="width:100%;height:' . $height . 'px;">' . $polylines . $ticks . '</svg>';
+    return '<div class="chart-legend">' . $legend . '</div>' . $svg;
+}
+
 // ---- Reader accounts ----
 function createUser(string $username, ?string $email, string $password, ?string $scratchUsername = null, ?string $phoneNumber = null) {
     $db = getDB();
@@ -2381,6 +2635,10 @@ function incrementArticleView(int $articleId): void {
     $db = getDB();
     $stmt = $db->prepare("UPDATE articles SET views = views + 1 WHERE id = ?");
     $stmt->bind_param('i', $articleId);
+    $stmt->execute();
+    $stmt->close();
+
+    $stmt = $db->prepare("INSERT INTO daily_article_views (view_date, view_count) VALUES (CURDATE(), 1) ON DUPLICATE KEY UPDATE view_count = view_count + 1");
     $stmt->execute();
     $stmt->close();
 }
