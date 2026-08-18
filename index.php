@@ -13,7 +13,7 @@ $popular = getPopularArticles(4);
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= e(SITE_NAME) ?></title>
 <meta name="description" content="ScratchNews is a community-run news site covering updates, features, and stories from the Scratch programming community.">
-<link rel="stylesheet" href="/assets/style.css?v=21">
+<link rel="stylesheet" href="/assets/style.css?v=23">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -71,9 +71,14 @@ $popular = getPopularArticles(4);
         ?>
         <div class="hero">
             <a href="/article/<?= (int)$featured['id'] ?>" class="hero-featured">
-                <?php if (!empty($featured['image_url'])): ?>
-                    <img src="<?= e($featured['image_url']) ?>" alt="" class="hero-featured-img">
-                <?php endif; ?>
+                <div class="card-media">
+                    <?php if (!empty($featured['image_url'])): ?>
+                        <img src="<?= e($featured['image_url']) ?>" alt="" class="hero-featured-img">
+                    <?php else: ?>
+                        <div class="hero-featured-img hero-featured-img-placeholder"></div>
+                    <?php endif; ?>
+                    <?= renderCardToolbar($featured, getLikeCount($featured['id']), hasUserLiked($featured['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($featured['id']), hasUserDisliked($featured['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($featured['id'])) ?>
+                </div>
                 <div class="hero-featured-body">
                     <h2><?= e(translatedTitle($featured)) ?></h2>
                     <div class="meta">By <?= e($featured['author']) ?> &middot; <?= utcTimeTag($featured['created_at']) ?></div>
@@ -83,9 +88,14 @@ $popular = getPopularArticles(4);
             <div class="hero-side">
                 <?php foreach ($side as $a): ?>
                     <a href="/article/<?= (int)$a['id'] ?>" class="hero-side-card">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="hero-side-img">
-                        <?php endif; ?>
+                        <div class="card-media">
+                            <?php if (!empty($a['image_url'])): ?>
+                                <img src="<?= e($a['image_url']) ?>" alt="" class="hero-side-img">
+                            <?php else: ?>
+                                <div class="hero-side-img hero-side-img-placeholder"></div>
+                            <?php endif; ?>
+                            <?= renderCardToolbar($a, getLikeCount($a['id']), hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($a['id']), hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($a['id'])) ?>
+                        </div>
                         <div class="hero-side-title"><?= e(translatedTitle($a)) ?></div>
                     </a>
                 <?php endforeach; ?>

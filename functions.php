@@ -2699,6 +2699,93 @@ function getRelatedArticlePool(array $article, int $limit = 19): array {
     return array_slice(array_column($scored, 'article'), 0, $limit);
 }
 
+// Renders the hover toolbar (like/dislike/share/comment/profile) used on the
+// three big homepage/explore cards. Buttons are <button> not <a> since the
+// toolbar sits inside the card's own outer <a> - nested anchors are invalid
+// HTML, so navigation/like-toggling is handled by the shared click-delegate
+// script in footer.php via data-action attributes.
+function renderCardToolbar(array $article, int $likeCount, bool $liked, int $dislikeCount, bool $disliked, int $commentCount): string {
+    $readerId = $_SESSION['reader_id'] ?? null;
+    $isBanned = $readerId ? (isUserBanned((int)$readerId) || isPhoneVerificationPending((int)$readerId)) : false;
+    $disabled = empty($readerId) || $isBanned;
+    $articleId = (int)$article['id'];
+    $profileUrl = '';
+    if (!empty($article['user_id'])) {
+        $authorUser = getUserById((int)$article['user_id']);
+        if ($authorUser) $profileUrl = '/@' . $authorUser['username'];
+    }
+    ob_start();
+    ?>
+    <div class="card-toolbar" data-article-id="<?= $articleId ?>" data-csrf="<?= e(csrfToken()) ?>">
+        <button type="button" class="card-toolbar-btn <?= $liked ? 'active' : '' ?>" data-action="like" title="Like" <?= $disabled ? 'disabled' : '' ?>>
+            <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" class="icon-svg-sm" alt="">
+            <span class="card-toolbar-count"><?= formatCount($likeCount) ?></span>
+        </button>
+        <button type="button" class="card-toolbar-btn <?= $disliked ? 'active' : '' ?>" data-action="dislike" title="Dislike" <?= $disabled ? 'disabled' : '' ?>>
+            <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" class="icon-svg-sm" alt="">
+            <span class="card-toolbar-count"><?= formatCount($dislikeCount) ?></span>
+        </button>
+        <button type="button" class="card-toolbar-btn" data-action="share" title="Copy link">
+            <img src="/assets/icons/share.svg" class="icon-svg-sm" alt="">
+        </button>
+        <button type="button" class="card-toolbar-btn" data-action="comment" title="Comments">
+            <img src="/assets/icons/comment.svg" class="icon-svg-sm" alt="">
+            <span class="card-toolbar-count"><?= formatCount($commentCount) ?></span>
+        </button>
+        <?php if ($profileUrl !== ''): ?>
+        <button type="button" class="card-toolbar-btn" data-action="profile" data-href="<?= e($profileUrl) ?>" title="Writer's profile">
+            <img src="/assets/icons/nav-profiles.svg" class="icon-svg-sm" alt="">
+        </button>
+        <?php endif; ?>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
+// Renders the "..." menu used on standard search-result cards (search.php,
+// explore.php's list view). Same data-action/data-article-id contract as
+// renderCardToolbar() so the shared click-delegate in footer.php handles
+// both - just styled as a dropdown instead of a hover bar.
+function renderThreeDotMenu(array $article, int $likeCount, bool $liked, int $dislikeCount, bool $disliked): string {
+    $readerId = $_SESSION['reader_id'] ?? null;
+    $isBanned = $readerId ? (isUserBanned((int)$readerId) || isPhoneVerificationPending((int)$readerId)) : false;
+    $disabled = empty($readerId) || $isBanned;
+    $articleId = (int)$article['id'];
+    $profileUrl = '';
+    if (!empty($article['user_id'])) {
+        $authorUser = getUserById((int)$article['user_id']);
+        if ($authorUser) $profileUrl = '/@' . $authorUser['username'];
+    }
+    ob_start();
+    ?>
+    <div class="three-dot-wrap">
+        <button type="button" class="three-dot-btn" title="More options">
+            <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>
+        </button>
+        <div class="three-dot-menu" data-article-id="<?= $articleId ?>" data-csrf="<?= e(csrfToken()) ?>">
+            <button type="button" class="card-toolbar-btn <?= $liked ? 'active' : '' ?>" data-action="like" <?= $disabled ? 'disabled' : '' ?>>
+                <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" class="icon-svg-sm" alt="">Like<span class="card-toolbar-count">(<?= formatCount($likeCount) ?>)</span>
+            </button>
+            <button type="button" class="card-toolbar-btn <?= $disliked ? 'active' : '' ?>" data-action="dislike" <?= $disabled ? 'disabled' : '' ?>>
+                <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" class="icon-svg-sm" alt="">Dislike<span class="card-toolbar-count">(<?= formatCount($dislikeCount) ?>)</span>
+            </button>
+            <button type="button" class="card-toolbar-btn" data-action="share">
+                <img src="/assets/icons/share.svg" class="icon-svg-sm" alt="">Share
+            </button>
+            <button type="button" class="card-toolbar-btn" data-action="comment">
+                <img src="/assets/icons/comment.svg" class="icon-svg-sm" alt="">Comments
+            </button>
+            <?php if ($profileUrl !== ''): ?>
+            <button type="button" class="card-toolbar-btn" data-action="profile" data-href="<?= e($profileUrl) ?>">
+                <img src="/assets/icons/nav-profiles.svg" class="icon-svg-sm" alt="">Writer's profile
+            </button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
 // ── Views & Trending ────────────────────────────────────
 
 function incrementArticleView(int $articleId): void {

@@ -28,7 +28,7 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Explore - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=21">
+<link rel="stylesheet" href="/assets/style.css?v=23">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -114,22 +114,28 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
         <?php if ($big): ?>
         <div class="explore-grid">
             <a href="/article/<?= (int)$big['id'] ?>" class="explore-card explore-card-big">
-                <?php if (!empty($big['image_url'])): ?>
-                    <img src="<?= e($big['image_url']) ?>" alt="" class="explore-card-img">
-                <?php else: ?>
-                    <div class="explore-card-img explore-card-img-placeholder"></div>
-                <?php endif; ?>
+                <div class="card-media">
+                    <?php if (!empty($big['image_url'])): ?>
+                        <img src="<?= e($big['image_url']) ?>" alt="" class="explore-card-img">
+                    <?php else: ?>
+                        <div class="explore-card-img explore-card-img-placeholder"></div>
+                    <?php endif; ?>
+                    <?= renderCardToolbar($big, getLikeCount($big['id']), hasUserLiked($big['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($big['id']), hasUserDisliked($big['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($big['id'])) ?>
+                </div>
                 <div class="explore-card-title"><?= e(translatedTitle($big)) ?></div>
             </a>
             <?php if (!empty($medium)): ?>
             <div class="explore-medium-col">
                 <?php foreach ($medium as $a): ?>
                 <a href="/article/<?= (int)$a['id'] ?>" class="explore-card explore-card-medium">
-                    <?php if (!empty($a['image_url'])): ?>
-                        <img src="<?= e($a['image_url']) ?>" alt="" class="explore-card-img">
-                    <?php else: ?>
-                        <div class="explore-card-img explore-card-img-placeholder"></div>
-                    <?php endif; ?>
+                    <div class="card-media">
+                        <?php if (!empty($a['image_url'])): ?>
+                            <img src="<?= e($a['image_url']) ?>" alt="" class="explore-card-img">
+                        <?php else: ?>
+                            <div class="explore-card-img explore-card-img-placeholder"></div>
+                        <?php endif; ?>
+                        <?= renderCardToolbar($a, getLikeCount($a['id']), hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($a['id']), hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($a['id'])) ?>
+                    </div>
                     <div class="explore-card-title"><?= e(translatedTitle($a)) ?></div>
                 </a>
                 <?php endforeach; ?>
@@ -162,6 +168,7 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
                             <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
                             <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
                             <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
+                            <?= renderThreeDotMenu($a, $likeCount, hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), $dislikeCount, hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0)) ?>
                         </div>
                     </div>
                 </a>

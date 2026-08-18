@@ -85,3 +85,77 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(ping, INTERVAL_MS);
 })();
 </script>
+<script>
+(function() {
+    document.addEventListener('click', function(e) {
+        var dotBtn = e.target.closest('.three-dot-btn');
+        if (dotBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            var menu = dotBtn.nextElementSibling;
+            var wasOpen = menu.classList.contains('open');
+            document.querySelectorAll('.three-dot-menu.open').forEach(function(m) { m.classList.remove('open'); });
+            if (!wasOpen) menu.classList.add('open');
+            return;
+        }
+        if (!e.target.closest('.card-toolbar-btn')) {
+            document.querySelectorAll('.three-dot-menu.open').forEach(function(m) { m.classList.remove('open'); });
+        }
+
+        var btn = e.target.closest('.card-toolbar-btn');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (btn.disabled) return;
+        var toolbar = btn.closest('[data-article-id]');
+        var articleId = toolbar.getAttribute('data-article-id');
+        var action = btn.getAttribute('data-action');
+        var parentMenu = btn.closest('.three-dot-menu');
+        if (parentMenu) parentMenu.classList.remove('open');
+
+        if (action === 'comment') {
+            window.location.href = '/article/' + articleId + '#comments';
+            return;
+        }
+        if (action === 'profile') {
+            window.location.href = btn.getAttribute('data-href');
+            return;
+        }
+        if (action === 'share') {
+            var url = window.location.origin + '/article/' + articleId;
+            navigator.clipboard.writeText(url).then(function() {
+                btn.classList.add('copied');
+                setTimeout(function() { btn.classList.remove('copied'); }, 900);
+            });
+            return;
+        }
+        if (action === 'like' || action === 'dislike') {
+            var csrf = toolbar.getAttribute('data-csrf');
+            var body = new URLSearchParams({ action: action, csrf_token: csrf });
+            fetch('/article/' + articleId, { method: 'POST', body: body, credentials: 'same-origin' }).catch(function() {});
+
+            var wasActive = btn.classList.contains('active');
+            var countEl = btn.querySelector('.card-toolbar-count');
+            var count = parseInt((countEl.textContent || '0').replace(/,/g, ''), 10) || 0;
+            btn.classList.toggle('active');
+            countEl.textContent = (count + (wasActive ? -1 : 1)).toLocaleString();
+            var img = btn.querySelector('img');
+            if (img) img.src = '/assets/icons/' + (action === 'like' ? (wasActive ? 'unlike' : 'like') : (wasActive ? 'undislike' : 'dislike')) + '.svg';
+
+            // Liking clears any existing dislike server-side and vice versa - mirror that here.
+            if (!wasActive) {
+                var otherAction = action === 'like' ? 'dislike' : 'like';
+                var otherBtn = toolbar.querySelector('.card-toolbar-btn[data-action="' + otherAction + '"]');
+                if (otherBtn && otherBtn.classList.contains('active')) {
+                    otherBtn.classList.remove('active');
+                    var otherCountEl = otherBtn.querySelector('.card-toolbar-count');
+                    var otherCount = parseInt((otherCountEl.textContent || '0').replace(/,/g, ''), 10) || 0;
+                    otherCountEl.textContent = Math.max(0, otherCount - 1).toLocaleString();
+                    var otherImg = otherBtn.querySelector('img');
+                    if (otherImg) otherImg.src = '/assets/icons/' + (otherAction === 'like' ? 'unlike' : 'undislike') + '.svg';
+                }
+            }
+        }
+    });
+})();
+</script>
