@@ -1718,6 +1718,13 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
     return $html;
 }
 
+// ---- Formatting ----
+// Comma-formats any statistic display (likes, dislikes, comments, views,
+// shares, followers, etc.) - e.g. 1234 -> "1,234".
+function formatCount(int $n): string {
+    return number_format($n);
+}
+
 // ---- Likes ----
 function getCommentCount(int $articleId): int {
     $db = getDB();
@@ -2636,6 +2643,60 @@ function getArticlesByCategorySlug(string $slug): array {
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     return $rows;
+}
+
+// Splits a summary into lowercase significant words (len > 3, stopwords
+// removed) for lightweight description-overlap scoring - no FULLTEXT index
+// needed for a catalog this size.
+function extractSignificantWords(string $text): array {
+    static $stopwords = ['the','a','an','and','or','but','of','to','in','on','for','with','is','are','was','were',
+        'it','this','that','you','your','how','what','why','from','as','at','by','be','will','can','has','have',
+        'had','not','all','more','about','into','than','then','them','they','their','our','out','over','use','used'];
+    $text = strtolower(strip_tags($text));
+    preg_match_all('/[a-z0-9]+/', $text, $m);
+    return array_values(array_unique(array_filter($m[0], function($w) use ($stopwords) {
+        return strlen($w) > 3 && !in_array($w, $stopwords, true);
+    })));
+}
+
+// Ranks other published articles against $article by shared categories
+// (weighted highest) then shared significant summary words, tie-broken by
+// recency. Used to build both the Related (top 3) and Extra Articles
+// (next up to 16) sections on article.php - callers just slice the pool.
+function getRelatedArticlePool(array $article, int $limit = 19): array {
+    $db = getDB();
+    $articleId = (int)$article['id'];
+    $myCatIds = getArticleCategoryIds($articleId);
+    $myWords = extractSignificantWords($article['summary'] ?? '');
+
+    $stmt = $db->prepare("SELECT * FROM articles WHERE status = 'published' AND id != ? ORDER BY created_at DESC");
+    $stmt->bind_param('i', $articleId);
+    $stmt->execute();
+    $candidates = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    if (empty($candidates)) return [];
+
+    $catsByArticle = [];
+    $catResult = $db->query("SELECT article_id, category_id FROM article_categories");
+    while ($row = $catResult->fetch_assoc()) {
+        $catsByArticle[(int)$row['article_id']][] = (int)$row['category_id'];
+    }
+
+    $scored = [];
+    foreach ($candidates as $c) {
+        $theirCats = $catsByArticle[(int)$c['id']] ?? [];
+        $score = count(array_intersect($myCatIds, $theirCats)) * 3;
+        $theirWords = extractSignificantWords($c['summary'] ?? '');
+        $score += count(array_intersect($myWords, $theirWords));
+        $scored[] = ['article' => $c, 'score' => $score];
+    }
+
+    usort($scored, function($a, $b) {
+        if ($a['score'] !== $b['score']) return $b['score'] <=> $a['score'];
+        return strtotime($b['article']['created_at']) <=> strtotime($a['article']['created_at']);
+    });
+
+    return array_slice(array_column($scored, 'article'), 0, $limit);
 }
 
 // ── Views & Trending ────────────────────────────────────

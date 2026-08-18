@@ -75,6 +75,9 @@ $liked = ($article && !empty($_SESSION['reader_id'])) ? hasUserLiked($article['i
 $dislikeCount = $article ? getDislikeCount($article['id']) : 0;
 $disliked = ($article && !empty($_SESSION['reader_id'])) ? hasUserDisliked($article['id'], $_SESSION['reader_id']) : false;
 $isSaved = ($article && !empty($_SESSION['reader_id'])) ? isArticleSaved($article['id'], $_SESSION['reader_id']) : false;
+$relatedPool = $article ? getRelatedArticlePool($article, 19) : [];
+$relatedArticles = array_slice($relatedPool, 0, 3);
+$extraArticles = array_slice($relatedPool, 3, 16);
 
 if (!$article) {
     http_response_code(404);
@@ -102,7 +105,7 @@ if (!$article) {
 ]) ?>
 </script>
 <?php endif; ?>
-<link rel="stylesheet" href="/assets/style.css?v=21">
+<link rel="stylesheet" href="/assets/style.css?v=23">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -142,7 +145,7 @@ if (!$article) {
                     <input type="hidden" name="action" value="like">
                     <button class="icon-btn <?= $liked ? 'active' : '' ?>" type="submit" <?= (empty($_SESSION['reader_id']) || $isBanned) ? 'disabled' : '' ?> title="<?= $liked ? 'Unlike' : 'Like' ?>">
                         <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" alt="Like" class="icon-svg">
-                        <span class="icon-count"><?= $likeCount ?></span>
+                        <span class="icon-count"><?= formatCount($likeCount) ?></span>
                     </button>
                 </form>
                 <form method="post">
@@ -150,7 +153,7 @@ if (!$article) {
                     <input type="hidden" name="action" value="dislike">
                     <button class="icon-btn <?= $disliked ? 'active' : '' ?>" type="submit" <?= (empty($_SESSION['reader_id']) || $isBanned) ? 'disabled' : '' ?> title="<?= $disliked ? 'Remove dislike' : 'Dislike' ?>">
                         <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" alt="Dislike" class="icon-svg">
-                        <span class="icon-count"><?= $dislikeCount ?></span>
+                        <span class="icon-count"><?= formatCount($dislikeCount) ?></span>
                     </button>
     </form>
                 <form method="post">
@@ -162,11 +165,11 @@ if (!$article) {
                 </form>
                 <a href="#comments" class="icon-btn" title="Jump to comments" style="text-decoration:none;">
                     <img src="/assets/icons/comment.svg" alt="Comments" class="icon-svg">
-                    <span class="icon-count"><?= count($comments) ?></span>
+                    <span class="icon-count"><?= formatCount(count($comments)) ?></span>
                 </a>
                 <span class="icon-btn" title="Views">
                     <img src="/assets/icons/views.svg" alt="Views" class="icon-svg">
-                    <span class="icon-count"><?= (int)$article['views'] ?></span>
+                    <span class="icon-count"><?= formatCount((int)$article['views']) ?></span>
                 </span>
                 <div class="share-wrap">
                     <button type="button" class="icon-btn" id="shareBtn" title="Share">
@@ -195,6 +198,48 @@ if (!$article) {
             <button type="button" class="share-banner">
                 <img src="/assets/banners/sn-banner-4.svg" alt="Enjoyed it? Share the link" class="share-banner-img">
             </button>
+            <?php if (!empty($relatedArticles)): ?>
+            <section class="related-articles">
+                <h3 class="row-title">Related</h3>
+                <div class="related-articles-grid">
+                    <?php foreach ($relatedArticles as $ra): ?>
+                        <a href="/article/<?= (int)$ra['id'] ?>" class="related-card">
+                            <?php if (!empty($ra['image_url'])): ?>
+                                <img src="<?= e($ra['image_url']) ?>" alt="" class="related-card-img">
+                            <?php else: ?>
+                                <div class="related-card-img related-card-img-placeholder"></div>
+                            <?php endif; ?>
+                            <div class="related-card-title"><?= e(translatedTitle($ra)) ?></div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+            <?php endif; ?>
+            <?php if (!empty($extraArticles)): ?>
+            <section class="extra-articles">
+                <h3 class="row-title">Extra Articles</h3>
+                <div class="extra-articles-wrap">
+                    <button type="button" class="extra-articles-arrow extra-articles-prev" id="extraPrev" aria-label="Previous page" style="display:none;">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="extra-articles-grid" id="extraGrid">
+                        <?php foreach ($extraArticles as $i => $ea): ?>
+                            <a href="/article/<?= (int)$ea['id'] ?>" class="extra-card" data-page="<?= intdiv($i, 4) ?>" <?= $i >= 4 ? 'style="display:none;"' : '' ?>>
+                                <?php if (!empty($ea['image_url'])): ?>
+                                    <img src="<?= e($ea['image_url']) ?>" alt="" class="extra-card-img">
+                                <?php else: ?>
+                                    <div class="extra-card-img extra-card-img-placeholder"></div>
+                                <?php endif; ?>
+                                <div class="extra-card-title"><?= e(translatedTitle($ea)) ?></div>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="extra-articles-arrow extra-articles-next" id="extraNext" aria-label="Next page" <?= count($extraArticles) <= 4 ? 'style="display:none;"' : '' ?>>
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+            </section>
+            <?php endif; ?>
             <div class="comments-section" id="comments">
     <h3>Comments (<?= count($comments) ?>)</h3>
     <?php if (!empty($_SESSION['reader_id']) && !$isBanned): ?>
@@ -318,6 +363,25 @@ document.addEventListener('click', function(e) {
             });
         });
     });
+
+    var extraGrid = document.getElementById('extraGrid');
+    if (extraGrid) {
+        var extraCards = extraGrid.querySelectorAll('.extra-card');
+        var extraPages = 1;
+        extraCards.forEach(function(c) { extraPages = Math.max(extraPages, parseInt(c.getAttribute('data-page'), 10) + 1); });
+        var extraPage = 0;
+        var extraPrev = document.getElementById('extraPrev');
+        var extraNext = document.getElementById('extraNext');
+        function renderExtraPage() {
+            extraCards.forEach(function(c) {
+                c.style.display = (parseInt(c.getAttribute('data-page'), 10) === extraPage) ? '' : 'none';
+            });
+            extraPrev.style.display = extraPage === 0 ? 'none' : '';
+            extraNext.style.display = extraPage === extraPages - 1 ? 'none' : '';
+        }
+        extraPrev.addEventListener('click', function() { if (extraPage > 0) { extraPage--; renderExtraPage(); } });
+        extraNext.addEventListener('click', function() { if (extraPage < extraPages - 1) { extraPage++; renderExtraPage(); } });
+    }
 
     document.querySelectorAll('.share-banner').forEach(function(banner) {
         banner.addEventListener('click', function() {

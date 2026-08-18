@@ -68,7 +68,7 @@ $totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()
         <?php if (empty($topUsersByArticles)): ?>
             <li>No published articles yet.</li>
         <?php else: foreach ($topUsersByArticles as $u): ?>
-            <li><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a> <span class="stat-list-value"><?= (int)$u['article_count'] ?> articles</span></li>
+            <li><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a> <span class="stat-list-value"><?= formatCount((int)$u['article_count']) ?> articles</span></li>
         <?php endforeach; endif; ?>
     </ul>
     <p class="chart-caption">By followers</p>
@@ -76,7 +76,7 @@ $totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()
         <?php if (empty($topUsersByFollowers)): ?>
             <li>No follows yet.</li>
         <?php else: foreach ($topUsersByFollowers as $u): ?>
-            <li><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a> <span class="stat-list-value"><?= (int)$u['follower_count'] ?> followers</span></li>
+            <li><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a> <span class="stat-list-value"><?= formatCount((int)$u['follower_count']) ?> followers</span></li>
         <?php endforeach; endif; ?>
     </ul>
 </main>

@@ -95,7 +95,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
             <h2 style="margin-bottom:0;">@<?= e($user['username']) ?><?= renderRankBadges($user) ?></h2>
             <p class="meta" style="margin:0.2rem 0;">
                 Member since <?= date('M j, Y', strtotime($user['created_at'])) ?>
-                &middot; <?= (int)$followerCount ?> follower<?= $followerCount === 1 ? '' : 's' ?>
+                &middot; <?= formatCount((int)$followerCount) ?> follower<?= $followerCount === 1 ? '' : 's' ?>
             </p>
             <?php if (!$isOwnProfile && !empty($_SESSION['reader_id'])): ?>
                 <form method="post" action="/follow" class="profile-follow-form">
@@ -169,7 +169,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
     <div class="profile-stats-row">
         <h3><a href="/@<?= urlencode($user['username']) ?>?view=articles" class="stat-link <?= $view === 'articles' ? 'active' : '' ?>"><?= (int)$articleCount ?> Articles</a></h3>
         <h3><a href="/@<?= urlencode($user['username']) ?>" class="stat-link <?= $view === 'comments' ? 'active' : '' ?>">Comments (<?= count($comments) ?>)</a></h3>
-        <h3><a href="/@<?= urlencode($user['username']) ?>?view=profile_comments" class="stat-link <?= $view === 'profile_comments' ? 'active' : '' ?>">Profile Comments (<?= (int)$profileCommentCount ?>)</a></h3>
+        <h3><a href="/@<?= urlencode($user['username']) ?>?view=profile_comments" class="stat-link <?= $view === 'profile_comments' ? 'active' : '' ?>">Profile Comments (<?= formatCount((int)$profileCommentCount) ?>)</a></h3>
     </div>
     <?php if ($view === 'articles'): ?>
         <?php if (empty($userArticles)): ?>
@@ -197,9 +197,9 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
                                 <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                             </div>
                             <div class="search-result-stats">
-                                <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= $likeCount ?></span>
-                                <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= $dislikeCount ?></span>
-                                <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= $commentCount ?></span>
+                                <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
+                                <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
+                                <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
                             </div>
                         </div>
                     </a>

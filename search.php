@@ -54,10 +54,10 @@ $results = $query !== '' ? searchArticles($query) : [];
                             <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                         </div>
                         <div class="search-result-stats">
-                            <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= $likeCount ?></span>
-                            <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= $dislikeCount ?></span>
-                            <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= $commentCount ?></span>
-                            <span><img src="/assets/icons/views.svg" class="icon-svg-sm" alt=""><?= (int)($a['views'] ?? 0) ?></span>
+                            <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
+                            <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
+                            <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
+                            <span><img src="/assets/icons/views.svg" class="icon-svg-sm" alt=""><?= formatCount((int)($a['views'] ?? 0)) ?></span>
                         </div>
                     </div>
                 </a>
