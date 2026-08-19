@@ -2734,7 +2734,7 @@ function renderCardToolbar(array $article, int $likeCount, bool $liked, int $dis
         </button>
         <?php if ($profileUrl !== ''): ?>
         <button type="button" class="card-toolbar-btn" data-action="profile" data-href="<?= e($profileUrl) ?>" title="Writer's profile">
-            <img src="/assets/icons/nav-profiles.svg" class="icon-svg-sm" alt="">
+            <img src="/assets/icons/nav-submit.svg" class="icon-svg-sm" alt="">
         </button>
         <?php endif; ?>
     </div>
@@ -2777,7 +2777,7 @@ function renderThreeDotMenu(array $article, int $likeCount, bool $liked, int $di
             </button>
             <?php if ($profileUrl !== ''): ?>
             <button type="button" class="card-toolbar-btn" data-action="profile" data-href="<?= e($profileUrl) ?>">
-                <img src="/assets/icons/nav-profiles.svg" class="icon-svg-sm" alt="">Writer's profile
+                <img src="/assets/icons/nav-submit.svg" class="icon-svg-sm" alt="">Writer's profile
             </button>
             <?php endif; ?>
         </div>

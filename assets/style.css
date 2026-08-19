@@ -1051,6 +1051,7 @@ body.dark .extra-card:hover .extra-card-title { color: var(--brand-bright); }
 .card-toolbar-btn:disabled:hover { background: none; }
 .card-toolbar-btn .icon-svg-sm { filter: brightness(0) invert(1); margin-right: 0; }
 .card-toolbar-btn.active .icon-svg-sm { filter: none; }
+.card-toolbar-btn[data-action="profile"] .icon-svg-sm { filter: none; }
 .card-toolbar-count { min-width: 1ch; }
 .card-toolbar-btn.copied { color: var(--brand-bright); }
 
