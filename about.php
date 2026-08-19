@@ -56,6 +56,11 @@ body.dark .contributor-card { border-color:#444; }
         <p class="credit-role">First Non-Admin User</p>
         <p>Redesigned the like icon and has been part of the community since near the start.</p>
     </div>
+    <div class="credit-card">
+        <h4>bob</h4>
+        <p class="credit-role">Supporter</p>
+        <p>Kofi supporter, donated $25.</p>
+    </div>
     <!--
     copy the block below to add someone new cuz im lazy:
     <div class="credit-card">
