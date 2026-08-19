@@ -91,7 +91,7 @@ body.dark .contributor-card { border-color:#444; }
 
     <?php if (!empty($fans)): ?>
         <h4>Fans</h4>
-        <p>These readers have supported ScratchNews with a donation.</p>
+        <p>These readers have supported ScratchNews with a donation or have massively helped change the platform for the better.</p>
         <div class="contributor-grid">
             <?php foreach ($fans as $f): ?>
                 <a href="/@<?= e($f['username']) ?>" style="text-decoration:none; color:inherit;">
