@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/empty-header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Aug19] v0.23.1 - Comma formatting on numbers bigger than 999, Related Articles + Extra Articles, hover toolbar on the three big on the homepage and Explore (like/dislike/share/comment/writer's profile), three-dot menu on tiny explore and search articles.</p>
     <p>[Aug16] v0.23 - Share ID (SID) system when sharing articles, badges when shares get clicks, share banners, share badges, fresh new Stats and Admin Stats pages, icon nav changed on mobile to bottom bar</p>
     <p>[Aug15] v0.23 Beta - Fixed hover-overlay hangover bug in Profiles, polished header and profile card, public API working (just with many bypasses XD)</p>
     <p>[Aug14] v0.23 Alpha - Added icons instead of text in header, Profiles page, new simple Search page</p>
