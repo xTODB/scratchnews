@@ -1,4 +1,28 @@
 <?php
+// === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
+date_default_timezone_set('Etc/GMT-3'); // GMT+3
+define('MAINTENANCE_MODE', true);
+define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
+define('MAINTENANCE_MESSAGE', 'We\'ve been getting way more visits than our free hosting can handle right now: thank you! Site\'s paused for a bit while we sort it out. <br><br>Want to help us get real hosting? <a href="https://ko-fi.com/scratchnews" style="color:#f7931e">Buy us a coffee</a>.');
+
+$maintenance_active = MAINTENANCE_MODE && (MAINTENANCE_UNTIL === null || time() < strtotime(MAINTENANCE_UNTIL));
+
+if ($maintenance_active) {
+    http_response_code(503);
+    header('Retry-After: 3600');
+    ?>
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScratchNews - Back soon</title>
+    <style>body{font-family:sans-serif;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px}.box{max-width:480px}h1{color:#f7931e}</style>
+    </head><body><div class="box">
+    <h1>ScratchNews is taking a quick break</h1>
+    <p><?php echo MAINTENANCE_MESSAGE; ?></p>
+    </div></body></html>
+    <?php
+    exit;
+}
+// === rest of functions.php continues below ===
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/version.php';
 
