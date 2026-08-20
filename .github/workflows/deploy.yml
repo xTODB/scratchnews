@@ -1,4 +1,4 @@
-name: Deploy to InfinityFree
+name: Deploy to iFastNet Premium
 
 on:
   push:
@@ -15,11 +15,12 @@ jobs:
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ secrets.IFASTNET_FTP_SERVER }}
+          username: ${{ secrets.IFASTNET_FTP_USERNAME }}
+          password: ${{ secrets.IFASTNET_FTP_PASSWORD }}
           protocol: ftp
-          server-dir: /scratchnews.freedev.app/htdocs/
+          # CHANGE THIS LINE: Premium servers push straight to public_html
+          server-dir: /public_html/
           exclude: |
             **/.git*
             **/.git*/**
