@@ -634,6 +634,20 @@ function scratchApiGet(string $url): ?array {
     return is_array($data) ? $data : null;
 }
 
+// Like scratchApiGet() but returns the raw response body instead of JSON-decoding it.
+// Needed for endpoints like the profile-comments site-api, which returns HTML, not JSON.
+function scratchApiGetRaw(string $url): ?string {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false || $httpCode !== 200) return null;
+    return $response;
+}
+
 // Scans the verification project's comments for one containing $code and
 // returns the commenter's Scratch username, or null if not found yet.
 function findScratchCommentAuthor(string $ownerUsername, string $projectId, string $code): ?string {
@@ -661,17 +675,33 @@ function buildCommentAuthText(string $scratchNewsUsername): string {
 // paginated via ?page=N, unauthenticated) for one containing $expectedText. Unlike
 // findScratchCommentAuthor() above, this doesn't use a shared verification project and
 // doesn't require a follow - following is only suggested inside the comment text itself.
+//
+// NOTE: this endpoint returns raw HTML (a <body> full of <li class="top-level-reply">
+// / <li class="reply"> nodes, comment text inside <div class="content">), NOT JSON -
+// unlike the api.scratch.mit.edu endpoints used elsewhere in this file. Must use
+// scratchApiGetRaw() + DOMDocument/XPath here, not scratchApiGet().
 function findScratchProfileComment(string $scratchUsername, string $expectedText): bool {
+    $normalizedExpected = preg_replace('/\s+/', ' ', trim($expectedText));
     $page = 1;
     do {
-        $comments = scratchApiGet("https://scratch.mit.edu/site-api/comments/user/" . rawurlencode($scratchUsername) . "/?page=$page");
-        if ($comments === null) return false;
-        foreach ($comments as $comment) {
-            $content = html_entity_decode(strip_tags($comment['content'] ?? ''));
-            if (stripos($content, $expectedText) !== false) return true;
+        $html = scratchApiGetRaw("https://scratch.mit.edu/site-api/comments/user/" . rawurlencode($scratchUsername) . "/?page=$page");
+        if ($html === null) return false;
+
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
+        $xpath = new \DOMXPath($dom);
+        $nodes = $xpath->query("//div[@class='content']");
+
+        if ($nodes === false || $nodes->length === 0) return false; // no comments left / end of pages
+
+        foreach ($nodes as $node) {
+            $text = preg_replace('/\s+/', ' ', trim($node->textContent));
+            if (stripos($text, $normalizedExpected) !== false) return true;
         }
         $page++;
-    } while (count($comments) > 0 && $page <= 10);
+    } while ($page <= 10);
     return false;
 }
 
