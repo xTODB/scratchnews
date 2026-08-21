@@ -1748,7 +1748,7 @@ function renderCommentAvatar(?string $avatarUrl, string $username): string {
 }
 
 function renderCommentThread(array $comment, bool $canReply, int $depth = 0, bool $canReport = false): string {
-    $indent = min($depth * 24, 96); // cap indentation so deep threads don't run off-screen
+    $indent = min($depth * 14, 56); // cap indentation so deep threads don't run off-screen
     $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
     $html .= renderCommentAvatar($comment['avatar_url'] ?? null, $comment['username']);
@@ -3261,7 +3261,7 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
 }
 
 function renderProfileCommentThread(array $comment, bool $canReply, int $profileUserId, int $depth = 0): string {
-    $indent = min($depth * 24, 96);
+    $indent = min($depth * 14, 56);
     $avatar = $comment['author_avatar'] ?? null;
     $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
