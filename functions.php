@@ -1749,7 +1749,8 @@ function renderCommentAvatar(?string $avatarUrl, string $username): string {
 
 function renderCommentThread(array $comment, bool $canReply, int $depth = 0, bool $canReport = false): string {
     $indent = min($depth * 14, 56); // cap indentation so deep threads don't run off-screen
-    $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
+    $topClass = $depth === 0 ? ' comment-top' : '';
+    $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
     $html .= renderCommentAvatar($comment['avatar_url'] ?? null, $comment['username']);
     $html .= '<strong><a href="/@' . e($comment['username']) . '">' . e($comment['username']) . '</a></strong>';
@@ -3263,7 +3264,8 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
 function renderProfileCommentThread(array $comment, bool $canReply, int $profileUserId, int $depth = 0): string {
     $indent = min($depth * 14, 56);
     $avatar = $comment['author_avatar'] ?? null;
-    $html = '<div class="comment" style="margin-left: ' . $indent . 'px;">';
+    $topClass = $depth === 0 ? ' comment-top' : '';
+    $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
     $html .= renderCommentAvatar($avatar, $comment['author_username']);
     $html .= '<a href="/@' . e($comment['author_username']) . '"><strong>@' . e($comment['author_username']) . '</strong></a>';
@@ -3763,4 +3765,195 @@ function deleteBanner(int $id): bool {
     $ok = $stmt->execute();
     $stmt->close();
     return $ok;
+}
+
+// ---- Polls ----
+function getActivePolls(): array {
+    $db = getDB();
+    return $db->query("SELECT * FROM polls WHERE is_active = 1 ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
+}
+
+function getAllPolls(): array {
+    $db = getDB();
+    return $db->query("SELECT * FROM polls ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
+}
+
+function getPollById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM polls WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function getPollOptions(int $pollId): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM poll_options WHERE poll_id = ? ORDER BY sort_order ASC, id ASC");
+    $stmt->bind_param('i', $pollId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function createPoll(string $question, string $pollType, array $optionTexts, int $sortOrder = 0): int {
+    $pollType = $pollType === 'multi' ? 'multi' : 'single';
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO polls (question, poll_type, sort_order) VALUES (?, ?, ?)");
+    $stmt->bind_param('ssi', $question, $pollType, $sortOrder);
+    $stmt->execute();
+    $pollId = $db->insert_id;
+    $stmt->close();
+
+    $optStmt = $db->prepare("INSERT INTO poll_options (poll_id, option_text, sort_order) VALUES (?, ?, ?)");
+    $i = 0;
+    foreach ($optionTexts as $text) {
+        $text = trim($text);
+        if ($text === '') continue;
+        $optStmt->bind_param('isi', $pollId, $text, $i);
+        $optStmt->execute();
+        $i++;
+    }
+    $optStmt->close();
+    return $pollId;
+}
+
+function updatePoll(int $id, string $question, string $pollType, int $sortOrder, bool $isActive): bool {
+    $pollType = $pollType === 'multi' ? 'multi' : 'single';
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE polls SET question = ?, poll_type = ?, sort_order = ?, is_active = ? WHERE id = ?");
+    $active = $isActive ? 1 : 0;
+    $stmt->bind_param('ssiii', $question, $pollType, $sortOrder, $active, $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+function deletePoll(int $id): bool {
+    // poll_options/poll_votes/poll_voter_log rows for this poll are cleaned up
+    // via ON DELETE CASCADE (see poll_schema.sql) - no manual cleanup needed here.
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM polls WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+// Whether $voterSid (the visitor's share-id cookie, see ensureShareId()) has
+// already voted on this poll.
+function hasVotedOnPoll(int $pollId, string $voterSid): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT 1 FROM poll_voter_log WHERE poll_id = ? AND voter_sid = ?");
+    $stmt->bind_param('is', $pollId, $voterSid);
+    $stmt->execute();
+    $exists = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $exists;
+}
+
+// Records $voterSid's vote(s) for $pollId. For single-choice polls only the first
+// valid option id in $optionIds is used. Returns false if this voter already voted,
+// the poll doesn't exist/is inactive, or none of $optionIds actually belong to this
+// poll - true on success.
+function submitPollVote(int $pollId, array $optionIds, string $voterSid): bool {
+    $poll = getPollById($pollId);
+    if (!$poll || !$poll['is_active']) return false;
+    if (hasVotedOnPoll($pollId, $voterSid)) return false;
+
+    $validOptionIds = array_column(getPollOptions($pollId), 'id');
+    $optionIds = array_values(array_intersect(array_map('intval', $optionIds), $validOptionIds));
+    if (empty($optionIds)) return false;
+    if ($poll['poll_type'] === 'single') $optionIds = [$optionIds[0]];
+
+    $db = getDB();
+    // Claims the vote first - the unique key on (poll_id, voter_sid) means a
+    // double-submit race can't slip two vote sets past this insert.
+    $logStmt = $db->prepare("INSERT INTO poll_voter_log (poll_id, voter_sid) VALUES (?, ?)");
+    $logStmt->bind_param('is', $pollId, $voterSid);
+    if (!$logStmt->execute()) { $logStmt->close(); return false; } // duplicate key = already voted
+    $logStmt->close();
+
+    $voteStmt = $db->prepare("INSERT INTO poll_votes (poll_id, option_id, voter_sid) VALUES (?, ?, ?)");
+    foreach ($optionIds as $optionId) {
+        $voteStmt->bind_param('iis', $pollId, $optionId, $voterSid);
+        $voteStmt->execute();
+    }
+    $voteStmt->close();
+    return true;
+}
+
+// Vote counts per option. Callers must check is_admin/is_moderator themselves
+// before calling this - see moderator.php's Poll Results section.
+function getPollResults(int $pollId): array {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT po.id, po.option_text, COUNT(pv.id) AS votes
+        FROM poll_options po
+        LEFT JOIN poll_votes pv ON pv.option_id = po.id
+        WHERE po.poll_id = ?
+        GROUP BY po.id, po.option_text, po.sort_order
+        ORDER BY po.sort_order ASC, po.id ASC
+    ");
+    $stmt->bind_param('i', $pollId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getPollVoterCount(int $pollId): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) AS c FROM poll_voter_log WHERE poll_id = ?");
+    $stmt->bind_param('i', $pollId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return (int)($row['c'] ?? 0);
+}
+
+// Decides what shows in the banner/poll slot for the current visitor: one
+// weighted-random draw across active banners AND active polls together (banner
+// sort_order and poll sort_order are directly comparable weights in the same pool -
+// admin/banners.php and admin/polls.php both frame it as "higher = shown more
+// often"). If a poll wins the draw, this does NOT show that specific poll - it
+// shows the next active poll (by sort_order) that this visitor (by share-id
+// cookie) hasn't voted on yet, so a visitor works through active polls in order
+// across page loads instead of bouncing between them. If every active poll has
+// already been voted on by this visitor, falls back to a banner (or null).
+// Returns ['type'=>'poll','poll'=>array] | ['type'=>'banner','banner'=>array] | null.
+function getBannerOrPollSlot(): ?array {
+    $banners = getActiveBanners();
+    $polls = getActivePolls();
+    if (empty($banners) && empty($polls)) return null;
+
+    $pool = [];
+    foreach ($banners as $b) $pool[] = ['type' => 'banner', 'data' => $b, 'weight' => max(0, (int)$b['sort_order'])];
+    foreach ($polls as $p) $pool[] = ['type' => 'poll', 'data' => $p, 'weight' => max(0, (int)$p['sort_order'])];
+
+    $totalWeight = array_sum(array_column($pool, 'weight'));
+    if ($totalWeight <= 0) {
+        $winner = $pool[array_rand($pool)];
+    } else {
+        $rand = mt_rand(1, $totalWeight);
+        $cumulative = 0;
+        $winner = $pool[count($pool) - 1];
+        foreach ($pool as $entry) {
+            $cumulative += $entry['weight'];
+            if ($rand <= $cumulative) { $winner = $entry; break; }
+        }
+    }
+
+    if ($winner['type'] === 'banner') return ['type' => 'banner', 'banner' => $winner['data']];
+
+    $voterSid = ensureShareId();
+    foreach ($polls as $p) {
+        if (!hasVotedOnPoll((int)$p['id'], $voterSid)) {
+            $p['options'] = getPollOptions((int)$p['id']);
+            return ['type' => 'poll', 'poll' => $p];
+        }
+    }
+    return empty($banners) ? null : ['type' => 'banner', 'banner' => $banners[array_rand($banners)]];
 }

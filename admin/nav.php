@@ -14,6 +14,7 @@
             <a href="/admin/move">Move Content</a>
             <a href="/admin/moderation-words">Moderation Words</a>
             <a href="/admin/banners">Banners</a>
+            <a href="/admin/polls">Polls</a>
             <a href="/admin/stats">Stats</a>
             <a href="/logout">Log Out</a>
         </div>

@@ -42,7 +42,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= $user ? e($user['username']) : 'User Not Found' ?> - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=23">
+<link rel="stylesheet" href="/assets/style.css?v=24">
 <style>
 /* Page-scoped stopgap — fold into style.css once shared */
 .profile-banner { width:100%; height:200px; border-radius:10px; background:linear-gradient(135deg,#e8a33d,#d97b1f); margin:0.75rem 0; }
@@ -229,7 +229,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
         <?php endif; ?>
     <?php else: ?>
         <?php foreach ($comments as $c): ?>
-            <div class="comment">
+            <div class="comment comment-top">
                 <a href="/article/<?= (int)$c['article_id'] ?>"><strong><?= e($c['article_title']) ?></strong></a>
                 <span class="meta"><?= date('M j, Y g:i A', strtotime($c['created_at'])) ?></span>
                 <p><?= e($c['content']) ?></p>

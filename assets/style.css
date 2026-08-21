@@ -189,7 +189,8 @@ html {
 .likes-section { margin: 1.5rem 0; }
 .comments-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
 .comments-section textarea { width:100%; min-height:80px; padding:0.6rem; border:1px solid #ccc; border-radius:6px; font-family:inherit; margin-bottom:0.6rem; }
-.comment { padding: 1rem 0; border-bottom: 1px solid #f0f0f0; }
+.comment { padding: 1rem 0; }
+.comment-top { border-bottom: 1px solid #f0f0f0; }
 .comment .meta { margin-left: 0.5rem; color: #888; font-size: 0.85rem; }
 .comment-header { display: flex; align-items: center; gap: 0.5rem; }
 .comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -276,7 +277,7 @@ body.dark table th, body.dark table td { border-bottom: 1px solid #333; }
 body.dark form input[type=text], body.dark form input[type=password], body.dark form textarea {
     background: #26292e; color: #e8e8e8; border: 1px solid #3a3d42;
 }
-body.dark .comment { border-bottom: 1px solid #2a2d31; }
+body.dark .comment-top { border-bottom: 1px solid #2a2d31; }
 body.dark .comment .meta { color: #888; }
 body.dark .alert.error { background: #4a1f1f; color: #ff8080; }
 body.dark .alert.success { background: #1f4a26; color: #7fdb8f; }
@@ -877,6 +878,12 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
     cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .promo-banner-close:hover { background: rgba(0,0,0,0.8); }
+.promo-poll { border-radius: 8px; padding: 1.2rem; background: var(--brand, #cc8829); color: #fff; }
+.promo-poll-question { font-weight: 700; margin: 0 0 0.8rem; }
+.promo-poll-option { display: block; margin-bottom: 0.5rem; cursor: pointer; }
+.promo-poll-option input { margin-right: 0.5rem; }
+.promo-poll-submit { margin-top: 0.4rem; }
+.promo-poll-message { margin-top: 0.6rem; font-size: 0.9rem; }
 /* v0.19 rank badges */
 .rank-badges { display: inline-flex; gap: 0.3rem; margin-left: 0.4rem; vertical-align: middle; }
 .rank-badge {

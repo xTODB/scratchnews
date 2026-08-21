@@ -13,7 +13,7 @@ $popular = getPopularArticles(4);
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= e(SITE_NAME) ?></title>
 <meta name="description" content="ScratchNews is a community-run news site covering updates, features, and stories from the Scratch programming community.">
-<link rel="stylesheet" href="/assets/style.css?v=23">
+<link rel="stylesheet" href="/assets/style.css?v=24">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -27,39 +27,7 @@ $popular = getPopularArticles(4);
     </form>
 </div>
 <?php endif; ?>
-<?php $banners = ($randomBanner = getRandomActiveBanner()) ? [$randomBanner] : []; if (!empty($banners)): ?>
-<div id="promoBanners">
-    <?php foreach ($banners as $b): ?>
-        <div class="promo-banner" data-banner-id="<?= (int)$b['id'] ?>" data-banner-key="<?= (int)$b['id'] ?>|<?= e($b['image_url']) ?>">
-            <button type="button" class="promo-banner-close" aria-label="Close">&times;</button>
-            <a href="<?= e($b['link']) ?>" class="promo-banner-link">
-                <img src="<?= e($b['image_url']) ?>" alt="" class="promo-banner-img">
-            </a>
-        </div>
-    <?php endforeach; ?>
-</div>
-<script>
-(function() {
-    // Dismissal is keyed by id+image_url, not just id: InfinityFree's MySQL can
-    // recalculate AUTO_INCREMENT as MAX(id)+1 (MyISAM behavior), so deleting the
-    // highest-numbered banner and creating a new one can silently reuse that numeric
-    // id. Keying on id alone meant a brand new banner could inherit an old, already-
-    // dismissed one's id and never show up. image_url is unique per upload, so pairing
-    // it with the id tells a genuinely new banner apart from a reused id.
-    var dismissed = [];
-    try { dismissed = JSON.parse(localStorage.getItem('dismissedBanners') || '[]'); } catch (e) {}
-    document.querySelectorAll('.promo-banner').forEach(function(el) {
-        var key = el.getAttribute('data-banner-key');
-        if (dismissed.indexOf(key) !== -1) { el.remove(); return; }
-        el.querySelector('.promo-banner-close').addEventListener('click', function() {
-            dismissed.push(key);
-            try { localStorage.setItem('dismissedBanners', JSON.stringify(dismissed)); } catch (e) {}
-            el.remove();
-        });
-    });
-})();
-</script>
-<?php endif; ?>
+<?php include __DIR__ . '/includes/banner-poll-slot.php'; ?>
 <main class="home-main">
     <?php if (empty($articles)): ?>
         <p>No articles yet. Log in to the <a href="/admin/">login panel</a> to publish the first one.</p>

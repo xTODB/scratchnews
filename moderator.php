@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pendingSubmissions = getPendingSubmissions();
 $pendingReports = getPendingReports();
+$allPolls = getAllPolls();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,6 +120,20 @@ $pendingReports = getPendingReports();
                     <input type="hidden" name="action" value="dismiss_report">
                     <button class="btn secondary" type="submit">Dismiss</button>
                 </form>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+
+    <h3>Poll Results</h3>
+    <?php if (empty($allPolls)): ?>
+        <p>No polls yet.</p>
+    <?php else: ?>
+        <?php foreach ($allPolls as $p): ?>
+            <div class="submission-card" style="border:1px solid #ccc; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+                <p><strong><?= e($p['question']) ?></strong> <span class="meta">(<?= $p['is_active'] ? 'active' : 'inactive' ?> &middot; <?= getPollVoterCount((int)$p['id']) ?> voters)</span></p>
+                <?php foreach (getPollResults((int)$p['id']) as $opt): ?>
+                    <p><?= e($opt['option_text']) ?>: <?= (int)$opt['votes'] ?></p>
+                <?php endforeach; ?>
             </div>
         <?php endforeach; ?>
     <?php endif; ?>
