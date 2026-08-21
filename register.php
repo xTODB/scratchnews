@@ -135,6 +135,16 @@ body.dark .verify-code { background:#444; }
 .verify-status { margin-top:0.6rem; font-size:0.9rem; }
 .verify-status.success { color:#2e8b2e; }
 .verify-status.error { color:#c0392b; }
+.auth-method { border:1px solid #ccc; border-radius:8px; margin-bottom:0.75rem; overflow:hidden; }
+body.dark .auth-method { border-color:#444; }
+.auth-method-header { display:flex; align-items:center; gap:0.6rem; width:100%; background:#f2f2f2; border:none; padding:0.75rem 1rem; cursor:pointer; color:inherit; font-size:1rem; font-weight:bold; text-align:left; }
+body.dark .auth-method-header { background:#2a2a2a; }
+.auth-method-check { width:16px; height:16px; fill:#cc8829; flex-shrink:0; }
+.auth-method-header span { flex:1; }
+.auth-method-chevron { width:18px; height:18px; fill:currentColor; transition:transform 0.15s ease; flex-shrink:0; }
+.auth-method.open .auth-method-chevron { transform:rotate(180deg); }
+.auth-method-body { padding:0; height:0; overflow:hidden; }
+.auth-method.open .auth-method-body { padding:0.85rem 1rem; height:auto; }
 </style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
@@ -235,28 +245,68 @@ body.dark .verify-code { background:#444; }
         <?php else: ?>
         <section class="wizard-step" data-step="3">
             <h3>Verify your ScratchNews account using Scratch</h3>
-            <div class="verify-row">
-                <span class="verify-num">1</span>
-                <div class="verify-body">
-                    Follow <strong>@<?= e($scratchTargetUser) ?></strong> on Scratch
-                    <div class="verify-code-row">
-                        <a class="btn secondary" href="https://scratch.mit.edu/users/<?= rawurlencode($scratchTargetUser) ?>/" target="_blank" rel="noopener">Visit Scratch profile</a>
+
+            <div class="auth-method open" data-method="follower">
+                <button type="button" class="auth-method-header" data-toggle>
+                    <svg class="auth-method-check" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+                    <span>Follower Auth (recommended)</span>
+                    <svg class="auth-method-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                </button>
+                <div class="auth-method-body">
+                    <div class="verify-row">
+                        <span class="verify-num">1</span>
+                        <div class="verify-body">
+                            Follow <strong>@<?= e($scratchTargetUser) ?></strong> on Scratch
+                            <div class="verify-code-row">
+                                <a class="btn secondary" href="https://scratch.mit.edu/users/<?= rawurlencode($scratchTargetUser) ?>/" target="_blank" rel="noopener">Visit Scratch profile</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="verify-row">
+                        <span class="verify-num">2</span>
+                        <div class="verify-body">
+                            Comment your code on the verification project
+                            <div class="verify-code-row">
+                                <a class="btn secondary" href="https://scratch.mit.edu/projects/<?= rawurlencode($scratchProjectId) ?>/" target="_blank" rel="noopener">Visit Scratch project</a>
+                            </div>
+                            <div class="verify-code-row">
+                                <span class="verify-code" id="verifyCode"><?= e($scratchVerifyCode) ?></span>
+                                <button type="button" class="verify-copy-btn" data-copy-target="verifyCode">Copy</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="verify-row">
-                <span class="verify-num">2</span>
-                <div class="verify-body">
-                    Comment your code on the verification project
-                    <div class="verify-code-row">
-                        <a class="btn secondary" href="https://scratch.mit.edu/projects/<?= rawurlencode($scratchProjectId) ?>/" target="_blank" rel="noopener">Visit Scratch project</a>
+
+            <div class="auth-method" data-method="comment">
+                <button type="button" class="auth-method-header" data-toggle>
+                    <svg class="auth-method-check" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+                    <span>Comment Auth</span>
+                    <svg class="auth-method-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                </button>
+                <div class="auth-method-body">
+                    <div class="verify-row">
+                        <span class="verify-num">1</span>
+                        <div class="verify-body">
+                            Enter your Scratch username
+                            <div class="verify-code-row">
+                                <input type="text" id="commentAuthUsername" placeholder="Your Scratch username" style="max-width:220px;">
+                            </div>
+                        </div>
                     </div>
-                    <div class="verify-code-row">
-                        <span class="verify-code" id="verifyCode"><?= e($scratchVerifyCode) ?></span>
-                        <button type="button" class="verify-copy-btn" id="verifyCopyBtn">Copy</button>
+                    <div class="verify-row">
+                        <span class="verify-num">2</span>
+                        <div class="verify-body">
+                            Comment this on your OWN Scratch profile
+                            <div class="verify-code-row">
+                                <span class="verify-code" id="commentAuthText"></span>
+                                <button type="button" class="verify-copy-btn" data-copy-target="commentAuthText">Copy</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
             <div class="verify-row">
                 <span class="verify-num">3</span>
                 <div class="verify-body">
@@ -267,6 +317,8 @@ body.dark .verify-code { background:#444; }
                     <div class="verify-status" id="verifyStatus"></div>
                 </div>
             </div>
+            <p class="wizard-or-divider" style="text-align:left; margin:0 0 0.5rem;">Verify checks whichever method above is currently open.</p>
+
             <div class="wizard-nav-row">
                 <button type="button" class="btn secondary" data-prev>Previous</button>
                 <button type="submit" class="btn" id="finishBtn" disabled>Finish</button>
@@ -368,36 +420,75 @@ function handleGoogleCredential(response) {
             : '<path d="M20.7 14.9A8.5 8.5 0 019.1 3.3a1 1 0 00-1.2-1.3 10 10 0 1013.9 13.9 1 1 0 00-1.1-1z"/>';
     });
 
-    // Copy verification code (Scratch branch only)
-    var verifyCopyBtn = document.getElementById('verifyCopyBtn');
-    if (verifyCopyBtn) {
-        verifyCopyBtn.addEventListener('click', function() {
-            var code = document.getElementById('verifyCode').textContent;
-            navigator.clipboard.writeText(code).then(function() {
-                var btn = document.getElementById('verifyCopyBtn');
+    // Copy verification code/text (Scratch branch only) - shared handler for both
+    // Follower Auth's code and Comment Auth's generated text
+    document.querySelectorAll('.verify-copy-btn[data-copy-target]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = document.getElementById(btn.dataset.copyTarget);
+            navigator.clipboard.writeText(target.textContent).then(function() {
                 var original = btn.textContent;
                 btn.textContent = 'Copied!';
                 setTimeout(function() { btn.textContent = original; }, 1500);
             });
         });
+    });
+
+    // Auth method accordion (Follower Auth / Comment Auth) - only one open at a time;
+    // the checkmark icons are static indicators, not a selection state (per mockup)
+    var authMethods = Array.prototype.slice.call(document.querySelectorAll('.auth-method'));
+    authMethods.forEach(function(method) {
+        method.querySelector('[data-toggle]').addEventListener('click', function() {
+            var willOpen = !method.classList.contains('open');
+            authMethods.forEach(function(m) { m.classList.remove('open'); });
+            if (willOpen) method.classList.add('open');
+        });
+    });
+
+    // Comment Auth: keep the generated comment text in sync with the ScratchNews
+    // username from step 1 and the Scratch username typed into this panel
+    var commentAuthUsername = document.getElementById('commentAuthUsername');
+    var commentAuthText = document.getElementById('commentAuthText');
+    function updateCommentAuthText() {
+        if (!commentAuthText) return;
+        var snUsername = document.getElementById('username').value.trim() || '[your ScratchNews username]';
+        commentAuthText.textContent = "I've made my ScratchNews profile (" + snUsername + ")! I'd suggest you'd follow me there. If you're curious about what ScratchNews is, learn more here: https://scratch.mit.edu/projects/1368284445/";
+    }
+    if (commentAuthText) {
+        updateCommentAuthText();
+        document.getElementById('username').addEventListener('input', updateCommentAuthText);
     }
 
-    // Verify Scratch follow + comment (Scratch branch only)
+    // Verify Scratch account (Scratch branch only) - checks whichever auth method
+    // panel is currently open and calls the matching backend endpoint
     var verifyBtn = document.getElementById('verifyBtn');
     if (verifyBtn) {
         verifyBtn.addEventListener('click', function() {
             var btn = this;
             var status = document.getElementById('verifyStatus');
             var finishBtn = document.getElementById('finishBtn');
+            var openMethod = document.querySelector('.auth-method.open');
+            var endpoint = '/verify-scratch.php';
+            var formData = new URLSearchParams();
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+            if (openMethod && openMethod.dataset.method === 'comment') {
+                var scratchUsername = commentAuthUsername ? commentAuthUsername.value.trim() : '';
+                if (!scratchUsername) {
+                    status.className = 'verify-status error';
+                    status.textContent = 'Please enter your Scratch username first.';
+                    return;
+                }
+                endpoint = '/verify-comment-auth.php';
+                formData.append('scratch_username', scratchUsername);
+                formData.append('scratchnews_username', document.getElementById('username').value.trim());
+            }
+
             btn.disabled = true;
             btn.textContent = 'Checking...';
             status.className = 'verify-status';
             status.textContent = '';
 
-            var formData = new URLSearchParams();
-            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-
-            fetch('/verify-scratch.php', {
+            fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData.toString()

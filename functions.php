@@ -3,7 +3,7 @@
 date_default_timezone_set('Etc/GMT-3'); // GMT+3
 define('MAINTENANCE_MODE', false);
 define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
-define('MAINTENANCE_MESSAGE', 'maintenance');
+define('MAINTENANCE_MESSAGE', 'guess what we\'re maintenaincing our siting');
 
 $maintenance_active = MAINTENANCE_MODE && (MAINTENANCE_UNTIL === null || time() < strtotime(MAINTENANCE_UNTIL));
 
@@ -649,6 +649,30 @@ function findScratchCommentAuthor(string $ownerUsername, string $projectId, stri
         $offset += 40;
     } while (count($page) === 40 && $offset < 400);
     return null;
+}
+
+// Builds the exact text a user must comment on their OWN Scratch profile to verify via
+// Comment Auth, with their chosen ScratchNews username filled in.
+function buildCommentAuthText(string $scratchNewsUsername): string {
+    return "I've made my ScratchNews profile ($scratchNewsUsername)! I'd suggest you'd follow me there. If you're curious about what ScratchNews is, learn more here: https://scratch.mit.edu/projects/1368284445/";
+}
+
+// Comment Auth: scans $scratchUsername's OWN profile comments (unofficial site-api,
+// paginated via ?page=N, unauthenticated) for one containing $expectedText. Unlike
+// findScratchCommentAuthor() above, this doesn't use a shared verification project and
+// doesn't require a follow - following is only suggested inside the comment text itself.
+function findScratchProfileComment(string $scratchUsername, string $expectedText): bool {
+    $page = 1;
+    do {
+        $comments = scratchApiGet("https://scratch.mit.edu/site-api/comments/user/" . rawurlencode($scratchUsername) . "/?page=$page");
+        if ($comments === null) return false;
+        foreach ($comments as $comment) {
+            $content = html_entity_decode(strip_tags($comment['content'] ?? ''));
+            if (stripos($content, $expectedText) !== false) return true;
+        }
+        $page++;
+    } while (count($comments) > 0 && $page <= 10);
+    return false;
 }
 
 // Checks whether $username is in $targetUsername's follower list.
