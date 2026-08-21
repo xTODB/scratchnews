@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/empty-header.php'; ?>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Delete Your Account</h2>
     <p>This will permanently delete your account, along with all of your comments and likes. This cannot be undone.</p>

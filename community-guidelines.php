@@ -13,7 +13,7 @@ startSession();
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/empty-header.php'; ?>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Community Guidelines</h2>
     <p>- community guidelines so that the site doesn't go kaboom. disrespecting these guidelines will result in a ban/permanent account deletion, or a warning</p>

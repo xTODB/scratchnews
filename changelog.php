@@ -13,7 +13,7 @@ startSession();
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/empty-header.php'; ?>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
     <p>[Aug21] v0.23.2 - Maintenance mode, moved site to IFastNet, Comment Auth, API works normally</p>

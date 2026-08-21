@@ -39,7 +39,7 @@ body.dark .download-card { border-color:#444; }
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/empty-header.php'; ?>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Download ScratchNews Desktop</h2>
     <p>A desktop app for ScratchNews: same site, its own window, its own icon in your taskbar or dock. Whatever changes on the site shows up here automatically; there's nothing extra to update.</p>
