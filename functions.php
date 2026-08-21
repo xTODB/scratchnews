@@ -1,7 +1,7 @@
 <?php
 // === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
 date_default_timezone_set('Etc/GMT-3'); // GMT+3
-define('MAINTENANCE_MODE', true);
+define('MAINTENANCE_MODE', false);
 define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
 define('MAINTENANCE_MESSAGE', 'We\'ve been getting way more visits than our free hosting can handle right now: thank you! Site\'s paused for a bit while we sort it out. <br><br>Want to help us get real hosting? <a href="https://ko-fi.com/scratchnews" style="color:#f7931e">Buy us a coffee</a>.');
 
@@ -3053,6 +3053,7 @@ function syncToGithub(): array {
     }
 }
 
+
 function formatArticleForApi(array $article): array {
     return [
         'id' => (int)$article['id'],
@@ -3064,6 +3065,9 @@ function formatArticleForApi(array $article): array {
         'created_at' => $article['created_at'],
         'updated_at' => $article['updated_at'],
         'views' => (int)$article['views'],
+        'likes' => getLikeCount((int)$article['id']),
+        'dislikes' => getDislikeCount((int)$article['id']),
+        'comments' => getCommentCount((int)$article['id']),
         'categories' => array_map(function ($c) {
             return ['id' => (int)$c['id'], 'name' => $c['name'], 'slug' => $c['slug']];
         }, getArticleCategories((int)$article['id'])),
