@@ -2301,21 +2301,44 @@ function sendSubmissionDecisionEmail($toEmail, $toUsername, $articleTitle, $appr
     curl_close($ch);
 }
 
-function submitFeedback($userId, $message) {
+function submitFeedback($userId, $message, ?string $imageUrl = null) {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO feedback (user_id, message) VALUES (?, ?)");
-    $stmt->bind_param("is", $userId, $message);
+    $stmt = $db->prepare("INSERT INTO feedback (user_id, message, image_url) VALUES (?, ?, ?)");
+    $stmt->bind_param("iss", $userId, $message, $imageUrl);
     $stmt->execute();
     $stmt->close();
     notifyAdmins('admin_new_feedback', $userId, '/admin/feedback', $message);
 }
 
+// Dev/mod reply to a feedback submission. Notifies the submitter (if they weren't
+// anonymous) via the existing notification system - there's no dedicated feedback
+// inbox for readers, so the notification link just points back to /feedback.
+function replyToFeedback(int $id, int $adminUserId, string $replyMessage): bool {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE feedback SET reply_message = ?, replied_at = NOW(), replied_by = ? WHERE id = ?");
+    $stmt->bind_param("sii", $replyMessage, $adminUserId, $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    if ($ok) {
+        $stmt = $db->prepare("SELECT user_id FROM feedback WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!empty($row['user_id'])) {
+            createNotification((int)$row['user_id'], 'feedback_reply', $adminUserId, '/feedback', $replyMessage);
+        }
+    }
+    return $ok;
+}
+
 function getAllFeedback() {
     $db = getDB();
     $result = $db->query("
-        SELECT feedback.*, users.username
+        SELECT feedback.*, users.username, replier.username AS replied_by_username
         FROM feedback
         LEFT JOIN users ON feedback.user_id = users.id
+        LEFT JOIN users replier ON feedback.replied_by = replier.id
         ORDER BY feedback.created_at DESC
     ");
     $rows = [];
@@ -2483,7 +2506,7 @@ function saveUploadedImage(array $file, string $type = 'articles', int $maxDim =
     if (empty($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) return null;
     if ($file['size'] > 3 * 1024 * 1024) throw new RuntimeException('Image must be under 3MB.');
 
-    $allowedTypes = ['articles', 'avatars', 'banners'];
+    $allowedTypes = ['articles', 'avatars', 'banners', 'feedback'];
     if (!in_array($type, $allowedTypes, true)) $type = 'articles';
 
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -3468,6 +3491,7 @@ const NOTIFICATION_ICONS = [
     'admin_new_report'       => '/assets/icons/report.svg',
     'admin_new_submission'   => '/assets/icons/message.svg',
     'admin_new_feedback'     => '/assets/icons/message.svg',
+    'feedback_reply'         => '/assets/icons/reply.svg',
 ];
 
 function createNotification(int $userId, string $type, ?int $actorId = null, ?string $link = null, ?string $message = null): void {
@@ -3552,6 +3576,7 @@ function renderNotificationText(array $n): string {
         case 'admin_new_report': return 'New comment report submitted';
         case 'admin_new_submission': return 'New article submission from ' . $actor;
         case 'admin_new_feedback': return 'New feedback submitted';
+        case 'feedback_reply': return 'ScratchNews replied to your feedback';
         default: return 'New notification';
     }
 }

@@ -42,6 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $message = 'No user found with that username.';
         }
+    } elseif ($action === 'reply_feedback') {
+        $replyMessage = trim($_POST['reply_message'] ?? '');
+        $feedbackId = (int)($_POST['id'] ?? 0);
+        if ($feedbackId > 0 && $replyMessage !== '') {
+            replyToFeedback($feedbackId, (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            $message = 'Reply sent.';
+        }
     }
 
     header('Location: /moderator');
@@ -51,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pendingSubmissions = getPendingSubmissions();
 $pendingReports = getPendingReports();
 $allPolls = getAllPolls();
+$allFeedback = getAllFeedback();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,6 +142,32 @@ $allPolls = getAllPolls();
                 <?php foreach (getPollResults((int)$p['id']) as $opt): ?>
                     <p><?= e($opt['option_text']) ?>: <?= (int)$opt['votes'] ?></p>
                 <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+
+    <h3>Feedback</h3>
+    <?php if (empty($allFeedback)): ?>
+        <p>No feedback yet.</p>
+    <?php else: ?>
+        <?php foreach ($allFeedback as $f): ?>
+            <div class="submission-card" style="border:1px solid #ccc; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+                <p class="meta"><?= $f['username'] ? '@' . e($f['username']) : 'Anonymous' ?> &middot; <?= e($f['created_at']) ?></p>
+                <p><?= nl2br(e($f['message'])) ?></p>
+                <?php if (!empty($f['image_url'])): ?>
+                    <img src="<?= e($f['image_url']) ?>" alt="" style="max-width:280px;display:block;border-radius:6px;margin-bottom:0.5rem;">
+                <?php endif; ?>
+                <?php if (!empty($f['reply_message'])): ?>
+                    <p style="opacity:0.8;"><strong>Reply<?= $f['replied_by_username'] ? ' by @' . e($f['replied_by_username']) : '' ?>:</strong> <?= nl2br(e($f['reply_message'])) ?></p>
+                <?php else: ?>
+                    <form method="post">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="reply_feedback">
+                        <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+                        <textarea name="reply_message" placeholder="Reply..." required style="width:100%;min-height:60px;"></textarea>
+                        <button class="btn" type="submit">Send Reply</button>
+                    </form>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     <?php endif; ?>

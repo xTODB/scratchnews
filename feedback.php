@@ -11,9 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($message === '') {
         $error = 'Please enter some feedback before submitting.';
     } else {
-        $userId = !empty($_SESSION['reader_id']) ? (int)$_SESSION['reader_id'] : null;
-        submitFeedback($userId, $message);
-        $success = true;
+        try {
+            $imageUrl = !empty($_FILES['image']['tmp_name']) ? saveUploadedImage($_FILES['image'], 'feedback') : null;
+            $userId = !empty($_SESSION['reader_id']) ? (int)$_SESSION['reader_id'] : null;
+            submitFeedback($userId, $message, $imageUrl);
+            $success = true;
+        } catch (RuntimeException $e) {
+            $error = $e->getMessage();
+        }
     }
 }
 ?>
@@ -37,10 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="alert success">Thanks for the feedback! We read every submission.</div>
     <?php else: ?>
         <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             <?= csrfField() ?>
             <label for="message">Your feedback</label>
             <textarea name="message" id="message" required></textarea>
+            <label for="image">Screenshot (optional)</label>
+            <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
             <button class="btn" type="submit">Submit</button>
         </form>
     <?php endif; ?>
