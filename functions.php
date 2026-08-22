@@ -1091,6 +1091,17 @@ class DbSessionHandler implements SessionHandlerInterface {
     }
 }
 
+// Validates a user-supplied redirect target is an internal, same-site path (used for
+// post-login "return to where you were" redirects, e.g. invite links). Rejects anything
+// that isn't a root-relative path (blocks protocol-relative //evil.com, absolute URLs,
+// and scheme tricks like /\evil.com that some browsers still treat as protocol-relative).
+function safeInternalRedirect(?string $path, string $default = '/'): string {
+    if ($path === null || $path === '') return $default;
+    if ($path[0] !== '/' || (isset($path[1]) && ($path[1] === '/' || $path[1] === '\\'))) return $default;
+    if (preg_match('#^https?://#i', $path)) return $default;
+    return $path;
+}
+
 function startSession(): void {
     static $handlerSet = false;
     if (!$handlerSet) {
@@ -3492,6 +3503,9 @@ const NOTIFICATION_ICONS = [
     'admin_new_submission'   => '/assets/icons/message.svg',
     'admin_new_feedback'     => '/assets/icons/message.svg',
     'feedback_reply'         => '/assets/icons/reply.svg',
+    // group_invite.svg (SN_Groups icon) is also slated to replace nav-profiles.svg
+    // once Groups fully ships and Profiles folds into it - not done yet, still beta.
+    'group_invite'           => '/assets/icons/group_invite.svg',
 ];
 
 function createNotification(int $userId, string $type, ?int $actorId = null, ?string $link = null, ?string $message = null): void {
@@ -4379,6 +4393,24 @@ function getPendingGroupInvitesForUser(int $userId): array {
     return $rows;
 }
 
+// Used on the group page itself so someone who was invited by username sees an Accept/
+// Decline button right there, instead of only on /groups (they'd otherwise land on
+// "you'll need an invite to join" with no visible way to act on the invite they have).
+function getPendingGroupInviteForUserInGroup(int $groupId, int $userId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT gi.*, u.username AS inviter_username
+         FROM group_invites gi JOIN users u ON u.id = gi.invited_by
+         WHERE gi.group_id = ? AND gi.invited_user_id = ? AND gi.status = 'pending'
+         LIMIT 1"
+    );
+    $stmt->bind_param('ii', $groupId, $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
 function respondToGroupInvite(int $inviteId, int $userId, bool $accept): array {
     $db = getDB();
     $stmt = $db->prepare("SELECT * FROM group_invites WHERE id = ? AND invited_user_id = ? AND status = 'pending'");
@@ -4397,6 +4429,7 @@ function respondToGroupInvite(int $inviteId, int $userId, bool $accept): array {
     $stmt->bind_param('si', $status, $inviteId);
     $stmt->execute();
     $stmt->close();
+    $result['group_id'] = (int)$invite['group_id'];
     return $result;
 }
 

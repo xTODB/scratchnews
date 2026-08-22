@@ -30,7 +30,9 @@ if ($action === 'respond_invite') {
     $inviteId = (int)($_POST['invite_id'] ?? 0);
     $accept = !empty($_POST['accept']);
     $result = respondToGroupInvite($inviteId, $myId, $accept);
-    header('Location: /groups' . (!$result['ok'] ? '?error=' . urlencode($result['reason']) : '?notice=' . urlencode($accept ? 'Joined the group!' : 'Invite declined.')));
+    $destGroup = !empty($result['group_id']) ? getGroupById((int)$result['group_id']) : null;
+    $backTo = $destGroup ? '/group/' . $destGroup['slug'] : '/groups';
+    header('Location: ' . $backTo . (!$result['ok'] ? '?error=' . urlencode($result['reason']) : '?notice=' . urlencode($accept ? 'Joined the group!' : 'Invite declined.')));
     exit;
 }
 

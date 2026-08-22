@@ -29,6 +29,7 @@ $canComment = canCommentOnGroup($group, $myId ?: null);
 $canPostImage = canPostImageInGroup($myRole);
 $groupArticles = getGroupArticles((int)$group['id']);
 $canAttachArticle = canAttachArticleToGroup($myRole);
+$myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((int)$group['id'], $myId) : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -54,6 +55,7 @@ $canAttachArticle = canAttachArticleToGroup($myRole);
 .group-role-tag { font-size: 0.75rem; opacity: 0.75; text-transform: capitalize; }
 .group-member-actions form { display: inline; }
 .group-invite-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.group-invite-row { border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .group-toggle-form { margin: 0; background: none; padding: 0; border-radius: 0; box-shadow: none; max-width: none; }
 .group-article-row { margin-bottom: 1rem; }
 .group-article-remove-form { margin: 0.3rem 0 0; background: none; padding: 0; border-radius: 0; box-shadow: none; max-width: none; }
@@ -86,7 +88,29 @@ $canAttachArticle = canAttachArticleToGroup($myRole);
     <?php if ($notice): ?><div class="alert"><?= e($notice) ?></div><?php endif; ?>
 
     <?php if ($myId && !$myRole): ?>
+        <?php if ($myPendingInvite): ?>
+        <div class="group-invite-row">
+            <span><strong>@<?= e($myPendingInvite['inviter_username']) ?></strong> invited you to join this group.</span>
+            <span style="display:flex; gap:0.5rem;">
+                <form method="post" action="/group-action">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="respond_invite">
+                    <input type="hidden" name="invite_id" value="<?= (int)$myPendingInvite['id'] ?>">
+                    <input type="hidden" name="accept" value="1">
+                    <button class="btn inline" type="submit">Accept</button>
+                </form>
+                <form method="post" action="/group-action">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="respond_invite">
+                    <input type="hidden" name="invite_id" value="<?= (int)$myPendingInvite['id'] ?>">
+                    <input type="hidden" name="accept" value="0">
+                    <button class="btn secondary inline" type="submit">Decline</button>
+                </form>
+            </span>
+        </div>
+        <?php else: ?>
         <p>You're not a member of this group yet - you'll need an invite from a member, or an invite link, to join.</p>
+        <?php endif; ?>
     <?php endif; ?>
 
     <div class="group-tabs">

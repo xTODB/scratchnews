@@ -16,9 +16,9 @@ if (!$group) {
 }
 
 if (empty($_SESSION['reader_id'])) {
-    // No return-redirect wired into login yet - send them to log in, then they can
-    // click the invite link again to actually join.
-    header('Location: /login');
+    // Send them to log in, then straight back to this invite link (not the default
+    // homepage) so they land on the group instead of having to click the link again.
+    header('Location: /login?redirect=' . urlencode('/invite/' . $code));
     exit;
 }
 

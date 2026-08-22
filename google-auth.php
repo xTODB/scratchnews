@@ -17,6 +17,7 @@ if (!$payload) {
     exit;
 }
 
+$redirect = safeInternalRedirect($_POST['redirect'] ?? null);
 $googleId = $payload['sub'];
 $email = $payload['email'] ?? '';
 $name = $payload['name'] ?? '';
@@ -53,7 +54,7 @@ if ($user) {
         'samesite' => 'Lax',
     ]);
 
-    echo json_encode(['redirect' => !empty($user['is_admin']) ? '/admin/' : '/']);
+    echo json_encode(['redirect' => !empty($user['is_admin']) ? '/admin/' : $redirect]);
     exit;
 }
 

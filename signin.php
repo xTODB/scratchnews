@@ -2,8 +2,10 @@
 require_once __DIR__ . '/functions.php';
 startSession();
 
+$redirect = safeInternalRedirect($_GET['redirect'] ?? $_POST['redirect'] ?? null);
+
 if (!empty($_SESSION['reader_id'])) {
-    header('Location: ' . (!empty($_SESSION['is_admin']) ? '/admin/' : '/'));
+    header('Location: ' . (!empty($_SESSION['is_admin']) ? '/admin/' : $redirect));
     exit;
 }
 
@@ -29,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    header('Location: ' . ($_SESSION['is_admin'] ? '/admin/' : '/'));
+    header('Location: ' . ($_SESSION['is_admin'] ? '/admin/' : $redirect));
     exit;
 } else {
     $error = 'Incorrect username or password.';
@@ -64,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <p style="text-align:center;color:#888;font-size:0.85rem;margin:0.75rem 0;">— or log in with a username and password —</p>
     <form method="post">
+        <input type="hidden" name="redirect" value="<?= e($redirect) ?>">
         <label for="username">Username</label>
         <input type="text" id="username" name="username" required>
         <label for="password">Password</label>
@@ -78,7 +81,7 @@ function handleGoogleCredential(response) {
     fetch('/google-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'credential=' + encodeURIComponent(response.credential)
+        body: 'credential=' + encodeURIComponent(response.credential) + '&redirect=' + encodeURIComponent(<?= json_encode($redirect) ?>)
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
