@@ -4131,6 +4131,18 @@ function createGroupDeleteRequest(int $groupId, int $userId): array {
     return ['ok' => true];
 }
 
+// Used to hide the Edit/Delete Group forms once a request is already pending, so the
+// host doesn't queue up duplicate requests before a moderator reviews the first one.
+function getPendingGroupRequestForGroup(int $groupId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM group_requests WHERE group_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1");
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
 function getPendingGroupRequests(): array {
     $db = getDB();
     $result = $db->query(
@@ -4489,13 +4501,29 @@ function getGroupComments(int $groupId): array {
     return $rows;
 }
 
-function addGroupComment(int $groupId, int $userId, string $content, ?string $imageUrl = null): int {
+// $parentId nests the comment under an existing group comment (reply). Notifies the
+// parent comment's author, same pattern as addComment() on articles.
+function addGroupComment(int $groupId, int $userId, string $content, ?string $imageUrl = null, ?int $parentId = null): int {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO group_comments (group_id, user_id, content, image_url) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param('iiss', $groupId, $userId, $content, $imageUrl);
+    if ($parentId === null) {
+        $stmt = $db->prepare("INSERT INTO group_comments (group_id, user_id, content, image_url) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param('iiss', $groupId, $userId, $content, $imageUrl);
+    } else {
+        $stmt = $db->prepare("INSERT INTO group_comments (group_id, user_id, content, image_url, parent_comment_id) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param('iissi', $groupId, $userId, $content, $imageUrl, $parentId);
+    }
     $stmt->execute();
     $id = $stmt->insert_id;
     $stmt->close();
+
+    if ($parentId !== null) {
+        $parent = getGroupCommentById($parentId);
+        if ($parent && (int)$parent['user_id'] !== $userId) {
+            $group = getGroupById($groupId);
+            createNotification((int)$parent['user_id'], 'comment_reply', $userId, '/group/' . ($group['slug'] ?? ''), $content);
+        }
+    }
+
     return $id;
 }
 
@@ -4524,6 +4552,56 @@ function getGroupCommentById(int $commentId): ?array {
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     return $row ?: null;
+}
+
+// Renders a group wall comment and its replies, reusing the same .comment/.comment-header/
+// comment-avatar/rank-badge markup and reply-depth indent (14px/cap 56px) as article
+// comments (renderCommentThread), so the wall keeps matching that look. $canReply gates
+// the Reply button/form the same way $canComment already gates the top-level composer.
+function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?string $myRole, bool $isSiteMod, bool $canReply, int $depth = 0): string {
+    $indent = min($depth * 14, 56);
+    $topClass = $depth === 0 ? ' comment-top' : '';
+    $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
+    $html .= '<div class="comment-header">';
+    $html .= renderCommentAvatar($comment['avatar_url'] ?? null, $comment['username']);
+    $html .= '<strong><a href="/@' . e($comment['username']) . '">' . e($comment['username']) . '</a></strong>';
+    $html .= renderRankBadges((int)$comment['user_id']);
+    $html .= ' <span class="meta">' . utcTimeTag($comment['created_at'], 'datetime') . '</span>';
+    $html .= '</div>';
+    $html .= '<p>' . nl2br(e($comment['content'])) . '</p>';
+    if (!empty($comment['image_url'])) {
+        $html .= '<img src="' . e($comment['image_url']) . '" alt="" class="group-comment-image">';
+    }
+
+    if ($canReply) {
+        $formId = 'group-reply-form-' . (int)$comment['id'];
+        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><img src="/assets/icons/reply.svg" class="icon-svg-sm" alt=""> Reply</button>';
+        $html .= '<form method="post" action="/group-action" class="reply-form" id="' . $formId . '">';
+        $html .= csrfField();
+        $html .= '<input type="hidden" name="action" value="post_comment">';
+        $html .= '<input type="hidden" name="group_id" value="' . $groupId . '">';
+        $html .= '<input type="hidden" name="parent_id" value="' . (int)$comment['id'] . '">';
+        $html .= '<textarea name="content" placeholder="Write a reply..." maxlength="1000" required></textarea>';
+        $html .= '<button class="btn" type="submit">Post Reply</button>';
+        $html .= '</form>';
+    }
+
+    if ($isSiteMod || (int)$comment['user_id'] === $myId || $myRole === 'host') {
+        $html .= '<form method="post" action="/group-action" class="report-form" onsubmit="return confirm(\'Delete this comment?\');">';
+        $html .= csrfField();
+        $html .= '<input type="hidden" name="action" value="delete_comment">';
+        $html .= '<input type="hidden" name="group_id" value="' . $groupId . '">';
+        $html .= '<input type="hidden" name="comment_id" value="' . (int)$comment['id'] . '">';
+        $html .= '<button type="submit" class="reply-toggle" title="Delete"><img src="/assets/icons/comment_delete.svg" class="icon-svg-sm" alt=""> Delete</button>';
+        $html .= '</form>';
+    }
+
+    foreach ($comment['replies'] as $reply) {
+        $html .= renderGroupCommentThread($reply, $groupId, $myId, $myRole, $isSiteMod, $canReply, $depth + 1);
+    }
+
+    $html .= '</div>';
+    return $html;
 }
 
 // ---- Group Articles (v0.24) ----

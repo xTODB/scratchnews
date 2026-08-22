@@ -65,7 +65,12 @@ if ($action === 'post_comment') {
             groupRedirect($slug, $e->getMessage());
         }
     }
-    addGroupComment($groupId, $myId, $content, $imageUrl);
+    $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+    if ($parentId !== null) {
+        $parentComment = getGroupCommentById($parentId);
+        if (!$parentComment || (int)$parentComment['group_id'] !== $groupId) $parentId = null;
+    }
+    addGroupComment($groupId, $myId, $content, $imageUrl, $parentId);
     groupRedirect($slug);
 
 } elseif ($action === 'delete_comment') {
@@ -126,6 +131,29 @@ if ($action === 'post_comment') {
     $policy = ($_POST['policy'] ?? '') === 'everyone' ? 'everyone' : 'members';
     setGroupCommentPolicy($groupId, $policy);
     groupRedirect($slug);
+
+} elseif ($action === 'request_edit') {
+    if (!($myRole === 'host' || $isSiteMod)) groupRedirect($slug, 'Only the host can edit this group.');
+    if (getPendingGroupRequestForGroup($groupId)) groupRedirect($slug, 'A request for this group is already pending review.');
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    if ($name === '' || mb_strlen($name) > 100) groupRedirect($slug, 'Please enter a group name (up to 100 characters).');
+    $bannerUrl = null;
+    if (!empty($_FILES['banner']['tmp_name'])) {
+        try {
+            $bannerUrl = saveUploadedImage($_FILES['banner'], 'group_banners');
+        } catch (RuntimeException $e) {
+            groupRedirect($slug, $e->getMessage());
+        }
+    }
+    createGroupEditRequest($groupId, $myId, $name, $description, $bannerUrl);
+    groupRedirect($slug, '', 'Edit request submitted for review.');
+
+} elseif ($action === 'request_delete') {
+    if (!($myRole === 'host' || $isSiteMod)) groupRedirect($slug, 'Only the host can delete this group.');
+    if (getPendingGroupRequestForGroup($groupId)) groupRedirect($slug, 'A request for this group is already pending review.');
+    createGroupDeleteRequest($groupId, $myId);
+    groupRedirect($slug, '', 'Delete request submitted for review.');
 
 } else {
     groupRedirect($slug);

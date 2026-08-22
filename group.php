@@ -25,11 +25,13 @@ $notice = $_GET['notice'] ?? '';
 $members = getGroupMembers((int)$group['id']);
 $memberCount = count($members);
 $comments = getGroupComments((int)$group['id']);
+$commentTree = buildCommentTree($comments);
 $canComment = canCommentOnGroup($group, $myId ?: null);
 $canPostImage = canPostImageInGroup($myRole);
 $groupArticles = getGroupArticles((int)$group['id']);
 $canAttachArticle = canAttachArticleToGroup($myRole);
 $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((int)$group['id'], $myId) : null;
+$myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupRequestForGroup((int)$group['id']) : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,6 +120,7 @@ $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((in
         <span class="group-tab" onclick="showGroupTab('articles', this)">Articles</span>
         <span class="group-tab" onclick="showGroupTab('members', this)">Members</span>
         <?php if ($myRole): ?><span class="group-tab" onclick="showGroupTab('invite', this)">Invite</span><?php endif; ?>
+        <?php if ($myRole === 'host' || $isSiteMod): ?><span class="group-tab" onclick="showGroupTab('manage', this)">Manage</span><?php endif; ?>
     </div>
 
     <div id="group-tab-wall" class="group-tab-panel active">
@@ -141,28 +144,10 @@ $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((in
             <p>Only members can comment in this group.</p>
         <?php endif; ?>
 
-        <?php foreach ($comments as $c): ?>
-            <div class="comment comment-top">
-                <div class="comment-header">
-                    <?= renderCommentAvatar($c['avatar_url'] ?? null, $c['username']) ?>
-                    <strong><a href="/@<?= e($c['username']) ?>"><?= e($c['username']) ?></a></strong>
-                    <?= renderRankBadges((int)$c['user_id']) ?>
-                    <span class="meta"><?= utcTimeTag($c['created_at'], 'datetime') ?></span>
-                </div>
-                <p><?= nl2br(e($c['content'])) ?></p>
-                <?php if (!empty($c['image_url'])): ?><img src="<?= e($c['image_url']) ?>" alt="" class="group-comment-image"><?php endif; ?>
-                <?php if ($isSiteMod || (int)$c['user_id'] === $myId || $myRole === 'host'): ?>
-                <form method="post" action="/group-action" class="report-form" onsubmit="return confirm('Delete this comment?');">
-                    <?= csrfField() ?>
-                    <input type="hidden" name="action" value="delete_comment">
-                    <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
-                    <input type="hidden" name="comment_id" value="<?= (int)$c['id'] ?>">
-                    <button type="submit" class="reply-toggle" title="Delete"><img src="/assets/icons/comment_delete.svg" class="icon-svg-sm" alt=""> Delete</button>
-                </form>
-                <?php endif; ?>
-            </div>
+        <?php foreach ($commentTree as $c): ?>
+            <?= renderGroupCommentThread($c, (int)$group['id'], $myId, $myRole, $isSiteMod, $myId && $canComment) ?>
         <?php endforeach; ?>
-        <?php if (empty($comments)): ?><p>No comments yet.</p><?php endif; ?>
+        <?php if (empty($commentTree)): ?><p>No comments yet.</p><?php endif; ?>
     </div>
 
     <div id="group-tab-articles" class="group-tab-panel">
@@ -275,6 +260,36 @@ $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((in
         <?php if (!empty($_SESSION['group_invite_link_' . $group['id']])): ?>
             <p>Share this link: <code><?= e($_SESSION['group_invite_link_' . $group['id']]) ?></code></p>
         <?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($myRole === 'host' || $isSiteMod): ?>
+    <div id="group-tab-manage" class="group-tab-panel">
+        <?php if ($myPendingGroupRequest): ?>
+            <p>A <?= e($myPendingGroupRequest['request_type']) ?> request for this group is pending moderator/dev review.</p>
+        <?php else: ?>
+        <h4>Edit Group</h4>
+        <p>Edits go through the same moderator/dev review as creating a group.</p>
+        <form method="post" action="/group-action" enctype="multipart/form-data">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="request_edit">
+            <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+            <label>Group name</label>
+            <input type="text" name="name" maxlength="100" required value="<?= e($group['name']) ?>">
+            <label>Description</label>
+            <textarea name="description" rows="3" maxlength="2000"><?= e($group['description'] ?? '') ?></textarea>
+            <label>New banner image (optional - leave blank to keep the current one)</label>
+            <input type="file" name="banner" accept="image/*">
+            <button class="btn" type="submit">Submit Edit Request</button>
+        </form>
+        <h4 style="margin-top:1.5rem;">Delete Group</h4>
+        <form method="post" action="/group-action" onsubmit="return confirm('Request deletion of this group? This goes to moderator/dev review before anything happens.');">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="request_delete">
+            <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+            <button class="btn secondary" type="submit">Request Group Deletion</button>
+        </form>
         <?php endif; ?>
     </div>
     <?php endif; ?>
