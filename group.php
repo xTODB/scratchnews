@@ -47,7 +47,7 @@ $canAttachArticle = canAttachArticleToGroup($myRole);
 .group-tab.active { border-bottom-color: #cc8829; font-weight: 700; }
 .group-tab-panel { display: none; }
 .group-tab-panel.active { display: block; }
-.group-wall-form { max-width: 420px; margin: 0 auto 1.5rem; }
+.group-wall-form { max-width: 520px; margin: 0 0 1.5rem; }
 .group-wall-form textarea { width: 100%; min-height: 44px; margin-bottom: 0.5rem; }
 .group-comment-image { max-width: 100%; border-radius: 6px; margin-top: 0.4rem; }
 .group-member-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(128,128,128,0.15); gap: 0.5rem; flex-wrap: wrap; }
@@ -77,7 +77,7 @@ $canAttachArticle = canAttachArticleToGroup($myRole);
             <input type="hidden" name="action" value="set_comment_policy">
             <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
             <input type="hidden" name="policy" value="<?= $group['comment_policy'] === 'everyone' ? 'members' : 'everyone' ?>">
-            <button class="btn secondary" type="submit">Comments: <?= $group['comment_policy'] === 'everyone' ? 'Everyone' : 'Members only' ?></button>
+            <button class="btn secondary inline" type="submit">Comments: <?= $group['comment_policy'] === 'everyone' ? 'Everyone' : 'Members only' ?></button>
         </form>
         <?php endif; ?>
     </div>
