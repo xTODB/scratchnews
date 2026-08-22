@@ -27,9 +27,14 @@ $articles = getAllArticles(true);
                     <td><?= e($a['title']) ?></td>
                     <td><?= e($a['author']) ?></td>
                     <td><?= utcTimeTag($a['created_at']) ?></td>
-                    <td><?= ($a['status'] ?? 'published') === 'draft' ? '<span style="color:#a67c00;font-weight:600;">Draft</span>' : 'Published' ?></td>
+                    <td><?php
+                        $st = $a['status'] ?? 'published';
+                        if ($st === 'draft') echo '<span style="color:#a67c00;font-weight:600;">Draft</span>';
+                        elseif ($st === 'unpublished') echo '<span style="color:#888;font-weight:600;">Unpublished</span>';
+                        else echo 'Published';
+                    ?></td>
                     <td class="actions">
-                        <?php if (($a['status'] ?? 'published') !== 'draft'): ?>
+                        <?php if (($a['status'] ?? 'published') === 'published'): ?>
                         <a href="/article/<?= (int)$a['id'] ?>" target="_blank">View</a>
                         <?php endif; ?>
                         <a href="/admin/edit?id=<?= (int)$a['id'] ?>">Edit</a>
