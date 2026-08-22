@@ -20,6 +20,12 @@ define('GITHUB_REPO', '');
 define('GITHUB_BRANCH', '');
 define('GOOGLE_CLIENT_ID', '');
 
+// v0.24 Groups beta: comma-separated IP(s) allowed to access /groups while it's
+// being built. Everyone else sees a "Work in progress" notice. Admin logins always
+// get through regardless of this list. Leave empty to lock it to admins only, or
+// clear it out entirely once Groups is ready to launch to everyone.
+define('GROUPS_BETA_IPS', '');
+
 function getDB(): mysqli {
     static $conn = null;
     if ($conn === null) {

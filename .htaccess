@@ -47,6 +47,12 @@ RewriteRule ^upload-image/?$ upload-image.php [L,QSA]
 RewriteRule ^messages/?$ messages.php [L,QSA]
 RewriteRule ^moderator/?$ moderator.php [L,QSA]
 
+# v0.24 Groups (beta, IP-restricted via GROUPS_BETA_IPS in config.php)
+RewriteRule ^groups/?$ groups.php [L,QSA]
+RewriteRule ^group/([a-z0-9-]+)/?$ group.php?slug=$1 [L,QSA]
+RewriteRule ^group-action/?$ group-action.php [L,QSA]
+RewriteRule ^invite/([A-Za-z0-9]+)/?$ invite.php?code=$1 [L,QSA]
+
 # Clean URLs: admin/ nested pages. Same explicit-hardcoded pattern as above
 # (dynamic -f checks are unreliable on InfinityFree and caused 500s).
 RewriteRule ^admin/banners/?$ admin/banners.php [L,QSA]
@@ -54,6 +60,7 @@ RewriteRule ^admin/create/?$ admin/create.php [L,QSA]
 RewriteRule ^admin/delete/?$ admin/delete.php [L,QSA]
 RewriteRule ^admin/edit/?$ admin/edit.php [L,QSA]
 RewriteRule ^admin/feedback/?$ admin/feedback.php [L,QSA]
+RewriteRule ^admin/group-requests/?$ admin/group-requests.php [L,QSA]
 RewriteRule ^admin/impersonate/?$ admin/impersonate.php [L,QSA]
 RewriteRule ^admin/impersonation-log/?$ admin/impersonation-log.php [L,QSA]
 RewriteRule ^admin/moderation-words/?$ admin/moderation-words.php [L,QSA]

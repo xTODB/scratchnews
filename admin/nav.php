@@ -15,6 +15,7 @@
             <a href="/admin/moderation-words">Moderation Words</a>
             <a href="/admin/banners">Banners</a>
             <a href="/admin/polls">Polls</a>
+            <a href="/admin/group-requests">Group Requests<?php $c = getPendingGroupRequestsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/stats">Stats</a>
             <a href="/logout">Log Out</a>
         </div>

@@ -2506,7 +2506,7 @@ function saveUploadedImage(array $file, string $type = 'articles', int $maxDim =
     if (empty($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) return null;
     if ($file['size'] > 3 * 1024 * 1024) throw new RuntimeException('Image must be under 3MB.');
 
-    $allowedTypes = ['articles', 'avatars', 'banners', 'feedback'];
+    $allowedTypes = ['articles', 'avatars', 'banners', 'feedback', 'group_banners', 'group_comments'];
     if (!in_array($type, $allowedTypes, true)) $type = 'articles';
 
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -4024,4 +4024,461 @@ function getBannerOrPollSlot(): ?array {
         }
     }
     return empty($banners) ? null : ['type' => 'banner', 'banner' => $banners[array_rand($banners)]];
+}
+// ==================== v0.24 Groups (beta, IP-restricted) ====================
+
+const GROUP_MAX_PER_USER = 5;
+
+// True while Groups is in beta: only GROUPS_BETA_IPS (comma-separated in config.php,
+// gitignored/server-only) or a logged-in admin can access it. Everyone else gets a
+// "Work in progress" notice. Flip GROUPS_BETA_IPS to '' (or remove the check) to launch.
+function isGroupsBetaAllowed(): bool {
+    if (!empty($_SESSION['is_admin'])) return true;
+    $allowed = array_filter(array_map('trim', explode(',', defined('GROUPS_BETA_IPS') ? GROUPS_BETA_IPS : '')));
+    if (empty($allowed)) return false;
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    return in_array($ip, $allowed, true);
+}
+
+function slugifyGroupName(string $name): string {
+    $slug = strtolower(trim($name));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = trim($slug, '-');
+    return $slug !== '' ? $slug : 'group';
+}
+
+function generateUniqueGroupSlug(string $name): string {
+    $db = getDB();
+    $base = slugifyGroupName($name);
+    $slug = $base;
+    $i = 2;
+    while (true) {
+        $stmt = $db->prepare("SELECT 1 FROM `groups` WHERE slug = ?");
+        $stmt->bind_param('s', $slug);
+        $stmt->execute();
+        $exists = $stmt->get_result()->fetch_row() !== null;
+        $stmt->close();
+        if (!$exists) return $slug;
+        $slug = $base . '-' . $i;
+        $i++;
+    }
+}
+
+function countUserGroupMemberships(int $userId): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) FROM group_members gm JOIN `groups` g ON g.id = gm.group_id WHERE gm.user_id = ? AND g.status = 'active'");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+    return (int)$count;
+}
+
+function canUserJoinAnotherGroup(int $userId): bool {
+    return countUserGroupMemberships($userId) < GROUP_MAX_PER_USER;
+}
+
+// ---- Group requests (create/edit/delete - moderator+dev-only review for now) ----
+
+function createGroupRequest(int $userId, string $name, string $description, ?string $bannerUrl): array {
+    if (!canUserJoinAnotherGroup($userId)) {
+        return ['ok' => false, 'reason' => 'You are already in the maximum of ' . GROUP_MAX_PER_USER . ' groups.'];
+    }
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO group_requests (request_type, requested_by, name, description, banner_url) VALUES ('create', ?, ?, ?, ?)");
+    $stmt->bind_param('isss', $userId, $name, $description, $bannerUrl);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    notifyAdmins('group_request', $userId, '/admin/group-requests', $name);
+    return ['ok' => true, 'id' => $id];
+}
+
+function createGroupEditRequest(int $groupId, int $userId, string $name, string $description, ?string $bannerUrl): array {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO group_requests (request_type, group_id, requested_by, name, description, banner_url) VALUES ('edit', ?, ?, ?, ?, ?)");
+    $stmt->bind_param('iisss', $groupId, $userId, $name, $description, $bannerUrl);
+    $stmt->execute();
+    $stmt->close();
+    notifyAdmins('group_request', $userId, '/admin/group-requests', 'Edit: ' . $name);
+    return ['ok' => true];
+}
+
+function createGroupDeleteRequest(int $groupId, int $userId): array {
+    $db = getDB();
+    $group = getGroupById($groupId);
+    $stmt = $db->prepare("INSERT INTO group_requests (request_type, group_id, requested_by, name) VALUES ('delete', ?, ?, ?)");
+    $name = $group['name'] ?? '';
+    $stmt->bind_param('iis', $groupId, $userId, $name);
+    $stmt->execute();
+    $stmt->close();
+    notifyAdmins('group_request', $userId, '/admin/group-requests', 'Delete: ' . $name);
+    return ['ok' => true];
+}
+
+function getPendingGroupRequests(): array {
+    $db = getDB();
+    $result = $db->query(
+        "SELECT gr.*, u.username AS requester_username
+         FROM group_requests gr JOIN users u ON u.id = gr.requested_by
+         WHERE gr.status = 'pending' ORDER BY gr.created_at ASC"
+    );
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+}
+
+function getPendingGroupRequestsCount(): int {
+    $db = getDB();
+    $result = $db->query("SELECT COUNT(*) AS cnt FROM group_requests WHERE status = 'pending'");
+    return (int)($result->fetch_assoc()['cnt'] ?? 0);
+}
+
+function getGroupRequestById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM group_requests WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function approveGroupRequest(int $requestId, int $reviewerId): bool {
+    $req = getGroupRequestById($requestId);
+    if (!$req || $req['status'] !== 'pending') return false;
+    $db = getDB();
+
+    if ($req['request_type'] === 'create') {
+        $slug = generateUniqueGroupSlug($req['name']);
+        $stmt = $db->prepare("INSERT INTO `groups` (slug, name, description, banner_url, host_user_id, status) VALUES (?, ?, ?, ?, ?, 'active')");
+        $stmt->bind_param('ssssi', $slug, $req['name'], $req['description'], $req['banner_url'], $req['requested_by']);
+        $stmt->execute();
+        $groupId = $stmt->insert_id;
+        $stmt->close();
+        $stmt = $db->prepare("INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, 'host')");
+        $stmt->bind_param('ii', $groupId, $req['requested_by']);
+        $stmt->execute();
+        $stmt->close();
+        createNotification((int)$req['requested_by'], 'group_request_approved', $reviewerId, '/group/' . $slug, $req['name']);
+    } elseif ($req['request_type'] === 'edit' && $req['group_id']) {
+        $stmt = $db->prepare("UPDATE `groups` SET name = ?, description = ?, banner_url = COALESCE(?, banner_url) WHERE id = ?");
+        $stmt->bind_param('sssi', $req['name'], $req['description'], $req['banner_url'], $req['group_id']);
+        $stmt->execute();
+        $stmt->close();
+        $group = getGroupById((int)$req['group_id']);
+        createNotification((int)$req['requested_by'], 'group_request_approved', $reviewerId, '/group/' . ($group['slug'] ?? ''), $req['name']);
+    } elseif ($req['request_type'] === 'delete' && $req['group_id']) {
+        $stmt = $db->prepare("UPDATE `groups` SET status = 'deleted' WHERE id = ?");
+        $stmt->bind_param('i', $req['group_id']);
+        $stmt->execute();
+        $stmt->close();
+        createNotification((int)$req['requested_by'], 'group_request_approved', $reviewerId, '/groups', $req['name'] ?? '');
+    }
+
+    $stmt = $db->prepare("UPDATE group_requests SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?");
+    $stmt->bind_param('ii', $reviewerId, $requestId);
+    $stmt->execute();
+    $stmt->close();
+    return true;
+}
+
+function rejectGroupRequest(int $requestId, int $reviewerId): bool {
+    $req = getGroupRequestById($requestId);
+    if (!$req || $req['status'] !== 'pending') return false;
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE group_requests SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?");
+    $stmt->bind_param('ii', $reviewerId, $requestId);
+    $stmt->execute();
+    $stmt->close();
+    createNotification((int)$req['requested_by'], 'group_request_rejected', $reviewerId, '/groups', $req['name'] ?? '');
+    return true;
+}
+
+// ---- Groups ----
+
+function getGroupBySlug(string $slug): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT g.*, u.username AS host_username FROM `groups` g JOIN users u ON u.id = g.host_user_id WHERE g.slug = ? AND g.status = 'active'");
+    $stmt->bind_param('s', $slug);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function getGroupById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM `groups` WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function getActiveGroups(): array {
+    $db = getDB();
+    $result = $db->query(
+        "SELECT g.*, u.username AS host_username, (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count
+         FROM `groups` g JOIN users u ON u.id = g.host_user_id
+         WHERE g.status = 'active' ORDER BY g.created_at DESC"
+    );
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+}
+
+function getUserGroups(int $userId): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT g.*, gm.role FROM group_members gm JOIN `groups` g ON g.id = gm.group_id
+         WHERE gm.user_id = ? AND g.status = 'active' ORDER BY g.name ASC"
+    );
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getGroupMemberRole(int $groupId, int $userId): ?string {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?");
+    $stmt->bind_param('ii', $groupId, $userId);
+    $stmt->execute();
+    $stmt->bind_result($role);
+    $found = $stmt->fetch();
+    $stmt->close();
+    return $found ? $role : null;
+}
+
+function getGroupMembers(int $groupId): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT gm.*, u.username, u.avatar_url FROM group_members gm JOIN users u ON u.id = gm.user_id
+         WHERE gm.group_id = ?
+         ORDER BY FIELD(gm.role, 'host', 'manager', 'member'), gm.joined_at ASC"
+    );
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getGroupMemberCount(int $groupId): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) FROM group_members WHERE group_id = ?");
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+    return (int)$count;
+}
+
+function addGroupMember(int $groupId, int $userId, string $role = 'member'): array {
+    if (getGroupMemberRole($groupId, $userId) !== null) {
+        return ['ok' => false, 'reason' => 'Already a member of this group.'];
+    }
+    if (!canUserJoinAnotherGroup($userId)) {
+        return ['ok' => false, 'reason' => 'You are already in the maximum of ' . GROUP_MAX_PER_USER . ' groups.'];
+    }
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)");
+    $stmt->bind_param('iis', $groupId, $userId, $role);
+    $stmt->execute();
+    $stmt->close();
+    return ['ok' => true];
+}
+
+// $actorId must be a manager (or host, or site mod/dev) and can only remove plain members.
+// Hosts can also remove managers. Nobody can remove the host.
+function kickGroupMember(int $groupId, int $userId, int $actorId, bool $actorIsSiteMod): array {
+    $targetRole = getGroupMemberRole($groupId, $userId);
+    $actorRole = getGroupMemberRole($groupId, $actorId);
+    if ($targetRole === null) return ['ok' => false, 'reason' => 'Not a member.'];
+    if ($targetRole === 'host') return ['ok' => false, 'reason' => 'The host cannot be removed.'];
+    $canAct = $actorIsSiteMod || $actorRole === 'host' || ($actorRole === 'manager' && $targetRole === 'member');
+    if (!$canAct) return ['ok' => false, 'reason' => 'You do not have permission to remove this member.'];
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM group_members WHERE group_id = ? AND user_id = ?");
+    $stmt->bind_param('ii', $groupId, $userId);
+    $stmt->execute();
+    $stmt->close();
+    return ['ok' => true];
+}
+
+function setGroupMemberTimeout(int $groupId, int $userId, int $actorId, bool $actorIsSiteMod, int $minutes): array {
+    $targetRole = getGroupMemberRole($groupId, $userId);
+    $actorRole = getGroupMemberRole($groupId, $actorId);
+    if ($targetRole === null || $targetRole === 'host') return ['ok' => false, 'reason' => 'Cannot time out this member.'];
+    $canAct = $actorIsSiteMod || $actorRole === 'host' || ($actorRole === 'manager' && $targetRole === 'member');
+    if (!$canAct) return ['ok' => false, 'reason' => 'You do not have permission to time out this member.'];
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE group_members SET timeout_until = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE group_id = ? AND user_id = ?");
+    $stmt->bind_param('iii', $minutes, $groupId, $userId);
+    $stmt->execute();
+    $stmt->close();
+    return ['ok' => true];
+}
+
+function isGroupMemberTimedOut(int $groupId, int $userId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT timeout_until FROM group_members WHERE group_id = ? AND user_id = ?");
+    $stmt->bind_param('ii', $groupId, $userId);
+    $stmt->execute();
+    $stmt->bind_result($until);
+    $stmt->fetch();
+    $stmt->close();
+    return $until !== null && strtotime($until) > time();
+}
+
+function setGroupCommentPolicy(int $groupId, string $policy): void {
+    if (!in_array($policy, ['everyone', 'members'], true)) return;
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE `groups` SET comment_policy = ? WHERE id = ?");
+    $stmt->bind_param('si', $policy, $groupId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// ---- Invites ----
+
+// Any member can invite a user they follow, or who follows them. Moderators/dev can
+// invite anyone (per spec: "anyone for moderators and the dev").
+function canInviteUserToGroup(int $inviterId, int $targetUserId, bool $inviterIsSiteMod): bool {
+    if ($inviterIsSiteMod) return true;
+    return isFollowing($inviterId, $targetUserId) || isFollowing($targetUserId, $inviterId);
+}
+
+function inviteUserToGroup(int $groupId, int $inviterId, int $targetUserId): array {
+    if (getGroupMemberRole($groupId, $targetUserId) !== null) {
+        return ['ok' => false, 'reason' => 'That user is already a member.'];
+    }
+    $db = getDB();
+    $stmt = $db->prepare("INSERT IGNORE INTO group_invites (group_id, invited_user_id, invited_by) VALUES (?, ?, ?)");
+    $stmt->bind_param('iii', $groupId, $targetUserId, $inviterId);
+    $stmt->execute();
+    $inserted = $stmt->affected_rows > 0;
+    $stmt->close();
+    if (!$inserted) return ['ok' => false, 'reason' => 'That user already has a pending invite to this group.'];
+
+    $group = getGroupById($groupId);
+    createNotification($targetUserId, 'group_invite', $inviterId, '/group/' . ($group['slug'] ?? ''), $group['name'] ?? '');
+    return ['ok' => true];
+}
+
+function getPendingGroupInvitesForUser(int $userId): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT gi.*, g.name AS group_name, g.slug AS group_slug, u.username AS inviter_username
+         FROM group_invites gi JOIN `groups` g ON g.id = gi.group_id JOIN users u ON u.id = gi.invited_by
+         WHERE gi.invited_user_id = ? AND gi.status = 'pending' AND g.status = 'active'
+         ORDER BY gi.created_at DESC"
+    );
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function respondToGroupInvite(int $inviteId, int $userId, bool $accept): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM group_invites WHERE id = ? AND invited_user_id = ? AND status = 'pending'");
+    $stmt->bind_param('ii', $inviteId, $userId);
+    $stmt->execute();
+    $invite = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$invite) return ['ok' => false, 'reason' => 'Invite not found.'];
+
+    $result = ['ok' => true];
+    if ($accept) {
+        $result = addGroupMember((int)$invite['group_id'], $userId);
+    }
+    $status = $accept ? 'accepted' : 'declined';
+    $stmt = $db->prepare("UPDATE group_invites SET status = ? WHERE id = ?");
+    $stmt->bind_param('si', $status, $inviteId);
+    $stmt->execute();
+    $stmt->close();
+    return $result;
+}
+
+// Random invite links - anyone with the link can join directly (up to the group cap).
+function createGroupInviteLink(int $groupId, int $createdBy): string {
+    $db = getDB();
+    do {
+        $code = bin2hex(random_bytes(6));
+        $stmt = $db->prepare("SELECT 1 FROM group_invite_links WHERE code = ?");
+        $stmt->bind_param('s', $code);
+        $stmt->execute();
+        $exists = $stmt->get_result()->fetch_row() !== null;
+        $stmt->close();
+    } while ($exists);
+
+    $stmt = $db->prepare("INSERT INTO group_invite_links (group_id, code, created_by) VALUES (?, ?, ?)");
+    $stmt->bind_param('isi', $groupId, $code, $createdBy);
+    $stmt->execute();
+    $stmt->close();
+    return $code;
+}
+
+function getGroupByInviteCode(string $code): ?array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT g.* FROM group_invite_links l JOIN `groups` g ON g.id = l.group_id
+         WHERE l.code = ? AND g.status = 'active'"
+    );
+    $stmt->bind_param('s', $code);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+// ---- Group wall (flat comments, not threaded - v1) ----
+
+function canCommentOnGroup(array $group, ?int $userId): bool {
+    if ($group['comment_policy'] === 'everyone') return true;
+    return $userId !== null && getGroupMemberRole((int)$group['id'], $userId) !== null;
+}
+
+function canPostImageInGroup(?string $role): bool {
+    return in_array($role, ['host', 'manager'], true);
+}
+
+function getGroupComments(int $groupId): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT gc.*, u.username, u.avatar_url FROM group_comments gc JOIN users u ON u.id = gc.user_id
+         WHERE gc.group_id = ? ORDER BY gc.created_at DESC"
+    );
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function addGroupComment(int $groupId, int $userId, string $content, ?string $imageUrl = null): int {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO group_comments (group_id, user_id, content, image_url) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param('iiss', $groupId, $userId, $content, $imageUrl);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    return $id;
+}
+
+function adminDeleteGroupComment(int $commentId): void {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT image_url FROM group_comments WHERE id = ?");
+    $stmt->bind_param('i', $commentId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($row && $row['image_url']) deleteUploadedImage($row['image_url']);
+    $stmt = $db->prepare("DELETE FROM group_comments WHERE id = ?");
+    $stmt->bind_param('i', $commentId);
+    $stmt->execute();
+    $stmt->close();
 }
