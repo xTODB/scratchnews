@@ -4064,9 +4064,9 @@ function generateUniqueGroupSlug(string $name): string {
     }
 }
 
-function countUserGroupMemberships(int $userId): int {
+function countUserOwnedGroups(int $userId): int {
     $db = getDB();
-    $stmt = $db->prepare("SELECT COUNT(*) FROM group_members gm JOIN `groups` g ON g.id = gm.group_id WHERE gm.user_id = ? AND g.status = 'active'");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM group_members gm JOIN `groups` g ON g.id = gm.group_id WHERE gm.user_id = ? AND gm.role = 'host' AND g.status = 'active'");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $stmt->bind_result($count);
@@ -4075,15 +4075,15 @@ function countUserGroupMemberships(int $userId): int {
     return (int)$count;
 }
 
-function canUserJoinAnotherGroup(int $userId): bool {
-    return countUserGroupMemberships($userId) < GROUP_MAX_PER_USER;
+function canUserOwnAnotherGroup(int $userId): bool {
+    return countUserOwnedGroups($userId) < GROUP_MAX_PER_USER;
 }
 
 // ---- Group requests (create/edit/delete - moderator+dev-only review for now) ----
 
 function createGroupRequest(int $userId, string $name, string $description, ?string $bannerUrl): array {
-    if (!canUserJoinAnotherGroup($userId)) {
-        return ['ok' => false, 'reason' => 'You are already in the maximum of ' . GROUP_MAX_PER_USER . ' groups.'];
+    if (!canUserOwnAnotherGroup($userId)) {
+        return ['ok' => false, 'reason' => 'You already own the maximum of ' . GROUP_MAX_PER_USER . ' groups.'];
     }
     $db = getDB();
     $stmt = $db->prepare("INSERT INTO group_requests (request_type, requested_by, name, description, banner_url) VALUES ('create', ?, ?, ?, ?)");
@@ -4278,9 +4278,6 @@ function getGroupMemberCount(int $groupId): int {
 function addGroupMember(int $groupId, int $userId, string $role = 'member'): array {
     if (getGroupMemberRole($groupId, $userId) !== null) {
         return ['ok' => false, 'reason' => 'Already a member of this group.'];
-    }
-    if (!canUserJoinAnotherGroup($userId)) {
-        return ['ok' => false, 'reason' => 'You are already in the maximum of ' . GROUP_MAX_PER_USER . ' groups.'];
     }
     $db = getDB();
     $stmt = $db->prepare("INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)");

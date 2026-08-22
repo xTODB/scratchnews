@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main>
     <a class="back-link" href="/groups">&larr; Back to Groups</a>
     <h2>Create a Group</h2>
-    <p>Groups are moderator/dev-reviewed before they go live. You can be in up to <?= GROUP_MAX_PER_USER ?> groups at a time.</p>
+    <p>Groups are moderator/dev-reviewed before they go live. You can own up to <?= GROUP_MAX_PER_USER ?> groups at a time.</p>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
     <form method="post" action="/create-group" enctype="multipart/form-data">
         <?= csrfField() ?>
