@@ -8,8 +8,17 @@ logVisit('/article/' . $id);
 $article = $id > 0 ? getArticleById($id) : null;
 startSession();
 
-if ($article && ($article['status'] ?? 'published') === 'draft' && empty($_SESSION['is_admin'])) {
-    $article = null;
+$isOwner = ($article && !empty($_SESSION['reader_id']))
+    ? (int)$_SESSION['reader_id'] === (int)($article['user_id'] ?? 0)
+    : false;
+
+if ($article) {
+    $articleStatus = $article['status'] ?? 'published';
+    if ($articleStatus === 'draft' && empty($_SESSION['is_admin'])) {
+        $article = null;
+    } elseif ($articleStatus === 'unpublished' && empty($_SESSION['is_admin']) && empty($_SESSION['is_moderator']) && !$isOwner) {
+        $article = null;
+    }
 }
 
 if ($article) {
@@ -55,6 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reade
     if (($_POST['action'] ?? '') === 'report') {
         $commentId = (int)($_POST['comment_id'] ?? 0);
         if ($commentId > 0) reportComment($commentId, $_SESSION['reader_id']);
+        header('Location: /article/' . $article['id']);
+        exit;
+    }
+    if (($_POST['action'] ?? '') === 'unpublish' && $isOwner) {
+        unpublishArticle($article['id'], (int)$_SESSION['reader_id']);
         header('Location: /article/' . $article['id']);
         exit;
     }
@@ -106,6 +120,15 @@ if (!$article) {
 </script>
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/style.css?v=23">
+<style>
+.owner-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0.75rem 0 1rem; }
+.owner-action-btn { font-size: 0.85rem; padding: 0.4rem 0.9rem; }
+.owner-status-badge { font-size: 0.85rem; opacity: 0.75; font-style: italic; }
+.owner-action-form { margin: 0; }
+.owner-unpublish-btn { border-color: #d9392a; color: #d9392a; }
+.alert.info { background: #e8f0ff; color: #1a4d99; }
+body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
+</style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -137,6 +160,24 @@ if (!$article) {
             <?php $articleCats = getArticleCategories($article['id']); if (!empty($articleCats)): ?>
             <div class="article-categories">
                 <?php foreach ($articleCats as $cat): ?><span class="category-badge"><?= e($cat['name']) ?></span><?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            <?php if ($isOwner): ?>
+            <div class="owner-actions">
+                <?php if (($article['status'] ?? 'published') === 'unpublished'): ?>
+                    <span class="owner-status-badge">Unpublished — only visible to you and admins</span>
+                <?php endif; ?>
+                <?php if (!empty($_GET['edit_pending'])): ?>
+                    <div class="alert info">You already have an edit for this article pending review.</div>
+                <?php endif; ?>
+                <a href="/submit?edit_article=<?= (int)$article['id'] ?>" class="btn secondary owner-action-btn">Edit / Resubmit for Review</a>
+                <?php if (($article['status'] ?? 'published') === 'published'): ?>
+                <form method="post" class="owner-action-form">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="unpublish">
+                    <button type="submit" class="btn secondary owner-action-btn owner-unpublish-btn" onclick="return confirm('Unpublish this article? It will be hidden from the public. You can see it here yourself, and an admin can republish it later.');">Unpublish</button>
+                </form>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
             <div class="engage-bar">

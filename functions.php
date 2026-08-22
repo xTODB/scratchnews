@@ -100,6 +100,21 @@ function deleteArticle(int $id): bool {
     return $ok;
 }
 
+// Soft-delete: a reader unpublishing their own article. The row (and its likes/
+// comments/views/share history) is kept, just hidden from every public listing/query
+// that filters on status = 'published'. An admin can restore it via admin/edit.php's
+// Publish button. Requires the caller to own the article - returns false otherwise.
+function unpublishArticle(int $articleId, int $userId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE articles SET status = 'unpublished' WHERE id = ? AND user_id = ? AND status = 'published'");
+    $stmt->bind_param('ii', $articleId, $userId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    if ($affected > 0) syncToGithub();
+    return $affected > 0;
+}
+
 // Small helper to safely print user content
 function e(string $str): string {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
@@ -2062,10 +2077,10 @@ function bulkDeleteAnonymizedUsers(): int {
     return $count;
 }
 
-function createSubmission($userId, $title, $summary, $content, ?string $imageUrl = null, array $categoryIds = [], string $status = 'pending') {
+function createSubmission($userId, $title, $summary, $content, ?string $imageUrl = null, array $categoryIds = [], string $status = 'pending', ?int $articleId = null) {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO submissions (user_id, title, summary, content, image_url, status) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssss", $userId, $title, $summary, $content, $imageUrl, $status);
+    $stmt = $db->prepare("INSERT INTO submissions (user_id, title, summary, content, image_url, status, article_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssssi", $userId, $title, $summary, $content, $imageUrl, $status, $articleId);
     $stmt->execute();
     $id = $db->insert_id;
     $stmt->close();
@@ -2138,6 +2153,19 @@ function getUserSubmissionById(int $id, int $userId): ?array {
     return $row ?: null;
 }
 
+// Finds an in-progress resubmission (draft or already pending review) for a reader
+// editing one of their own published articles, so submit.php can resume it instead
+// of starting a duplicate. Returns the most recent one if somehow more than one exists.
+function getResubmissionForArticle(int $articleId, int $userId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM submissions WHERE article_id = ? AND user_id = ? AND status IN ('draft', 'pending') ORDER BY id DESC LIMIT 1");
+    $stmt->bind_param('ii', $articleId, $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
 function getPendingSubmissions() {
     $db = getDB();
     $result = $db->query("
@@ -2177,11 +2205,26 @@ function approveSubmission($id) {
         return false;
     }
 
-    $articleId = getNextArticleId();
-    $stmt = $db->prepare("INSERT INTO articles (id, title, summary, content, author, image_url, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssssi", $articleId, $submission['title'], $submission['summary'], $submission['content'], $submission['username'], $submission['image_url'], $submission['user_id']);
-    $stmt->execute();
-    $stmt->close();
+    // A resubmission (reader editing one of their own already-published articles) has
+    // article_id set - update that same article row in place (keeping its id, likes,
+    // comments, views, share history) instead of inserting a brand-new article. The
+    // live article stayed untouched and visible the whole time this was pending, per
+    // TODB's call - this is the moment it actually changes.
+    $editingArticleId = !empty($submission['article_id']) ? (int)$submission['article_id'] : null;
+
+    if ($editingArticleId) {
+        $articleId = $editingArticleId;
+        $stmt = $db->prepare("UPDATE articles SET title = ?, summary = ?, content = ?, author = ?, image_url = ?, status = 'published' WHERE id = ?");
+        $stmt->bind_param("sssssi", $submission['title'], $submission['summary'], $submission['content'], $submission['username'], $submission['image_url'], $articleId);
+        $stmt->execute();
+        $stmt->close();
+    } else {
+        $articleId = getNextArticleId();
+        $stmt = $db->prepare("INSERT INTO articles (id, title, summary, content, author, image_url, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssssi", $articleId, $submission['title'], $submission['summary'], $submission['content'], $submission['username'], $submission['image_url'], $submission['user_id']);
+        $stmt->execute();
+        $stmt->close();
+    }
 
     setArticleCategories($articleId, getSubmissionCategoryIds($id));
 

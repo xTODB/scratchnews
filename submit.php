@@ -25,6 +25,30 @@ $isVerified = $user && !$isBanned && !$isPhonePending && (
     (int)$user['email_verified'] === 1
 );
 
+// A reader editing one of their own already-published articles for re-review, rather
+// than starting a brand-new draft - reuses the exact same draft/pending submission
+// flow below, just routed here first to find-or-create the right submission row.
+$editArticleId = (int)($_GET['edit_article'] ?? 0);
+if ($editArticleId > 0 && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $editArticle = getArticleById($editArticleId);
+    if (!$editArticle || (int)($editArticle['user_id'] ?? 0) !== $readerId || ($editArticle['status'] ?? 'published') !== 'published') {
+        header('Location: /article/' . $editArticleId);
+        exit;
+    }
+    $existingResubmission = getResubmissionForArticle($editArticleId, $readerId);
+    if ($existingResubmission && $existingResubmission['status'] === 'pending') {
+        header('Location: /article/' . $editArticleId . '?edit_pending=1');
+        exit;
+    }
+    if ($existingResubmission) {
+        header('Location: /submit?draft_id=' . $existingResubmission['id']);
+        exit;
+    }
+    $newDraftId = createSubmission($readerId, $editArticle['title'], $editArticle['summary'], $editArticle['content'], $editArticle['image_url'], getArticleCategoryIds($editArticleId), 'draft', $editArticleId);
+    header('Location: /submit?draft_id=' . $newDraftId);
+    exit;
+}
+
 // Load an existing draft for editing, if requested.
 $draftId = (int)($_GET['draft_id'] ?? 0);
 $draft = null;
@@ -152,7 +176,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
-    <h2><?= $formDraftId > 0 ? 'Edit Draft' : 'Submit an Article' ?></h2>
+    <h2><?= !empty($draft['article_id']) ? 'Edit Article' : ($formDraftId > 0 ? 'Edit Draft' : 'Submit an Article') ?></h2>
     <p><a href="/submission-guidelines">Read our submission guidelines</a> before submitting: it covers what gets approved and what doesn't.</p>
 
     <?php if (!$isVerified): ?>

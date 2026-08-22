@@ -16,6 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'unsav
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'unpublish') {
+    requireCsrf();
+    $articleId = (int)($_POST['article_id'] ?? 0);
+    if ($articleId > 0) unpublishArticle($articleId, (int)$_SESSION['reader_id']);
+    header('Location: /my-articles?view=mine');
+    exit;
+}
+
 $view = $_GET['view'] ?? 'saved';
 if (!in_array($view, ['saved', 'mine', 'drafts'], true)) $view = 'saved';
 
@@ -124,6 +132,21 @@ if ($view === 'drafts') {
                             <input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
                             <button type="submit" class="unsave-btn">Remove from Saved</button>
                         </form>
+                    <?php elseif ($view === 'mine'): ?>
+                        <div class="unsave-form" style="display:flex; align-items:center; gap:0.6rem;">
+                            <?php if (($a['status'] ?? 'published') === 'unpublished'): ?>
+                                <span style="font-size:0.85rem; opacity:0.75; font-style:italic;">Unpublished — only visible to you</span>
+                            <?php endif; ?>
+                            <a href="/submit?edit_article=<?= (int)$a['id'] ?>" class="unsave-btn" style="text-decoration:none; display:inline-block;">Edit / Resubmit</a>
+                            <?php if (($a['status'] ?? 'published') === 'published'): ?>
+                            <form method="post" style="margin:0;">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="action" value="unpublish">
+                                <input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+                                <button type="submit" class="unsave-btn" style="border-color:#d9392a; color:#d9392a;" onclick="return confirm('Unpublish this article? It will be hidden from the public. You can still see it here, and an admin can republish it later.');">Unpublish</button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>

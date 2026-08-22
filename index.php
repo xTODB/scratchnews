@@ -1,9 +1,6 @@
 <?php
-require_once __DIR__ . '/functions.php';
-startSession();
-logVisit('/');
-$articles = getAllArticles();
-$popular = getPopularArticles(4);
+require_once __DIR__ . '/auth.php';
+$articles = getAllArticles(true);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -11,108 +8,53 @@ $popular = getPopularArticles(4);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<title><?= e(SITE_NAME) ?></title>
-<meta name="description" content="ScratchNews is a community-run news site covering updates, features, and stories from the Scratch programming community.">
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<title>Dashboard - <?= e(SITE_NAME) ?></title>
+<link rel="stylesheet" href="/assets/style.css?v=18">
 </head>
-<body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
-<script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<?php include __DIR__ . '/includes/header.php'; ?>
-<?php if (!empty($_SESSION['impersonator_admin_username'])): ?>
-<div class="impersonation-banner">
-    Viewing as <strong><?= e($_SESSION['reader_username']) ?></strong> (impersonating)
-    <form method="post" action="/stop-impersonating" class="impersonation-form">
-        <?= csrfField() ?>
-        <button type="submit" class="text-action">Return to Admin</button>
-    </form>
-</div>
-<?php endif; ?>
-<?php include __DIR__ . '/includes/banner-poll-slot.php'; ?>
-<main class="home-main">
+<body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
+<?php require_once __DIR__ . '/nav.php'; ?>
+<main>
+    <a href="/admin/create" class="btn">+ New Article</a>
+    <br><br>
     <?php if (empty($articles)): ?>
-        <p>No articles yet. Log in to the <a href="/admin/">login panel</a> to publish the first one.</p>
+        <p>No articles yet.</p>
     <?php else: ?>
-        <?php
-            $featured = $articles[0];
-            $side = array_slice($articles, 1, 2);
-            $latestRow = array_slice($articles, 0, 4);
-        ?>
-        <div class="hero">
-            <a href="/article/<?= (int)$featured['id'] ?>" class="hero-featured">
-                <div class="card-media">
-                    <?php if (!empty($featured['image_url'])): ?>
-                        <img src="<?= e($featured['image_url']) ?>" alt="" class="hero-featured-img">
-                    <?php else: ?>
-                        <div class="hero-featured-img hero-featured-img-placeholder"></div>
-                    <?php endif; ?>
-                    <?= renderCardToolbar($featured, getLikeCount($featured['id']), hasUserLiked($featured['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($featured['id']), hasUserDisliked($featured['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($featured['id'])) ?>
-                </div>
-                <div class="hero-featured-body">
-                    <h2><?= e(translatedTitle($featured)) ?></h2>
-                    <div class="meta">By <?= e($featured['author']) ?> &middot; <?= utcTimeTag($featured['created_at']) ?></div>
-                </div>
-            </a>
-            <?php if (!empty($side)): ?>
-            <div class="hero-side">
-                <?php foreach ($side as $a): ?>
-                    <a href="/article/<?= (int)$a['id'] ?>" class="hero-side-card">
-                        <div class="card-media">
-                            <?php if (!empty($a['image_url'])): ?>
-                                <img src="<?= e($a['image_url']) ?>" alt="" class="hero-side-img">
-                            <?php else: ?>
-                                <div class="hero-side-img hero-side-img-placeholder"></div>
-                            <?php endif; ?>
-                            <?= renderCardToolbar($a, getLikeCount($a['id']), hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($a['id']), hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($a['id'])) ?>
-                        </div>
-                        <div class="hero-side-title"><?= e(translatedTitle($a)) ?></div>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <?php if (!empty($latestRow)): ?>
-        <section class="row-section">
-            <h3 class="row-title">Latest</h3>
-            <div class="row-scroll">
-                <?php foreach ($latestRow as $a): ?>
-                    <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                        <?php else: ?>
-                            <div class="row-card-img row-card-img-placeholder"></div>
+        <table>
+            <tr><th>ID</th><th>Title</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+            <?php foreach ($articles as $a): ?>
+                <tr>
+                    <td>#<?= (int)$a['id'] ?></td>
+                    <td><?= e($a['title']) ?></td>
+                    <td><?= e($a['author']) ?></td>
+                    <td><?= utcTimeTag($a['created_at']) ?></td>
+                    <td><?php
+                        $st = $a['status'] ?? 'published';
+                        if ($st === 'draft') echo '<span style="color:#a67c00;font-weight:600;">Draft</span>';
+                        elseif ($st === 'unpublished') echo '<span style="color:#888;font-weight:600;">Unpublished</span>';
+                        else echo 'Published';
+                    ?></td>
+                    <td class="actions">
+                        <?php if (($a['status'] ?? 'published') === 'published'): ?>
+                        <a href="/article/<?= (int)$a['id'] ?>" target="_blank">View</a>
                         <?php endif; ?>
-                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </section>
-        <?php endif; ?>
-
-        <?php if (!empty($popular)): ?>
-        <section class="row-section">
-            <h3 class="row-title">Popular</h3>
-            <div class="row-scroll">
-                <?php foreach ($popular as $a): ?>
-                    <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                        <?php else: ?>
-                            <div class="row-card-img row-card-img-placeholder"></div>
-                        <?php endif; ?>
-                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </section>
-        <?php endif; ?>
+                        <a href="/admin/edit?id=<?= (int)$a['id'] ?>">Edit</a>
+                        <a href="/admin/delete?id=<?= (int)$a['id'] ?>" style="color:#d9392a;"
+                           onclick="return confirm('Delete this article? This cannot be undone.');">Delete</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
     <?php endif; ?>
 </main>
-<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
-document.addEventListener('click', function(e) {
-    var menu = document.getElementById('userMenu');
-    if (menu && !e.target.closest('.user-nav')) menu.classList.remove('open');
+document.querySelectorAll('time.local-date, time.local-datetime').forEach(function(el) {
+    var d = new Date(el.getAttribute('datetime'));
+    if (isNaN(d.getTime())) return;
+    if (el.classList.contains('local-datetime')) {
+        el.textContent = d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    } else {
+        el.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    }
 });
 </script>
 </body>
