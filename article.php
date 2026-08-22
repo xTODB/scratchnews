@@ -124,7 +124,7 @@ if (!$article) {
 .owner-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0.75rem 0 1rem; }
 .owner-action-btn { font-size: 0.85rem; padding: 0.4rem 0.9rem; }
 .owner-status-badge { font-size: 0.85rem; opacity: 0.75; font-style: italic; }
-.owner-action-form { margin: 0; }
+.owner-action-form { margin: 0; background: none; padding: 0; border-radius: 0; box-shadow: none; max-width: none; }
 .owner-unpublish-btn { border-color: #d9392a; color: #d9392a; }
 .alert.info { background: #e8f0ff; color: #1a4d99; }
 body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
