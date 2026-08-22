@@ -68,9 +68,26 @@ if ($action === 'post_comment') {
 
 } elseif ($action === 'delete_comment') {
     $commentId = (int)($_POST['comment_id'] ?? 0);
-    if ($isSiteMod || $myRole === 'host') {
+    $gc = getGroupCommentById($commentId);
+    if ($gc && ($isSiteMod || $myRole === 'host' || (int)$gc['user_id'] === $myId)) {
         adminDeleteGroupComment($commentId);
     }
+    groupRedirect($slug);
+
+} elseif ($action === 'attach_article') {
+    if (!canAttachArticleToGroup($myRole)) groupRedirect($slug, 'Only members can attach articles to this group.');
+    $raw = trim($_POST['article_ref'] ?? '');
+    $articleId = preg_match('~/article/(\d+)~', $raw, $m) ? (int)$m[1] : (int)$raw;
+    $article = $articleId > 0 ? getArticleById($articleId) : null;
+    if (!$article || $article['status'] !== 'published') groupRedirect($slug, 'Article not found - paste the article link or its ID.');
+    $result = attachArticleToGroup($groupId, $articleId, $myId);
+    groupRedirect($slug, $result['ok'] ? '' : $result['reason'], $result['ok'] ? 'Article attached.' : '');
+
+} elseif ($action === 'detach_article') {
+    $articleId = (int)($_POST['article_id'] ?? 0);
+    $canRemove = $isSiteMod || $myRole === 'host' || $myRole === 'manager' || getGroupArticleAttacherId($groupId, $articleId) === $myId;
+    if (!$canRemove) groupRedirect($slug, 'You can only remove articles you attached yourself.');
+    detachArticleFromGroup($groupId, $articleId);
     groupRedirect($slug);
 
 } elseif ($action === 'invite_user') {

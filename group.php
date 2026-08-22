@@ -27,6 +27,8 @@ $memberCount = count($members);
 $comments = getGroupComments((int)$group['id']);
 $canComment = canCommentOnGroup($group, $myId ?: null);
 $canPostImage = canPostImageInGroup($myRole);
+$groupArticles = getGroupArticles((int)$group['id']);
+$canAttachArticle = canAttachArticleToGroup($myRole);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,14 +47,16 @@ $canPostImage = canPostImageInGroup($myRole);
 .group-tab.active { border-bottom-color: #cc8829; font-weight: 700; }
 .group-tab-panel { display: none; }
 .group-tab-panel.active { display: block; }
-.group-wall-form textarea { width: 100%; margin-bottom: 0.5rem; }
-.group-comment { border: 1px solid rgba(128,128,128,0.25); border-radius: 8px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
-.group-comment-head { display: flex; justify-content: space-between; font-size: 0.85rem; opacity: 0.85; margin-bottom: 0.3rem; }
-.group-comment img.group-comment-image { max-width: 100%; border-radius: 6px; margin-top: 0.4rem; }
+.group-wall-form { max-width: 420px; margin: 0 auto 1.5rem; }
+.group-wall-form textarea { width: 100%; min-height: 44px; margin-bottom: 0.5rem; }
+.group-comment-image { max-width: 100%; border-radius: 6px; margin-top: 0.4rem; }
 .group-member-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(128,128,128,0.15); gap: 0.5rem; flex-wrap: wrap; }
 .group-role-tag { font-size: 0.75rem; opacity: 0.75; text-transform: capitalize; }
 .group-member-actions form { display: inline; }
 .group-invite-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.group-toggle-form { margin: 0; background: none; padding: 0; border-radius: 0; box-shadow: none; max-width: none; }
+.group-article-row { margin-bottom: 1rem; }
+.group-article-remove-form { margin: 0.3rem 0 0; background: none; padding: 0; border-radius: 0; box-shadow: none; max-width: none; }
 </style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
@@ -68,7 +72,7 @@ $canPostImage = canPostImageInGroup($myRole);
             <div class="group-header-meta"><?= (int)$memberCount ?> member<?= $memberCount === 1 ? '' : 's' ?> · hosted by @<?= e($group['host_username']) ?></div>
         </div>
         <?php if ($myRole && ($myRole === 'host' || $isSiteMod)): ?>
-        <form method="post" action="/group-action" onsubmit="return confirm('Toggle the comment policy for this group?');">
+        <form method="post" action="/group-action" class="group-toggle-form" onsubmit="return confirm('Toggle the comment policy for this group?');">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="set_comment_policy">
             <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
@@ -87,6 +91,7 @@ $canPostImage = canPostImageInGroup($myRole);
 
     <div class="group-tabs">
         <span class="group-tab active" onclick="showGroupTab('wall', this)">Wall</span>
+        <span class="group-tab" onclick="showGroupTab('articles', this)">Articles</span>
         <span class="group-tab" onclick="showGroupTab('members', this)">Members</span>
         <?php if ($myRole): ?><span class="group-tab" onclick="showGroupTab('invite', this)">Invite</span><?php endif; ?>
     </div>
@@ -101,7 +106,10 @@ $canPostImage = canPostImageInGroup($myRole);
             <?php if ($canPostImage): ?>
                 <input type="file" name="image" accept="image/*">
             <?php endif; ?>
-            <button class="btn" type="submit">Post</button>
+            <button class="btn btn-comment" type="submit">
+                <img src="/assets/icons/comment.svg" alt="" class="icon-svg-sm btn-icon">
+                Comment
+            </button>
         </form>
         <?php elseif (!$myId): ?>
             <p><a href="/login">Log in</a> to comment.</p>
@@ -110,24 +118,83 @@ $canPostImage = canPostImageInGroup($myRole);
         <?php endif; ?>
 
         <?php foreach ($comments as $c): ?>
-            <div class="group-comment">
-                <div class="group-comment-head">
-                    <span>@<?= e($c['username']) ?></span>
-                    <?php if ($isSiteMod || (int)$c['user_id'] === $myId || $myRole === 'host'): ?>
-                    <form method="post" action="/group-action" onsubmit="return confirm('Delete this comment?');">
+            <div class="comment comment-top">
+                <div class="comment-header">
+                    <?= renderCommentAvatar($c['avatar_url'] ?? null, $c['username']) ?>
+                    <strong><a href="/@<?= e($c['username']) ?>"><?= e($c['username']) ?></a></strong>
+                    <?= renderRankBadges((int)$c['user_id']) ?>
+                    <span class="meta"><?= utcTimeTag($c['created_at'], 'datetime') ?></span>
+                </div>
+                <p><?= nl2br(e($c['content'])) ?></p>
+                <?php if (!empty($c['image_url'])): ?><img src="<?= e($c['image_url']) ?>" alt="" class="group-comment-image"><?php endif; ?>
+                <?php if ($isSiteMod || (int)$c['user_id'] === $myId || $myRole === 'host'): ?>
+                <form method="post" action="/group-action" class="report-form" onsubmit="return confirm('Delete this comment?');">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="delete_comment">
+                    <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+                    <input type="hidden" name="comment_id" value="<?= (int)$c['id'] ?>">
+                    <button type="submit" class="reply-toggle" title="Delete"><img src="/assets/icons/comment_delete.svg" class="icon-svg-sm" alt=""> Delete</button>
+                </form>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+        <?php if (empty($comments)): ?><p>No comments yet.</p><?php endif; ?>
+    </div>
+
+    <div id="group-tab-articles" class="group-tab-panel">
+        <?php if ($canAttachArticle): ?>
+        <form method="post" action="/group-action" class="group-invite-form">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="attach_article">
+            <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+            <input type="text" name="article_ref" placeholder="Article link or ID" required>
+            <button class="btn inline" type="submit">Attach</button>
+        </form>
+        <?php endif; ?>
+        <div class="search-results-list">
+            <?php foreach ($groupArticles as $ga): ?>
+                <?php
+                    $likeCount = getLikeCount($ga['id']);
+                    $dislikeCount = getDislikeCount($ga['id']);
+                    $commentCount = getCommentCount($ga['id']);
+                    $desc = $ga['summary'] ?? '';
+                    if (mb_strlen($desc) > 140) $desc = mb_substr($desc, 0, 140) . '...';
+                    $canRemoveArticle = $isSiteMod || $myRole === 'host' || $myRole === 'manager' || (int)$ga['added_by'] === $myId;
+                ?>
+                <div class="group-article-row">
+                    <a href="/article/<?= (int)$ga['id'] ?>" class="search-result">
+                        <?php if (!empty($ga['image_url'])): ?>
+                            <img src="<?= e($ga['image_url']) ?>" alt="" class="search-result-thumb">
+                        <?php else: ?>
+                            <div class="search-result-thumb search-result-thumb-placeholder"></div>
+                        <?php endif; ?>
+                        <div class="search-result-body">
+                            <div>
+                                <div class="search-result-title"><?= e(translatedTitle($ga)) ?></div>
+                                <div class="meta">By <?= e($ga['author']) ?> &middot; <?= utcTimeTag($ga['created_at']) ?></div>
+                                <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
+                            </div>
+                            <div class="search-result-stats">
+                                <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
+                                <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
+                                <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
+                                <span><img src="/assets/icons/views.svg" class="icon-svg-sm" alt=""><?= formatCount((int)($ga['views'] ?? 0)) ?></span>
+                            </div>
+                        </div>
+                    </a>
+                    <?php if ($canRemoveArticle): ?>
+                    <form method="post" action="/group-action" class="group-article-remove-form" onsubmit="return confirm('Remove this article from the group?');">
                         <?= csrfField() ?>
-                        <input type="hidden" name="action" value="delete_comment">
-                        <input type="hidden" name="comment_id" value="<?= (int)$c['id'] ?>">
-                        <input type="hidden" name="group_slug" value="<?= e($group['slug']) ?>">
-                        <button type="submit" style="background:none;border:none;opacity:0.6;cursor:pointer;">✕</button>
+                        <input type="hidden" name="action" value="detach_article">
+                        <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+                        <input type="hidden" name="article_id" value="<?= (int)$ga['id'] ?>">
+                        <button type="submit" class="btn secondary inline">Remove from group</button>
                     </form>
                     <?php endif; ?>
                 </div>
-                <div><?= nl2br(e($c['content'])) ?></div>
-                <?php if (!empty($c['image_url'])): ?><img src="<?= e($c['image_url']) ?>" alt="" class="group-comment-image"><?php endif; ?>
-            </div>
-        <?php endforeach; ?>
-        <?php if (empty($comments)): ?><p>No posts yet.</p><?php endif; ?>
+            <?php endforeach; ?>
+            <?php if (empty($groupArticles)): ?><p>No articles attached yet.</p><?php endif; ?>
+        </div>
     </div>
 
     <div id="group-tab-members" class="group-tab-panel">

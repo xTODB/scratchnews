@@ -4482,3 +4482,83 @@ function adminDeleteGroupComment(int $commentId): void {
     $stmt->execute();
     $stmt->close();
 }
+
+// Used by group-action.php's delete_comment handler to check comment ownership
+// (site mods and the group host can already delete anyone's; this lets a member
+// delete their own too, matching what group.php's UI already implies).
+function getGroupCommentById(int $commentId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM group_comments WHERE id = ?");
+    $stmt->bind_param('i', $commentId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+// ---- Group Articles (v0.24) ----
+// Lets members/host attach existing published articles to a group's Articles tab.
+// Uses the group_articles join table - see groups-schema.sql addition, run manually
+// via phpMyAdmin like the rest of the Groups schema.
+
+function canAttachArticleToGroup(?string $role): bool {
+    return $role !== null; // any group member, including host/manager
+}
+
+function isArticleAttachedToGroup(int $groupId, int $articleId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM group_articles WHERE group_id = ? AND article_id = ?");
+    $stmt->bind_param('ii', $groupId, $articleId);
+    $stmt->execute();
+    $exists = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $exists;
+}
+
+function attachArticleToGroup(int $groupId, int $articleId, int $userId): array {
+    if (isArticleAttachedToGroup($groupId, $articleId)) {
+        return ['ok' => false, 'reason' => 'That article is already attached to this group.'];
+    }
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO group_articles (group_id, article_id, added_by) VALUES (?, ?, ?)");
+    $stmt->bind_param('iii', $groupId, $articleId, $userId);
+    $stmt->execute();
+    $stmt->close();
+    return ['ok' => true];
+}
+
+// Returns the id of whoever attached $articleId to $groupId, or null if it isn't attached.
+function getGroupArticleAttacherId(int $groupId, int $articleId): ?int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT added_by FROM group_articles WHERE group_id = ? AND article_id = ?");
+    $stmt->bind_param('ii', $groupId, $articleId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ? (int)$row['added_by'] : null;
+}
+
+function detachArticleFromGroup(int $groupId, int $articleId): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM group_articles WHERE group_id = ? AND article_id = ?");
+    $stmt->bind_param('ii', $groupId, $articleId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Published articles attached to a group, newest-attached first, same shape as an
+// articles row plus added_by/attached_at - rendered with the same search-result
+// card markup used on search.php/explore.php/profile.php.
+function getGroupArticles(int $groupId): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT a.*, ga.added_by, ga.created_at AS attached_at FROM group_articles ga
+         JOIN articles a ON a.id = ga.article_id
+         WHERE ga.group_id = ? AND a.status = 'published' ORDER BY ga.created_at DESC"
+    );
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
