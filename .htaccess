@@ -49,6 +49,7 @@ RewriteRule ^moderator/?$ moderator.php [L,QSA]
 
 # v0.24 Groups (beta, IP-restricted via GROUPS_BETA_IPS in config.php)
 RewriteRule ^groups/?$ groups.php [L,QSA]
+RewriteRule ^create-group/?$ create-group.php [L,QSA]
 RewriteRule ^group/([a-z0-9-]+)/?$ group.php?slug=$1 [L,QSA]
 RewriteRule ^group-action/?$ group-action.php [L,QSA]
 RewriteRule ^invite/([A-Za-z0-9]+)/?$ invite.php?code=$1 [L,QSA]

@@ -35,33 +35,6 @@ $myId = $reader['id'] ?? 0;
 $error = $_GET['error'] ?? '';
 $notice = $_GET['notice'] ?? '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'request_create') {
-    requireCsrf();
-    if (!$myId) { header('Location: /login'); exit; }
-    $name = trim($_POST['name'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $bannerUrl = null;
-    if (!empty($_FILES['banner']['tmp_name'])) {
-        try {
-            $bannerUrl = saveUploadedImage($_FILES['banner'], 'group_banners');
-        } catch (RuntimeException $e) {
-            $error = $e->getMessage();
-        }
-    }
-    if ($error === '') {
-        if ($name === '' || mb_strlen($name) > 100) {
-            $error = 'Please enter a group name (up to 100 characters).';
-        } else {
-            $result = createGroupRequest($myId, $name, $description, $bannerUrl);
-            if ($result['ok']) {
-                header('Location: /groups?notice=' . urlencode('Your group request has been submitted for review.'));
-                exit;
-            }
-            $error = $result['reason'];
-        }
-    }
-}
-
 $groups = getActiveGroups();
 $myGroups = $myId ? getUserGroups($myId) : [];
 $myGroupIds = array_column($myGroups, 'id');
@@ -85,15 +58,19 @@ $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
 .group-card-name { font-weight: 700; }
 .group-card-meta { font-size: 0.8rem; opacity: 0.75; }
 .group-invite-row { border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
-.group-create-form { border: 1px dashed rgba(128,128,128,0.4); border-radius: 8px; padding: 1rem; margin-top: 1.5rem; }
-.group-create-form input[type="text"], .group-create-form textarea { width: 100%; margin-bottom: 0.6rem; }
+.groups-header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem; }
 </style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="home-main">
-    <h2>Groups <span class="groups-beta-tag">BETA</span></h2>
+    <div class="groups-header-top">
+        <h2>Groups <span class="groups-beta-tag">BETA</span></h2>
+        <?php if ($myId): ?>
+            <a href="/create-group" class="btn inline">Create Group</a>
+        <?php endif; ?>
+    </div>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
     <?php if ($notice): ?><div class="alert"><?= e($notice) ?></div><?php endif; ?>
 
@@ -123,7 +100,7 @@ $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
     <?php endif; ?>
 
     <?php if (empty($groups)): ?>
-        <p>No groups yet - be the first to request one below.</p>
+        <p>No groups yet - be the first to request one<?= $myId ? '.' : ' (log in first).' ?></p>
     <?php else: ?>
         <div class="groups-grid">
             <?php foreach ($groups as $g): ?>
@@ -142,21 +119,7 @@ $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
         </div>
     <?php endif; ?>
 
-    <?php if ($myId): ?>
-    <h3>Request a New Group</h3>
-    <p>Groups are moderator/dev-reviewed before they go live. You can be in up to <?= GROUP_MAX_PER_USER ?> groups at a time.</p>
-    <form method="post" action="/groups" enctype="multipart/form-data" class="group-create-form">
-        <?= csrfField() ?>
-        <input type="hidden" name="action" value="request_create">
-        <label>Group name</label>
-        <input type="text" name="name" maxlength="100" required>
-        <label>Description</label>
-        <textarea name="description" rows="3" maxlength="2000"></textarea>
-        <label>Banner image (optional)</label>
-        <input type="file" name="banner" accept="image/*">
-        <button class="btn" type="submit">Submit Request</button>
-    </form>
-    <?php else: ?>
+    <?php if (!$myId): ?>
     <p><a href="/login">Log in</a> to request a group.</p>
     <?php endif; ?>
 </main>
