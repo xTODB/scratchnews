@@ -74,6 +74,40 @@ startSession();
     <h3 style="margin-top:2rem;">GET /api/user-articles.php?username=someone</h3>
     <p>Returns a user's published articles, same response shape as <code>/api/articles.php</code>. Accepts <code>username</code> or <code>id</code>, plus <code>page</code>, <code>per_page</code> (max 50).</p>
 
+    <h3 style="margin-top:2rem;">GET /api/user-comments.php?username=someone</h3>
+    <p>Returns comments a user has authored on articles, newest first, paginated. Accepts <code>username</code> or <code>id</code>, plus <code>page</code>, <code>per_page</code> (max 50).</p>
+    <pre class="api-code-block">{
+  "data": [ { "id": 41, "article_id": 15,
+              "user": { "id": 3, "username": "...", "avatar_url": "..." },
+              "content": "...", "created_at": "...", "parent_comment_id": null,
+              "article_title": "..." } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 6
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/user-profile-comments.php?username=someone</h3>
+    <p>Returns comments left on a user's profile, newest first, paginated. Accepts <code>username</code> or <code>id</code>, plus <code>page</code>, <code>per_page</code> (max 50).</p>
+    <pre class="api-code-block">{
+  "data": [ { "id": 12, "profile_user_id": 3,
+              "author": { "id": 8, "username": "...", "avatar_url": "..." },
+              "content": "...", "created_at": "...", "parent_comment_id": null } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 4
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/user-groups.php?username=someone</h3>
+    <p>Returns the groups a user belongs to, paginated. Accepts <code>username</code> or <code>id</code>, plus <code>page</code>, <code>per_page</code> (max 50).</p>
+    <pre class="api-code-block">{
+  "data": [ { "id": 2, "slug": "...", "name": "...", "description": "...",
+              "banner_url": "...", "host": { "id": 3, "username": "..." },
+              "member_count": 14, "role": "member" } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 3
+}</pre>
+
     <h3 style="margin-top:2rem;">Authentication</h3>
     <p>Send <code>Authorization: Bearer &lt;your key&gt;</code> for a higher rate limit. Without a key you get 30 requests/minute by default, bucketed by IP. Want a key with a higher limit? Reach out on <a href="https://discord.gg/Z6GBswx5Q">Discord</a> and tell me why.</p>
 

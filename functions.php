@@ -3323,7 +3323,7 @@ function formatArticleForApi(array $article): array {
 }
 
 function formatCommentForApi(array $comment): array {
-    return [
+    $out = [
         'id' => (int)$comment['id'],
         'article_id' => (int)$comment['article_id'],
         'user' => [
@@ -3334,6 +3334,49 @@ function formatCommentForApi(array $comment): array {
         'content' => $comment['content'],
         'created_at' => $comment['created_at'],
         'parent_comment_id' => $comment['parent_comment_id'] !== null ? (int)$comment['parent_comment_id'] : null,
+    ];
+    // getCommentsByUser() (used by /api/user-comments.php) joins in article_title;
+    // getCommentsForArticle() (used by /api/article-comments.php) doesn't, since the
+    // article is already known from the request. Include it only when present.
+    if (array_key_exists('article_title', $comment)) {
+        $out['article_title'] = $comment['article_title'];
+    }
+    return $out;
+}
+
+// Comments left on a user's profile (profile_comments table) - distinct from comments
+// a user authors on articles (formatCommentForApi()). Used by /api/user-profile-comments.php.
+function formatProfileCommentForApi(array $comment): array {
+    return [
+        'id' => (int)$comment['id'],
+        'profile_user_id' => (int)$comment['profile_user_id'],
+        'author' => [
+            'id' => (int)$comment['author_id'],
+            'username' => $comment['author_username'],
+            'avatar_url' => $comment['author_avatar'] ?? null,
+        ],
+        'content' => $comment['content'],
+        'created_at' => $comment['created_at'],
+        'parent_comment_id' => $comment['parent_comment_id'] !== null ? (int)$comment['parent_comment_id'] : null,
+    ];
+}
+
+// Public-safe group summary for a user's Groups profile tab. $group must come from
+// getUserGroupsForProfile() (carries host_username, member_count, and the viewing-context
+// user's own role) - used by /api/user-groups.php.
+function formatGroupForApi(array $group): array {
+    return [
+        'id' => (int)$group['id'],
+        'slug' => $group['slug'],
+        'name' => $group['name'],
+        'description' => $group['description'] ?? null,
+        'banner_url' => $group['banner_url'] ?? null,
+        'host' => [
+            'id' => (int)$group['host_user_id'],
+            'username' => $group['host_username'],
+        ],
+        'member_count' => (int)$group['member_count'],
+        'role' => $group['role'],
     ];
 }
 
