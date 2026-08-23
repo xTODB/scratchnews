@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 approveSubmission($submissionId);
                 $message = 'Submission approved and published.';
             } else {
-                rejectSubmission($submissionId);
+                rejectSubmission($submissionId, $_POST['rejection_reason'] ?? null);
                 $message = 'Submission rejected.';
             }
         }
@@ -120,6 +120,7 @@ $pendingGroupRequests = getPendingGroupRequests();
                     <?= csrfField() ?>
                     <input type="hidden" name="submission_id" value="<?= (int)$sub['id'] ?>">
                     <input type="hidden" name="action" value="reject">
+                    <input type="text" name="rejection_reason" placeholder="Reason (optional)" style="width:160px;">
                     <button class="btn" type="submit" style="background:#a33;">Reject</button>
                 </form>
             </div>

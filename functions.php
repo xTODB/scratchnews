@@ -2270,25 +2270,28 @@ function approveSubmission($id) {
     return true;
 }
 
-function rejectSubmission($id) {
+function rejectSubmission($id, ?string $reason = null) {
     $db = getDB();
     $submission = getSubmissionById($id);
     if (!$submission || $submission['status'] !== 'pending') {
         return false;
     }
 
-    $stmt = $db->prepare("UPDATE submissions SET status = 'rejected', reviewed_at = NOW() WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $reason = ($reason !== null && trim($reason) !== '') ? trim($reason) : null;
+
+    $stmt = $db->prepare("UPDATE submissions SET status = 'rejected', reviewed_at = NOW(), rejection_reason = ? WHERE id = ?");
+    $stmt->bind_param("si", $reason, $id);
     $stmt->execute();
     $stmt->close();
 
-    createNotification((int)$submission['user_id'], 'article_rejected', null, null, $submission['title']);
+    $notifyMessage = $submission['title'] . ($reason !== null ? ': ' . $reason : '');
+    createNotification((int)$submission['user_id'], 'article_rejected', null, null, $notifyMessage);
 
-    sendSubmissionDecisionEmail($submission['email'], $submission['username'], $submission['title'], false);
+    sendSubmissionDecisionEmail($submission['email'], $submission['username'], $submission['title'], false, $reason);
     return true;
 }
 
-function sendSubmissionDecisionEmail($toEmail, $toUsername, $articleTitle, $approved) {
+function sendSubmissionDecisionEmail($toEmail, $toUsername, $articleTitle, $approved, ?string $rejectionReason = null) {
     if ($approved) {
         $subject = "Your ScratchNews submission was approved!";
         $body = "<p>Hi " . htmlspecialchars($toUsername) . ",</p>"
@@ -2298,6 +2301,7 @@ function sendSubmissionDecisionEmail($toEmail, $toUsername, $articleTitle, $appr
         $subject = "Update on your ScratchNews submission";
         $body = "<p>Hi " . htmlspecialchars($toUsername) . ",</p>"
             . "<p>Thanks for submitting \"" . htmlspecialchars($articleTitle) . "\" to ScratchNews. After review, we've decided not to publish this one.</p>"
+            . ($rejectionReason !== null ? "<p><strong>Reason:</strong> " . htmlspecialchars($rejectionReason) . "</p>" : "")
             . "<p>Feel free to submit again in the future!</p>";
     }
 
