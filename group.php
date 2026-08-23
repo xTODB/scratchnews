@@ -32,6 +32,7 @@ $groupArticles = getGroupArticles((int)$group['id']);
 $canAttachArticle = canAttachArticleToGroup($myRole);
 $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((int)$group['id'], $myId) : null;
 $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupRequestForGroup((int)$group['id']) : null;
+$publicInvite = getPublicGroupInviteLink((int)$group['id']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,7 +90,7 @@ $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupReq
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
     <?php if ($notice): ?><div class="alert"><?= e($notice) ?></div><?php endif; ?>
 
-    <?php if ($myId && !$myRole): ?>
+    <?php if (!$myRole): ?>
         <?php if ($myPendingInvite): ?>
         <div class="group-invite-row">
             <span><strong>@<?= e($myPendingInvite['inviter_username']) ?></strong> invited you to join this group.</span>
@@ -109,6 +110,11 @@ $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupReq
                     <button class="btn secondary inline" type="submit">Decline</button>
                 </form>
             </span>
+        </div>
+        <?php elseif ($publicInvite): ?>
+        <div class="group-invite-row">
+            <span>This group is open to join.</span>
+            <a class="btn inline" href="/invite/<?= e($publicInvite['code']) ?>">Join Group</a>
         </div>
         <?php else: ?>
         <p>You're not a member of this group yet - you'll need an invite from a member, or an invite link, to join.</p>
@@ -277,6 +283,21 @@ $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupReq
         </form>
         <?php if (!empty($_SESSION['group_invite_link_' . $group['id']])): ?>
             <p>Share this link: <code><?= e($_SESSION['group_invite_link_' . $group['id']]) ?></code></p>
+        <?php endif; ?>
+        <?php endif; ?>
+        <?php if ($myRole === 'host' || $isSiteMod): ?>
+        <hr style="margin:1.2rem 0; border:none; border-top:1px solid rgba(128,128,128,0.3);">
+        <h4>Public join link</h4>
+        <p>When on, anyone can join this group directly from its page - no invite needed.</p>
+        <form method="post" action="/group-action" class="group-toggle-form">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="set_public_invite">
+            <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+            <input type="hidden" name="enabled" value="<?= $publicInvite ? '0' : '1' ?>">
+            <button class="btn secondary inline" type="submit"><?= $publicInvite ? 'Turn off public join' : 'Turn on public join' ?></button>
+        </form>
+        <?php if ($publicInvite): ?>
+            <p>Public link: <code><?= e((($_SERVER['HTTPS'] ?? '') === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/invite/' . $publicInvite['code']) ?></code></p>
         <?php endif; ?>
         <?php endif; ?>
     </div>

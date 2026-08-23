@@ -4496,12 +4496,53 @@ function createGroupInviteLink(int $groupId, int $createdBy): string {
         $exists = $stmt->get_result()->fetch_row() !== null;
         $stmt->close();
     } while ($exists);
-
+ 
     $stmt = $db->prepare("INSERT INTO group_invite_links (group_id, code, created_by) VALUES (?, ?, ?)");
     $stmt->bind_param('isi', $groupId, $code, $createdBy);
     $stmt->execute();
     $stmt->close();
     return $code;
+}
+ 
+// The group's standing "public" invite link, if it has one - shown to anyone visiting
+// the group page (members and non-members, logged in or not) as a self-serve Join button,
+// as opposed to the one-off links generated above which are meant to be shared privately.
+function getPublicGroupInviteLink(int $groupId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT * FROM group_invite_links WHERE group_id = ? AND is_public = 1 ORDER BY id DESC LIMIT 1"
+    );
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+ 
+// Only the host (or a site mod/dev) can turn the public join link on or off.
+// Turning it on always mints a fresh code, so a previously-shared public link can't be
+// silently reactivated later. Turning it off clears the flag but leaves the row (the
+// code simply stops resolving to "public" - getGroupByInviteCode() still finds it, but
+// nothing surfaces it to non-members anymore).
+function setGroupPublicInviteLink(int $groupId, bool $enabled, int $actorId, bool $actorIsSiteMod): array {
+    $actorRole = getGroupMemberRole($groupId, $actorId);
+    if (!($actorIsSiteMod || $actorRole === 'host')) {
+        return ['ok' => false, 'reason' => 'Only the host can change this.'];
+    }
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE group_invite_links SET is_public = 0 WHERE group_id = ? AND is_public = 1");
+    $stmt->bind_param('i', $groupId);
+    $stmt->execute();
+    $stmt->close();
+    if (!$enabled) {
+        return ['ok' => true];
+    }
+    $code = createGroupInviteLink($groupId, $actorId);
+    $stmt = $db->prepare("UPDATE group_invite_links SET is_public = 1 WHERE code = ?");
+    $stmt->bind_param('s', $code);
+    $stmt->execute();
+    $stmt->close();
+    return ['ok' => true, 'code' => $code];
 }
 
 function getGroupByInviteCode(string $code): ?array {

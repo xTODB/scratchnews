@@ -114,6 +114,11 @@ if ($action === 'post_comment') {
     $_SESSION['group_invite_link_' . $groupId] = (($_SERVER['HTTPS'] ?? '') === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/invite/' . $code;
     groupRedirect($slug);
 
+} elseif ($action === 'set_public_invite') {
+    $enabled = !empty($_POST['enabled']);
+    $result = setGroupPublicInviteLink($groupId, $enabled, $myId, $isSiteMod);
+    groupRedirect($slug, $result['ok'] ? '' : $result['reason']);
+
 } elseif ($action === 'kick_member') {
     $targetUserId = (int)($_POST['user_id'] ?? 0);
     $result = kickGroupMember($groupId, $targetUserId, $myId, $isSiteMod);
