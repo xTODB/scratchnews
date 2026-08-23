@@ -134,7 +134,10 @@ if ($action === 'post_comment') {
 } elseif ($action === 'set_member_role') {
     $targetUserId = (int)($_POST['user_id'] ?? 0);
     $newRole = ($_POST['role'] ?? '') === 'manager' ? 'manager' : 'member';
-    $result = setGroupMemberRole($groupId, $targetUserId, $newRole, $myId, $isSiteMod);
+    // Dev-only override (is_admin specifically) - NOT $isSiteMod, which also includes
+    // general moderators. See setGroupMemberRole() for why.
+    $isAdminOnly = !empty($_SESSION['is_admin']);
+    $result = setGroupMemberRole($groupId, $targetUserId, $newRole, $myId, $isAdminOnly);
     groupRedirect($slug, $result['ok'] ? '' : $result['reason']);
 
 } elseif ($action === 'set_comment_policy') {

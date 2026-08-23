@@ -19,6 +19,7 @@ logVisit('/group/' . $slug);
 $myId = (int)($_SESSION['reader_id'] ?? 0);
 $myRole = $myId ? getGroupMemberRole((int)$group['id'], $myId) : null;
 $isSiteMod = !empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator']);
+$isAdmin = !empty($_SESSION['is_admin']); // dev-only, stricter than $isSiteMod - see setGroupMemberRole()
 $error = $_GET['error'] ?? '';
 $notice = $_GET['notice'] ?? '';
 
@@ -216,7 +217,7 @@ $publicInvite = getPublicGroupInviteLink((int)$group['id']);
         <?php foreach ($members as $m): ?>
             <div class="group-member-row">
                 <span>@<?= e($m['username']) ?> <span class="group-role-tag">(<?= e($m['role']) ?>)</span><?php if (!empty($m['timeout_until']) && strtotime($m['timeout_until']) > time()): ?> <span class="group-role-tag">timed out</span><?php endif; ?></span>
-                <?php if (($isSiteMod || $myRole === 'host') && $m['role'] !== 'host'): ?>
+                <?php if (($isAdmin || $myRole === 'host') && $m['role'] !== 'host'): ?>
                 <span class="group-member-actions">
                     <form method="post" action="/group-action">
                         <?= csrfField() ?>

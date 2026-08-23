@@ -4415,7 +4415,12 @@ function setGroupMemberTimeout(int $groupId, int $userId, int $actorId, bool $ac
 
 // Only the host (or a site mod/dev) can change a member's rank between 'member' and 'manager'.
 // The host's own rank can never be changed here.
-function setGroupMemberRole(int $groupId, int $userId, string $newRole, int $actorId, bool $actorIsSiteMod): array {
+// Critical fix (Aug 23 2026): rank changes used to accept $actorIsSiteMod, which let
+// ANY site moderator promote/demote in a group they were merely a member of (not host) -
+// the exact "site-mod-bypass artifact" the manager role was supposed to retire. Group
+// rank is a host-ownership decision now; only the host, or a dev in an emergency
+// ($actorIsAdmin - is_admin specifically, not general moderators), can change it.
+function setGroupMemberRole(int $groupId, int $userId, string $newRole, int $actorId, bool $actorIsAdmin): array {
     if (!in_array($newRole, ['member', 'manager'], true)) {
         return ['ok' => false, 'reason' => 'Invalid rank.'];
     }
@@ -4423,7 +4428,7 @@ function setGroupMemberRole(int $groupId, int $userId, string $newRole, int $act
     $actorRole = getGroupMemberRole($groupId, $actorId);
     if ($targetRole === null) return ['ok' => false, 'reason' => 'Not a member.'];
     if ($targetRole === 'host') return ['ok' => false, 'reason' => "The host's rank cannot be changed."];
-    $canAct = $actorIsSiteMod || $actorRole === 'host';
+    $canAct = $actorIsAdmin || $actorRole === 'host';
     if (!$canAct) return ['ok' => false, 'reason' => 'Only the host can change member ranks.'];
     if ($targetRole === $newRole) return ['ok' => true];
     $db = getDB();
