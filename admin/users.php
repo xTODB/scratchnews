@@ -26,6 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($userId > 0 && in_array($action, ['make_moderator', 'unmake_moderator'])) {
         setUserModerator($userId, $action === 'make_moderator');
         $message = $action === 'make_moderator' ? 'Moderator rank granted.' : 'Moderator rank removed.';
+    } elseif ($userId > 0 && $action === 'reset_password') {
+        $newPassword = $_POST['new_password'] ?? '';
+        if (strlen($newPassword) < 6) {
+            $message = 'New password must be at least 6 characters.';
+        } else {
+            changePassword($userId, $newPassword);
+            $message = 'Password reset for that user.';
+        }
     }
 }
 
@@ -87,7 +95,15 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                 <td><?= utcTimeTag($u['created_at']) ?></td>
                 <td><?= $u['is_banned'] ? '<span style="color:#a33; font-weight:600;">Banned</span>' : 'Active' ?></td>
                 <td class="actions" style="white-space:nowrap;">
+                    <a href="#" onclick="var p=prompt('New password for @<?= e($u['username']) ?> (min 6 characters):'); if(p===null) return false; if(p.length<6){alert('Password must be at least 6 characters.');return false;} document.getElementById('resetpw<?= (int)$u['id'] ?>_input').value=p; document.getElementById('resetpw<?= (int)$u['id'] ?>').submit(); return false;">Reset Password</a>
+                    <form id="resetpw<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                        <input type="hidden" name="action" value="reset_password">
+                        <input type="hidden" name="new_password" id="resetpw<?= (int)$u['id'] ?>_input" value="">
+                    </form>
                     <?php if (!$u['is_admin']): ?>
+                        &middot;
                         <a href="#" onclick="if(confirm('Log in as @<?= e($u['username']) ?>?')) document.getElementById('imp<?= (int)$u['id'] ?>').submit(); return false;">Log In As</a>
                         <form id="imp<?= (int)$u['id'] ?>" method="post" action="/admin/impersonate" style="display:none;">
                             <?= csrfField() ?>

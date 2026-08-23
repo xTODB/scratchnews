@@ -15,6 +15,7 @@ if (!$user) {
 }
 
 $message = '';
+$generatedWordList = null;
 
 $scratchTargetUser = getApiSetting('scratch_verify_target_user', '');
 $scratchProjectId = getApiSetting('scratch_verify_project_id', '');
@@ -68,6 +69,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $message = 'Usernames must be 3-20 characters (letters, numbers, underscores only).';
         }
+    } elseif ($action === 'change_password') {
+        $current = $_POST['current_password'] ?? '';
+        $new = $_POST['new_password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
+        $googleOnlyPassword = !empty($user['google_id']);
+        if (strlen($new) < 6) {
+            $message = 'New password must be at least 6 characters.';
+        } elseif ($new !== $confirm) {
+            $message = 'New passwords do not match.';
+        } elseif (!$googleOnlyPassword && !password_verify($current, $user['password_hash'])) {
+            $message = 'Current password is incorrect.';
+        } else {
+            changePassword($user['id'], $new);
+            $message = 'Password updated.';
+        }
+    } elseif ($action === 'generate_word_list') {
+        $generatedWordList = generateWordList($user['id']);
+        $user = getUserById($user['id']);
+        $message = 'New word list generated — save it now, it will not be shown again.';
     }
 }
 
@@ -280,7 +300,49 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                     </div>
                 </div>
                 <?php endif; ?>
-                <p class="settings-sub" style="margin-top:1rem;">More security settings are coming soon.</p>
+                <div style="margin-top:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Change Password</h3>
+                    <?php if (!empty($user['google_id'])): ?>
+                        <p class="settings-sub">Your account uses Google Sign-In. Setting a password here also lets you log in with a username and password.</p>
+                    <?php endif; ?>
+                    <form method="post">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="change_password">
+                        <?php if (empty($user['google_id'])): ?>
+                        <label for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" required>
+                        <?php endif; ?>
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" required minlength="6">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                        <button class="btn" type="submit">Update Password</button>
+                    </form>
+                </div>
+                <div style="margin-top:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Word List Backup Login</h3>
+                    <p class="settings-sub">
+                        A word list is a random set of words you can use to log in instead of your password.
+                        <?php if (!empty($user['word_list_generated_at'])): ?>
+                            You last generated one on <?= utcTimeTag($user['word_list_generated_at']) ?>. Generating a new one replaces it.
+                        <?php else: ?>
+                            You haven't generated one yet.
+                        <?php endif; ?>
+                    </p>
+                    <?php if ($generatedWordList): ?>
+                        <div class="verify-code-row" style="margin:0.75rem 0;">
+                            <span class="verify-code" id="settingsWordList"><?= e($generatedWordList) ?></span>
+                            <button type="button" class="verify-copy-btn" id="settingsWordListCopyBtn">Copy</button>
+                        </div>
+                        <a class="btn secondary" href="data:text/plain;charset=utf-8,<?= rawurlencode("ScratchNews word list for @" . $user['username'] . "\nGenerated " . date('Y-m-d H:i') . " UTC\nKeep this private - anyone with these words can log into your account.\n\n" . $generatedWordList . "\n") ?>" download="scratchnews-wordlist-<?= e($user['username']) ?>.txt">Download as .txt</a>
+                        <p class="settings-sub" style="margin-top:0.5rem;">This is only shown once. Save it somewhere safe now.</p>
+                    <?php endif; ?>
+                    <form method="post" style="margin-top:0.75rem;" id="wordListGenForm">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="generate_word_list">
+                        <button class="btn secondary" type="submit"><?= !empty($user['word_list_hash']) ? 'Generate New Word List' : 'Generate Word List' ?></button>
+                    </form>
+                </div>
             <?php endif; ?>
         </div>
     </div>
@@ -300,6 +362,22 @@ document.addEventListener('click', function(e) {
                 copyBtn.textContent = 'Copied!';
                 setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
             });
+        });
+    }
+    var wlCopyBtn = document.getElementById('settingsWordListCopyBtn');
+    if (wlCopyBtn) {
+        wlCopyBtn.addEventListener('click', function() {
+            var words = document.getElementById('settingsWordList').textContent;
+            navigator.clipboard.writeText(words).then(function() {
+                wlCopyBtn.textContent = 'Copied!';
+                setTimeout(function() { wlCopyBtn.textContent = 'Copy'; }, 1500);
+            });
+        });
+    }
+    var wlGenForm = document.getElementById('wordListGenForm');
+    if (wlGenForm && <?= !empty($user['word_list_hash']) ? 'true' : 'false' ?>) {
+        wlGenForm.addEventListener('submit', function(e) {
+            if (!confirm('This replaces your existing word list. The old one will stop working. Continue?')) e.preventDefault();
         });
     }
     var verifyBtn = document.getElementById('settingsVerifyBtn');

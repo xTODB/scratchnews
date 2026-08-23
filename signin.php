@@ -10,32 +10,42 @@ if (!empty($_SESSION['reader_id'])) {
 }
 
 $error = '';
+$loginMethod = 'password';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $user = getUserByUsername($username);
+    $loginMethod = ($_POST['login_method'] ?? 'password') === 'wordlist' ? 'wordlist' : 'password';
+    $user = null;
 
-    if ($user && password_verify($password, $user['password_hash'])) {
-    updateUserIp($user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
-    $_SESSION['reader_id'] = $user['id'];
-    $_SESSION['reader_username'] = $user['username'];
-    $_SESSION['is_admin'] = !empty($user['is_admin']);
-    $_SESSION['is_moderator'] = !empty($user['is_moderator']);
-    $_SESSION['dark_mode'] = $user['dark_mode'];
-    $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
-    $token = setRememberToken($user['id']);
-    setcookie('remember_me', $user['id'] . ':' . $token, [
-        'expires' => time() + 60 * 60 * 24 * 30,
-        'path' => '/',
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    header('Location: ' . ($_SESSION['is_admin'] ? '/admin/' : $redirect));
-    exit;
-} else {
-    $error = 'Incorrect username or password.';
-}
+    if ($loginMethod === 'wordlist') {
+        $username = trim($_POST['wl_username'] ?? '');
+        $user = verifyWordList($username, $_POST['wl_words'] ?? '');
+    } else {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $candidate = getUserByUsername($username);
+        if ($candidate && password_verify($password, $candidate['password_hash'])) $user = $candidate;
+    }
+
+    if ($user) {
+        updateUserIp($user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
+        $_SESSION['reader_id'] = $user['id'];
+        $_SESSION['reader_username'] = $user['username'];
+        $_SESSION['is_admin'] = !empty($user['is_admin']);
+        $_SESSION['is_moderator'] = !empty($user['is_moderator']);
+        $_SESSION['dark_mode'] = $user['dark_mode'];
+        $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
+        $token = setRememberToken($user['id']);
+        setcookie('remember_me', $user['id'] . ':' . $token, [
+            'expires' => time() + 60 * 60 * 24 * 30,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        header('Location: ' . ($_SESSION['is_admin'] ? '/admin/' : $redirect));
+        exit;
+    } else {
+        $error = $loginMethod === 'wordlist' ? 'Incorrect username or word list.' : 'Incorrect username or password.';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -73,6 +83,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" id="password" name="password" required>
         <button class="btn" type="submit">Log In</button>
     </form>
+    <p style="text-align:center;margin-top:1rem;"><a href="#" id="wordListToggle">Log in with a word list instead</a></p>
+    <form method="post" id="wordListForm" style="<?= $loginMethod === 'wordlist' ? '' : 'display:none;' ?>">
+        <input type="hidden" name="redirect" value="<?= e($redirect) ?>">
+        <input type="hidden" name="login_method" value="wordlist">
+        <label for="wl_username">Username</label>
+        <input type="text" id="wl_username" name="wl_username" required>
+        <label for="wl_words">Word List</label>
+        <textarea id="wl_words" name="wl_words" rows="2" required placeholder="e.g. apple river stone cloud lantern grape summit ember"></textarea>
+        <button class="btn" type="submit">Log In</button>
+    </form>
     <p style="margin-top:1rem;">Don't have an account? <a href="/register">Sign up</a></p>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -91,6 +111,11 @@ function handleGoogleCredential(response) {
     })
     .catch(function() { alert('Google sign-in failed. Please try again.'); });
 }
+document.getElementById('wordListToggle').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('wordListForm').style.display = 'block';
+    this.style.display = 'none';
+});
 </script>
 </body>
 </html>

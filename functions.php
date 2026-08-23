@@ -538,6 +538,68 @@ function getUserByUsername(string $username): ?array {
     return $user ?: null;
 }
 
+function changePassword(int $userId, string $newPassword): void {
+    $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+    $stmt->bind_param('si', $hash, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// ---- Word list (backup login / recovery) ----
+const WORD_LIST_DICTIONARY = [
+    'apple','anchor','arrow','autumn','banjo','basket','beacon','beetle','birch','blanket',
+    'blossom','boulder','bramble','breeze','bridge','bristle','bronze','brook','bucket','cabin',
+    'candle','canyon','cedar','chalk','cherry','chimney','cinder','clover','coast','comet',
+    'compass','copper','coral','cotton','cradle','crater','cricket','crimson','crystal','current',
+    'daisy','delta','desert','dewdrop','dolphin','dragon','driftwood','ember','emerald','falcon',
+    'feather','fern','fjord','forest','fossil','fountain','garnet','ginger','glacier','glimmer',
+    'granite','grove','harbor','hazel','heather','hollow','honey','hornet','hummingbird','ivory',
+    'ivy','jasper','juniper','kestrel','lagoon','lantern','larch','lavender','leaf','lichen',
+    'lighthouse','lilac','linen','lotus','lumber','lynx','magma','mallow','maple','marble',
+    'marigold','marsh','meadow','meridian','mesa','mineral','mint','mirror','moss','mountain',
+    'nectar','nettle','nutmeg','oak','oasis','obsidian','opal','orbit','orchard','osprey',
+    'otter','paddle','palm','pebble','pepper','pigeon','pine','plateau','plum','poppy',
+    'prairie','pumpkin','quail','quartz','quiver','raven','reed','ridge','river','robin',
+    'rocket','rosemary','rust','saffron','sage','sail','sandstone','sapling','sequoia','shadow',
+    'shale','shamrock','shell','shoreline','sierra','silver','sparrow','sprout','spruce','starling',
+    'stone','stream','summit','sunrise','swallow','sycamore','tangerine','thistle','thunder','timber',
+    'tundra','turquoise','umber','valley','velvet','violet','walnut','warbler','waterfall','willow',
+    'wisteria','wren','yarrow','zephyr',
+];
+
+function normalizeWordListInput(string $input): string {
+    $words = preg_split('/[\s,]+/', strtolower(trim($input)), -1, PREG_SPLIT_NO_EMPTY);
+    return implode(' ', $words);
+}
+
+function generateWordList(int $userId, int $wordCount = 8): string {
+    if ($wordCount < 4 || $wordCount > count(WORD_LIST_DICTIONARY)) $wordCount = 8;
+    $keys = array_rand(WORD_LIST_DICTIONARY, $wordCount);
+    if (!is_array($keys)) $keys = [$keys];
+    shuffle($keys);
+    $words = array_map(fn($k) => WORD_LIST_DICTIONARY[$k], $keys);
+    $plain = implode(' ', $words);
+    $hash = password_hash($plain, PASSWORD_DEFAULT);
+
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET word_list_hash = ?, word_list_generated_at = NOW() WHERE id = ?");
+    $stmt->bind_param('si', $hash, $userId);
+    $stmt->execute();
+    $stmt->close();
+
+    return $plain;
+}
+
+function verifyWordList(string $username, string $input): ?array {
+    $user = getUserByUsername($username);
+    if (!$user || empty($user['word_list_hash'])) return null;
+    $normalized = normalizeWordListInput($input);
+    if ($normalized === '' || !password_verify($normalized, $user['word_list_hash'])) return null;
+    return $user;
+}
+
 function updateUserIp(int $userId, string $ip): void {
     $db = getDB();
     $stmt = $db->prepare("UPDATE users SET ip_address = ? WHERE id = ?");
