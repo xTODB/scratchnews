@@ -21,6 +21,10 @@ $myId = $_SESSION['reader_id'] ?? 0;
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="home-main">
+    <div class="section-switch-tabs">
+        <a href="/groups" class="section-switch-tab">Groups</a>
+        <a href="/profiles" class="section-switch-tab active">Profiles</a>
+    </div>
     <h2>Profiles</h2>
     <div class="profiles-sort-tabs">
         <a href="/profiles?sort=recent" class="profiles-sort-tab <?= $sort === 'recent' ? 'active' : '' ?>">Recent</a>

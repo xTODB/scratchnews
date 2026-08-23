@@ -65,8 +65,12 @@ $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="home-main">
+    <div class="section-switch-tabs">
+        <a href="/groups" class="section-switch-tab active">Groups</a>
+        <a href="/profiles" class="section-switch-tab">Profiles</a>
+    </div>
     <div class="groups-header-top">
-        <h2>Groups <span class="groups-beta-tag">BETA</span></h2>
+        <h2>Groups</h2>
         <?php if ($myId): ?>
             <a href="/create-group" class="btn inline">Create Group</a>
         <?php endif; ?>

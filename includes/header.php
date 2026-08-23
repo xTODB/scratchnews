@@ -17,8 +17,8 @@
     <a href="/explore" class="header-icon-link <?= $__navPage === 'explore.php' ? 'active' : '' ?>" title="Explore">
         <img src="/assets/icons/nav-explore.svg" alt="Explore" class="header-icon-svg">
     </a>
-    <a href="/profiles" class="header-icon-link <?= $__navPage === 'profiles.php' ? 'active' : '' ?>" title="Profiles">
-        <img src="/assets/icons/nav-profiles.svg" alt="Profiles" class="header-icon-svg">
+    <a href="/groups" class="header-icon-link <?= in_array($__navPage, ['groups.php', 'group.php', 'create-group.php'], true) ? 'active' : '' ?>" title="Groups">
+        <img src="/assets/icons/nav-groups.svg" alt="Groups" class="header-icon-svg">
     </a>
     <?php if (!empty($_SESSION['reader_username'])): ?>
     <a href="/submit" class="header-icon-link <?= $__navPage === 'submit.php' ? 'active' : '' ?>" title="Submit Article">
