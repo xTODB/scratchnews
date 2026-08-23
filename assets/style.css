@@ -143,6 +143,16 @@ form input[type=text], form input[type=password], form input[type=email], form t
     width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; font-family: inherit;
 }
 form textarea { min-height: 200px; resize: vertical; }
+
+/* Group page inline action forms (member promote/timeout/kick, comment-policy toggle) -
+   these sit next to each other in a row and shouldn't get the card-styled form look. */
+.group-member-actions { display: inline-flex; align-items: center; gap: 0.5rem; }
+.group-toggle-form,
+.group-member-actions form {
+    background: none; padding: 0; margin: 0; border-radius: 0; box-shadow: none; max-width: none;
+    display: inline-block;
+}
+
 .btn {
     display: inline-flex; align-items: center; justify-content: center;
     margin-top: 1.2rem; padding: 0; height: 44px; width: 160px;
