@@ -210,6 +210,24 @@ $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupReq
         <?php foreach ($members as $m): ?>
             <div class="group-member-row">
                 <span>@<?= e($m['username']) ?> <span class="group-role-tag">(<?= e($m['role']) ?>)</span><?php if (!empty($m['timeout_until']) && strtotime($m['timeout_until']) > time()): ?> <span class="group-role-tag">timed out</span><?php endif; ?></span>
+                <?php if (($isSiteMod || $myRole === 'host') && $m['role'] !== 'host'): ?>
+                <span class="group-member-actions">
+                    <form method="post" action="/group-action">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="set_member_role">
+                        <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+                        <input type="hidden" name="user_id" value="<?= (int)$m['user_id'] ?>">
+                        <input type="hidden" name="group_slug" value="<?= e($group['slug']) ?>">
+                        <?php if ($m['role'] === 'manager'): ?>
+                            <input type="hidden" name="role" value="member">
+                            <button class="btn secondary inline" type="submit">Demote to member</button>
+                        <?php else: ?>
+                            <input type="hidden" name="role" value="manager">
+                            <button class="btn secondary inline" type="submit">Promote to manager</button>
+                        <?php endif; ?>
+                    </form>
+                </span>
+                <?php endif; ?>
                 <?php if (($isSiteMod || $myRole === 'host' || ($myRole === 'manager' && $m['role'] === 'member')) && $m['role'] !== 'host'): ?>
                 <span class="group-member-actions">
                     <form method="post" action="/group-action">

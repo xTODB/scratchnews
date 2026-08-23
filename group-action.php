@@ -126,6 +126,12 @@ if ($action === 'post_comment') {
     $result = setGroupMemberTimeout($groupId, $targetUserId, $myId, $isSiteMod, $minutes);
     groupRedirect($slug, $result['ok'] ? '' : $result['reason']);
 
+} elseif ($action === 'set_member_role') {
+    $targetUserId = (int)($_POST['user_id'] ?? 0);
+    $newRole = ($_POST['role'] ?? '') === 'manager' ? 'manager' : 'member';
+    $result = setGroupMemberRole($groupId, $targetUserId, $newRole, $myId, $isSiteMod);
+    groupRedirect($slug, $result['ok'] ? '' : $result['reason']);
+
 } elseif ($action === 'set_comment_policy') {
     if (!($myRole === 'host' || $isSiteMod)) groupRedirect($slug, 'Only the host can change this.');
     $policy = ($_POST['policy'] ?? '') === 'everyone' ? 'everyone' : 'members';

@@ -4344,6 +4344,27 @@ function setGroupMemberTimeout(int $groupId, int $userId, int $actorId, bool $ac
     return ['ok' => true];
 }
 
+// Only the host (or a site mod/dev) can change a member's rank between 'member' and 'manager'.
+// The host's own rank can never be changed here.
+function setGroupMemberRole(int $groupId, int $userId, string $newRole, int $actorId, bool $actorIsSiteMod): array {
+    if (!in_array($newRole, ['member', 'manager'], true)) {
+        return ['ok' => false, 'reason' => 'Invalid rank.'];
+    }
+    $targetRole = getGroupMemberRole($groupId, $userId);
+    $actorRole = getGroupMemberRole($groupId, $actorId);
+    if ($targetRole === null) return ['ok' => false, 'reason' => 'Not a member.'];
+    if ($targetRole === 'host') return ['ok' => false, 'reason' => "The host's rank cannot be changed."];
+    $canAct = $actorIsSiteMod || $actorRole === 'host';
+    if (!$canAct) return ['ok' => false, 'reason' => 'Only the host can change member ranks.'];
+    if ($targetRole === $newRole) return ['ok' => true];
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ?");
+    $stmt->bind_param('sii', $newRole, $groupId, $userId);
+    $stmt->execute();
+    $stmt->close();
+    return ['ok' => true];
+}
+ 
 function isGroupMemberTimedOut(int $groupId, int $userId): bool {
     $db = getDB();
     $stmt = $db->prepare("SELECT timeout_until FROM group_members WHERE group_id = ? AND user_id = ?");
