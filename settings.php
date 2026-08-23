@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'generate_word_list') {
         $generatedWordList = generateWordList($user['id']);
         $user = getUserById($user['id']);
-        $message = 'New word list generated — save it now, it will not be shown again.';
+        $message = 'New word list generated: save it now, it will not be shown again.';
     }
 }
 
