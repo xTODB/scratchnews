@@ -2370,6 +2370,40 @@ function searchArticles(string $query): array {
     return $rows;
 }
 
+function searchProfiles(string $query): array {
+    $db = getDB();
+    $like = '%' . $query . '%';
+    $stmt = $db->prepare(
+        "SELECT u.id, u.username, u.avatar_url, u.bio, u.is_admin, u.is_moderator, u.is_fan,
+                (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id) AS follower_count
+         FROM users u
+         WHERE u.is_banned = 0 AND u.username NOT LIKE 'deleted_user_%' AND (u.username LIKE ? OR u.bio LIKE ?)
+         ORDER BY follower_count DESC"
+    );
+    $stmt->bind_param('ss', $like, $like);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function searchGroups(string $query): array {
+    $db = getDB();
+    $like = '%' . $query . '%';
+    $stmt = $db->prepare(
+        "SELECT g.*, u.username AS host_username,
+                (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count
+         FROM `groups` g JOIN users u ON u.id = g.host_user_id
+         WHERE g.status = 'active' AND (g.name LIKE ? OR g.description LIKE ?)
+         ORDER BY member_count DESC"
+    );
+    $stmt->bind_param('ss', $like, $like);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
 function reportComment($commentId, $reporterId) {
     $db = getDB();
     $stmt = $db->prepare("INSERT INTO comment_reports (comment_id, reporter_id) VALUES (?, ?)");
