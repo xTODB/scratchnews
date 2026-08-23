@@ -4047,11 +4047,10 @@ const GROUP_MAX_PER_USER = 5;
 // gitignored/server-only) or a logged-in admin can access it. Everyone else gets a
 // "Work in progress" notice. Flip GROUPS_BETA_IPS to '' (or remove the check) to launch.
 function isGroupsBetaAllowed(): bool {
-    if (!empty($_SESSION['is_admin'])) return true;
-    $allowed = array_filter(array_map('trim', explode(',', defined('GROUPS_BETA_IPS') ? GROUPS_BETA_IPS : '')));
-    if (empty($allowed)) return false;
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    return in_array($ip, $allowed, true);
+    // Groups exited beta and is public to all users as of this change.
+    // Left in place (rather than removed) so callers don't need touching if it's ever
+    // useful again; GROUPS_BETA_IPS is now unused but harmless.
+    return true;
 }
 
 function slugifyGroupName(string $name): string {

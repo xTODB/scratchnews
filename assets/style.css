@@ -496,6 +496,9 @@ body.dark .share-option:hover { background: #26292e; }
 .profiles-sort-tabs { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
 .profiles-sort-tab { color: var(--ink); text-decoration: none; font-weight: 600; padding-bottom: 0.25rem; border-bottom: 2px solid transparent; }
 .profiles-sort-tab.active { border-bottom-color: var(--brand); color: var(--brand); }
+.section-switch-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.section-switch-tab { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.3rem; opacity: 0.45; padding-bottom: 0.25rem; border-bottom: 2px solid transparent; }
+.section-switch-tab.active { opacity: 1; border-bottom-color: var(--brand); color: var(--brand); }
 .profiles-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
