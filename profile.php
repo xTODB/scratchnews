@@ -25,6 +25,9 @@ $userArticles = ($user && $view === 'articles') ? getArticlesByUser($user['id'])
 $profileComments = ($user && $view === 'profile_comments') ? getProfileComments($user['id']) : [];
 $profileCommentCount = $user ? getProfileCommentCount($user['id']) : 0;
 $followerCount = $user ? getFollowerCount($user['id']) : 0;
+$groupsBetaAllowed = isGroupsBetaAllowed();
+$userGroups = ($user && $groupsBetaAllowed) ? getUserGroupsForProfile($user['id']) : [];
+$userGroupCount = count($userGroups);
 
 $isOwnProfile = $user && !empty($_SESSION['reader_id']) && $_SESSION['reader_id'] == $user['id'];
 $viewerFollowing = ($user && !$isOwnProfile && !empty($_SESSION['reader_id']))
@@ -70,6 +73,12 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 .profile-comment-box { display:flex; gap:0.5rem; margin:0.75rem 0; }
 .profile-comment-box textarea { flex:1; min-height:80px; resize:vertical; }
 .stat-link.active { color: var(--brand-bright); font-weight: 700; }
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.group-card { border: 1px solid rgba(128,128,128,0.3); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.group-card-banner { width: 100%; height: 90px; object-fit: cover; background: rgba(128,128,128,0.15); }
+.group-card-body { padding: 0.8rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.group-card-name { font-weight: 700; }
+.group-card-meta { font-size: 0.8rem; opacity: 0.75; }
 </style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
@@ -170,6 +179,9 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
         <h3><a href="/@<?= urlencode($user['username']) ?>?view=articles" class="stat-link <?= $view === 'articles' ? 'active' : '' ?>"><?= (int)$articleCount ?> Articles</a></h3>
         <h3><a href="/@<?= urlencode($user['username']) ?>" class="stat-link <?= $view === 'comments' ? 'active' : '' ?>">Comments (<?= count($comments) ?>)</a></h3>
         <h3><a href="/@<?= urlencode($user['username']) ?>?view=profile_comments" class="stat-link <?= $view === 'profile_comments' ? 'active' : '' ?>">Profile Comments (<?= formatCount((int)$profileCommentCount) ?>)</a></h3>
+        <?php if ($groupsBetaAllowed): ?>
+        <h3><a href="/@<?= urlencode($user['username']) ?>?view=groups" class="stat-link <?= $view === 'groups' ? 'active' : '' ?>">Groups (<?= (int)$userGroupCount ?>)</a></h3>
+        <?php endif; ?>
     </div>
     <?php if ($view === 'articles'): ?>
         <?php if (empty($userArticles)): ?>
@@ -204,6 +216,26 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
                             </div>
                         </div>
                     </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    <?php elseif ($view === 'groups'): ?>
+        <?php if (empty($userGroups)): ?>
+            <p><?= $isOwnProfile ? "You haven't" : '@' . e($user['username']) . " hasn't" ?> joined any groups yet.</p>
+        <?php else: ?>
+            <div class="groups-grid">
+                <?php foreach ($userGroups as $g): ?>
+                <a href="/group/<?= e($g['slug']) ?>" class="group-card">
+                    <?php if (!empty($g['banner_url'])): ?>
+                        <img src="<?= e($g['banner_url']) ?>" alt="" class="group-card-banner">
+                    <?php else: ?>
+                        <div class="group-card-banner"></div>
+                    <?php endif; ?>
+                    <div class="group-card-body">
+                        <span class="group-card-name"><?= e($g['name']) ?><?= $g['role'] === 'host' ? ' (Host)' : ($g['role'] === 'manager' ? ' (Manager)' : '') ?></span>
+                        <span class="group-card-meta"><?= (int)$g['member_count'] ?> member<?= (int)$g['member_count'] === 1 ? '' : 's' ?> &middot; hosted by @<?= e($g['host_username']) ?></span>
+                    </div>
+                </a>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>

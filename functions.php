@@ -4264,6 +4264,26 @@ function getUserGroups(int $userId): array {
     $stmt->close();
     return $rows;
 }
+ 
+// Same as getUserGroups() but with the extra fields (host username, member count) the
+// group-card display needs - used by the profile page's Groups tab.
+function getUserGroupsForProfile(int $userId): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT g.*, u.username AS host_username, gm.role,
+                (SELECT COUNT(*) FROM group_members gm2 WHERE gm2.group_id = g.id) AS member_count
+         FROM group_members gm
+         JOIN `groups` g ON g.id = gm.group_id
+         JOIN users u ON u.id = g.host_user_id
+         WHERE gm.user_id = ? AND g.status = 'active'
+         ORDER BY g.name ASC"
+    );
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
 
 function getGroupMemberRole(int $groupId, int $userId): ?string {
     $db = getDB();
