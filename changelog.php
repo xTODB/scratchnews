@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Aug23] v0.24 - It. Is. Out.<br><b>Groups.</b> A new way for ScratchNews users to connect (and one of the most worked on features yet) are <em>Groups.</em> Create, edit and delete your own groups, invite people to groups, public group invites and group invite links. Members, managers, host, wall of comments, attach articles to Groups, personalize comment and image permissions. Managers and hosts can comment with images, time out, kick and promote users. There's so much stuff that I can't say it all in a single sentence - view the <a href="https://scratchnews.freedev.app/groups">public group page</a> for yourself.<br></p>
     <p>[Aug22] v0.23.3 - Fixed Comment Thread bug, Edit and Unpublish your Articles once they're Posted, Reply to Feedback, Images on Feedback, Polls (only I can make them right now haha)</p>
     <p>[Aug21] v0.23.2 - Maintenance mode, moved site to IFastNet, Comment Auth, API works normally</p>
     <p>[Aug19] v0.23.1 - Comma formatting on numbers bigger than 999, Related Articles + Extra Articles, hover toolbar on the three big on the homepage and Explore (like/dislike/share/comment/writer's profile), three-dot menu on tiny explore and search articles.</p>
