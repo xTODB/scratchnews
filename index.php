@@ -3,7 +3,7 @@ require_once __DIR__ . '/functions.php';
 startSession();
 logVisit('/');
 $articles = getAllArticles();
-$popular = getPopularArticles(4);
+$popular = getPopularArticles(5);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -35,7 +35,7 @@ $popular = getPopularArticles(4);
         <?php
             $featured = $articles[0];
             $side = array_slice($articles, 1, 2);
-            $latestRow = array_slice($articles, 0, 4);
+            $latestRow = array_slice($articles, 0, 5);
         ?>
         <div class="hero">
             <a href="/article/<?= (int)$featured['id'] ?>" class="hero-featured">

@@ -76,7 +76,7 @@ body.dark .search-type-card.active { background: rgba(255,170,51,0.22); }
 <main class="home-main<?= $query === '' ? ' search-empty' : '' ?>">
     <form method="get" action="/search" class="page-search-form">
         <input type="hidden" name="type" value="<?= e($type) ?>">
-        <input type="text" name="q" value="<?= e($query) ?>" placeholder="Search articles..." autofocus>
+        <input type="text" name="q" value="<?= e($query) ?>" placeholder="<?= e($type === 'profiles' ? 'Search profiles...' : ($type === 'groups' ? 'Search groups...' : 'Search articles...')) ?>" autofocus>
         <button type="submit" aria-label="Search">
             <img src="/assets/icons/nav-search.svg" alt="" class="icon-svg-sm">
         </button>

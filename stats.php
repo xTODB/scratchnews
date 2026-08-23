@@ -14,6 +14,7 @@ $totalUsers = (int)($db->query("SELECT COUNT(*) AS c FROM users WHERE is_banned 
 $totalArticles = (int)($db->query("SELECT COUNT(*) AS c FROM articles WHERE status = 'published'")->fetch_assoc()['c'] ?? 0);
 $totalComments = (int)($db->query("SELECT COUNT(*) AS c FROM comments")->fetch_assoc()['c'] ?? 0);
 $totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()['c'] ?? 0);
+$totalGroups = (int)($db->query("SELECT COUNT(*) AS c FROM `groups` WHERE status = 'active'")->fetch_assoc()['c'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -36,6 +37,7 @@ $totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()
         <div class="stat-card"><p class="stat-card-label">Articles</p><p class="stat-card-value"><?= number_format($totalArticles) ?></p></div>
         <div class="stat-card"><p class="stat-card-label">Comments</p><p class="stat-card-value"><?= number_format($totalComments) ?></p></div>
         <div class="stat-card"><p class="stat-card-label">Likes</p><p class="stat-card-value"><?= number_format($totalLikes) ?></p></div>
+        <div class="stat-card"><p class="stat-card-label">Groups</p><p class="stat-card-value"><?= number_format($totalGroups) ?></p></div>
     </div>
 
     <div class="chart-block">

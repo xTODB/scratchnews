@@ -3556,6 +3556,9 @@ const NOTIFICATION_ICONS = [
     // group_invite.svg (SN_Groups icon) is also slated to replace nav-profiles.svg
     // once Groups fully ships and Profiles folds into it - not done yet, still beta.
     'group_invite'           => '/assets/icons/group_invite.svg',
+    'group_member_joined'    => '/assets/icons/group_activity.svg',
+    'group_member_promoted'  => '/assets/icons/group_activity.svg',
+    'group_new_comment'      => '/assets/icons/group_activity.svg',
 ];
 
 function createNotification(int $userId, string $type, ?int $actorId = null, ?string $link = null, ?string $message = null): void {
@@ -3641,6 +3644,9 @@ function renderNotificationText(array $n): string {
         case 'admin_new_submission': return 'New article submission from ' . $actor;
         case 'admin_new_feedback': return 'New feedback submitted';
         case 'feedback_reply': return 'ScratchNews replied to your feedback';
+        case 'group_member_joined': return $actor . ' joined a group you\'re in';
+        case 'group_member_promoted': return $actor . ' was promoted to manager';
+        case 'group_new_comment': return $actor . ' commented in a group you\'re in';
         default: return 'New notification';
     }
 }
@@ -4370,6 +4376,22 @@ function getGroupMemberCount(int $groupId): int {
     return (int)$count;
 }
 
+// Fans out a 'group_activity' notification (join / promotion / new wall comment) to
+// every current member of the group except $excludeUserId (normally the actor - a
+// member doesn't need to be told they just did the thing themselves). $message is
+// shown as the notification's supporting snippet (e.g. the group name), same pattern
+// as article_comment/feedback_reply using the message field for extra context.
+function notifyGroupMembers(int $groupId, string $type, int $excludeUserId, ?string $message = null, ?string $link = null): void {
+    $group = getGroupById($groupId);
+    if (!$group) return;
+    $link = $link ?? ('/group/' . ($group['slug'] ?? ''));
+    foreach (getGroupMembers($groupId) as $m) {
+        $memberId = (int)$m['user_id'];
+        if ($memberId === $excludeUserId) continue;
+        createNotification($memberId, $type, $excludeUserId, $link, $message);
+    }
+}
+
 function addGroupMember(int $groupId, int $userId, string $role = 'member'): array {
     if (getGroupMemberRole($groupId, $userId) !== null) {
         return ['ok' => false, 'reason' => 'Already a member of this group.'];
@@ -4379,6 +4401,8 @@ function addGroupMember(int $groupId, int $userId, string $role = 'member'): arr
     $stmt->bind_param('iis', $groupId, $userId, $role);
     $stmt->execute();
     $stmt->close();
+    $group = getGroupById($groupId);
+    notifyGroupMembers($groupId, 'group_member_joined', $userId, $group['name'] ?? null);
     return ['ok' => true];
 }
 
@@ -4436,6 +4460,10 @@ function setGroupMemberRole(int $groupId, int $userId, string $newRole, int $act
     $stmt->bind_param('sii', $newRole, $groupId, $userId);
     $stmt->execute();
     $stmt->close();
+    if ($newRole === 'manager') {
+        $group = getGroupById($groupId);
+        notifyGroupMembers($groupId, 'group_member_promoted', $actorId, $group['name'] ?? null);
+    }
     return ['ok' => true];
 }
  
@@ -4658,6 +4686,11 @@ function addGroupComment(int $groupId, int $userId, string $content, ?string $im
             $group = getGroupById($groupId);
             createNotification((int)$parent['user_id'], 'comment_reply', $userId, '/group/' . ($group['slug'] ?? ''), $content);
         }
+    } else {
+        // Top-level wall comments only - replies already notify the parent commenter
+        // above via comment_reply, so fanning those out here too would double-notify them.
+        $group = getGroupById($groupId);
+        notifyGroupMembers($groupId, 'group_new_comment', $userId, $group['name'] ?? null);
     }
 
     return $id;
