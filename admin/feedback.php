@@ -1,9 +1,16 @@
 <?php
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../functions.php';
+startSession();
+
+if (empty($_SESSION['is_admin']) && empty($_SESSION['is_moderator'])) {
+    header('Location: /login');
+    exit;
+}
+$isAdminUser = !empty($_SESSION['is_admin']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
-    if (($_POST['action'] ?? '') === 'delete') {
+    if ($isAdminUser && ($_POST['action'] ?? '') === 'delete') {
         deleteFeedback((int)($_POST['id'] ?? 0));
     }
     if (($_POST['action'] ?? '') === 'reply') {
@@ -36,7 +43,7 @@ markAllFeedbackRead();
 </style>
 </head>
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
-<?php require_once __DIR__ . '/nav.php'; ?>
+<?php if ($isAdminUser) { require_once __DIR__ . '/nav.php'; } else { include __DIR__ . '/../includes/header.php'; } ?>
 <main>
     <h2>Feedback</h2>
     <?php if (empty($feedback)): ?>
@@ -55,12 +62,14 @@ markAllFeedbackRead();
                             <?= e($f['created_at']) ?>
                         </div>
                     </div>
+                    <?php if ($isAdminUser): ?>
                     <form method="post" onsubmit="return confirm('Delete this feedback?');">
                         <?= csrfField() ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
                         <button type="submit" class="feedback-delete">Delete</button>
                     </form>
+                    <?php endif; ?>
                 </div>
                 <?php if (!empty($f['reply_message'])): ?>
                     <p style="opacity:0.8; margin-top:0.5rem;"><strong>Reply<?= $f['replied_by_username'] ? ' by @' . e($f['replied_by_username']) : '' ?>:</strong> <?= nl2br(e($f['reply_message'])) ?></p>

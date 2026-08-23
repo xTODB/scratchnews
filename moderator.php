@@ -49,16 +49,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             replyToFeedback($feedbackId, (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
             $message = 'Reply sent.';
         }
+    } elseif (in_array($action, ['approve_group_request', 'reject_group_request'], true)) {
+        $requestId = (int)($_POST['request_id'] ?? 0);
+        $reviewerId = (int)($_SESSION['reader_id'] ?? 0);
+        if ($requestId > 0) {
+            if ($action === 'approve_group_request') {
+                approveGroupRequest($requestId, $reviewerId);
+                $message = 'Group request approved.';
+            } else {
+                rejectGroupRequest($requestId, $reviewerId);
+                $message = 'Group request rejected.';
+            }
+        }
     }
 
     header('Location: /moderator');
     exit;
 }
 
-$pendingSubmissions = getPendingSubmissions();
+$pendingSubmissionsAll = getPendingSubmissions();
+$pendingSubmissions = array_slice($pendingSubmissionsAll, 0, 5);
 $pendingReports = getPendingReports();
 $allPolls = getAllPolls();
-$allFeedback = getAllFeedback();
+$allFeedbackAll = getAllFeedback();
+$allFeedback = array_slice($allFeedbackAll, 0, 5);
+$pendingGroupRequests = getPendingGroupRequests();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -68,6 +83,11 @@ $allFeedback = getAllFeedback();
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Moderator Panel - <?= e(SITE_NAME) ?></title>
 <link rel="stylesheet" href="/assets/style.css?v=18">
+<style>
+/* Scoped resets so the sitewide `form{padding:1.5rem;background:#fff;box-shadow;max-width:700px}`
+   card-look rule doesn't bleed into these small inline action forms - global rule untouched. */
+.mod-inline-form { display: inline; padding: 0; background: none; box-shadow: none; max-width: none; border-radius: 0; margin: 0; }
+</style>
 </head>
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
 <?php require_once __DIR__ . '/includes/header.php'; ?>
@@ -76,6 +96,10 @@ $allFeedback = getAllFeedback();
     <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
 
     <h3>Pending Submissions</h3>
+    <?php if (!empty($pendingSubmissionsAll)): ?>
+        <a href="/admin/submissions" class="btn secondary">View All Submissions (<?= count($pendingSubmissionsAll) ?>)</a>
+        <br><br>
+    <?php endif; ?>
     <?php if (empty($pendingSubmissions)): ?>
         <p>No pending submissions right now.</p>
     <?php else: ?>
@@ -84,19 +108,45 @@ $allFeedback = getAllFeedback();
                 <h3><?= e($sub['title']) ?></h3>
                 <p><strong>By:</strong> <a href="/@<?= e($sub['username']) ?>"><?= e($sub['username']) ?></a> &middot; <?= e($sub['created_at']) ?></p>
                 <p><em><?= e($sub['summary']) ?></em></p>
-                <div class="submission-content"><?= $sub['content'] /* already sanitized on submit */ ?></div>
 
-                <form method="post" style="display:inline;">
+                <a href="/admin/submissions#sub-<?= (int)$sub['id'] ?>" class="btn secondary">View Full Article</a>
+                <form method="post" class="mod-inline-form">
                     <?= csrfField() ?>
                     <input type="hidden" name="submission_id" value="<?= (int)$sub['id'] ?>">
                     <input type="hidden" name="action" value="approve">
                     <button class="btn" type="submit">Approve</button>
                 </form>
-                <form method="post" style="display:inline;">
+                <form method="post" class="mod-inline-form">
                     <?= csrfField() ?>
                     <input type="hidden" name="submission_id" value="<?= (int)$sub['id'] ?>">
                     <input type="hidden" name="action" value="reject">
                     <button class="btn" type="submit" style="background:#a33;">Reject</button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+
+    <h3>Group Requests</h3>
+    <?php if (empty($pendingGroupRequests)): ?>
+        <p>No pending group requests.</p>
+    <?php else: ?>
+        <?php foreach ($pendingGroupRequests as $r): ?>
+            <div class="submission-card" style="border:1px solid #ccc; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+                <p><strong><?= e(ucfirst($r['request_type'])) ?></strong> request from @<?= e($r['requester_username']) ?></p>
+                <?php if (!empty($r['name'])): ?><p><strong>Name:</strong> <?= e($r['name']) ?></p><?php endif; ?>
+                <?php if (!empty($r['description'])): ?><p><?= nl2br(e($r['description'])) ?></p><?php endif; ?>
+                <?php if (!empty($r['banner_url'])): ?><img src="<?= e($r['banner_url']) ?>" alt="" style="max-width:240px;max-height:100px;display:block;border-radius:6px;margin:0.5rem 0;"><?php endif; ?>
+                <form method="post" class="mod-inline-form">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
+                    <input type="hidden" name="action" value="approve_group_request">
+                    <button class="btn" type="submit">Approve</button>
+                </form>
+                <form method="post" class="mod-inline-form">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
+                    <input type="hidden" name="action" value="reject_group_request">
+                    <button class="btn secondary" type="submit">Reject</button>
                 </form>
             </div>
         <?php endforeach; ?>
@@ -147,6 +197,10 @@ $allFeedback = getAllFeedback();
     <?php endif; ?>
 
     <h3>Feedback</h3>
+    <?php if (!empty($allFeedbackAll)): ?>
+        <a href="/admin/feedback" class="btn secondary">View All Feedback (<?= count($allFeedbackAll) ?>)</a>
+        <br><br>
+    <?php endif; ?>
     <?php if (empty($allFeedback)): ?>
         <p>No feedback yet.</p>
     <?php else: ?>

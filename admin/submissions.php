@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../functions.php';
-require_once __DIR__ . '/auth.php';
+startSession();
+
+if (empty($_SESSION['is_admin']) && empty($_SESSION['is_moderator'])) {
+    header('Location: /login');
+    exit;
+}
+$isAdminUser = !empty($_SESSION['is_admin']);
 
 $message = '';
 
@@ -32,7 +38,7 @@ $pending = getPendingSubmissions();
 <link rel="stylesheet" href="/assets/style.css?v=18">
 </head>
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
-<?php require_once __DIR__ . '/nav.php'; ?>
+<?php if ($isAdminUser) { require_once __DIR__ . '/nav.php'; } else { include __DIR__ . '/../includes/header.php'; } ?>
 <main>
     <h2>Pending Submissions</h2>
 
@@ -42,7 +48,7 @@ $pending = getPendingSubmissions();
         <p>No pending submissions right now.</p>
     <?php else: ?>
         <?php foreach ($pending as $sub): ?>
-            <div class="submission-card" style="border:1px solid #ccc; border-radius:8px; padding:1rem; margin-bottom:1.5rem;">
+            <div class="submission-card" id="sub-<?= (int)$sub['id'] ?>" style="border:1px solid #ccc; border-radius:8px; padding:1rem; margin-bottom:1.5rem;">
                 <h3><?= e($sub['title']) ?></h3>
                 <p><strong>By:</strong> <a href="/@<?= e($sub['username']) ?>"><?= e($sub['username']) ?></a> &middot; <?= e($sub['created_at']) ?></p>
                 <p><em><?= e($sub['summary']) ?></em></p>
