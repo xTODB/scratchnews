@@ -3322,6 +3322,43 @@ function formatArticleForApi(array $article): array {
     ];
 }
 
+function formatCommentForApi(array $comment): array {
+    return [
+        'id' => (int)$comment['id'],
+        'article_id' => (int)$comment['article_id'],
+        'user' => [
+            'id' => (int)$comment['user_id'],
+            'username' => $comment['username'],
+            'avatar_url' => $comment['avatar_url'] ?? null,
+        ],
+        'content' => $comment['content'],
+        'created_at' => $comment['created_at'],
+        'parent_comment_id' => $comment['parent_comment_id'] !== null ? (int)$comment['parent_comment_id'] : null,
+    ];
+}
+
+function formatUserForApi(array $user): array {
+    $publishedArticles = array_values(array_filter(
+        getArticlesByUser((int)$user['id']),
+        fn($a) => ($a['status'] ?? 'published') === 'published'
+    ));
+    return [
+        'id' => (int)$user['id'],
+        'username' => $user['username'],
+        'avatar_url' => $user['avatar_url'] ?? null,
+        'banner_url' => $user['banner_url'] ?? null,
+        'bio' => $user['bio'] ?? null,
+        'created_at' => $user['created_at'],
+        'verified' => isUserVerified($user),
+        'is_moderator' => (bool)($user['is_moderator'] ?? 0),
+        'is_fan' => (bool)($user['is_fan'] ?? 0),
+        'follower_count' => getFollowerCount((int)$user['id']),
+        'following_count' => getFollowingCount((int)$user['id']),
+        'article_count' => count($publishedArticles),
+        'comment_count' => count(getCommentsByUser((int)$user['id'])),
+    ];
+}
+
 function isFollowing(int $followerId, int $followedId): bool {
     $db = getDB();
     $stmt = $db->prepare("SELECT 1 FROM follows WHERE follower_id = ? AND followed_id = ?");
@@ -3384,6 +3421,17 @@ function unfollowUser(int $followerId, int $followedId): void {
 function getFollowerCount(int $userId): int {
     $db = getDB();
     $stmt = $db->prepare("SELECT COUNT(*) FROM follows WHERE followed_id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+    return (int)$count;
+}
+
+function getFollowingCount(int $userId): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) FROM follows WHERE follower_id = ?");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $stmt->bind_result($count);

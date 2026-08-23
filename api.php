@@ -51,6 +51,29 @@ startSession();
         <li><code>page</code>, <code>per_page</code> (max 50)</li>
     </ul>
 
+    <h3 style="margin-top:2rem;">GET /api/article-comments.php?article_id=15</h3>
+    <p>Returns comments on a published article, oldest first, paginated. Optional query params: <code>page</code>, <code>per_page</code> (max 50).</p>
+    <pre class="api-code-block">{
+  "data": [ { "id": 41, "article_id": 15,
+              "user": { "id": 3, "username": "...", "avatar_url": "..." },
+              "content": "...", "created_at": "...", "parent_comment_id": null } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 6
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/users.php?username=someone</h3>
+    <p>Returns a public user profile. Accepts <code>username</code> or <code>id</code>.</p>
+    <pre class="api-code-block">{
+  "id": 3, "username": "someone", "avatar_url": "...", "banner_url": "...",
+  "bio": "...", "created_at": "...", "verified": true, "is_moderator": false,
+  "is_fan": true, "follower_count": 12, "following_count": 8,
+  "article_count": 4, "comment_count": 19
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/user-articles.php?username=someone</h3>
+    <p>Returns a user's published articles, same response shape as <code>/api/articles.php</code>. Accepts <code>username</code> or <code>id</code>, plus <code>page</code>, <code>per_page</code> (max 50).</p>
+
     <h3 style="margin-top:2rem;">Authentication</h3>
     <p>Send <code>Authorization: Bearer &lt;your key&gt;</code> for a higher rate limit. Without a key you get 30 requests/minute by default, bucketed by IP. Want a key with a higher limit? Reach out on <a href="https://discord.gg/Z6GBswx5Q">Discord</a> and tell me why.</p>
 
