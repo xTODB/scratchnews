@@ -115,6 +115,21 @@ function unpublishArticle(int $articleId, int $userId): bool {
     return $affected > 0;
 }
 
+// Dev-only: toggle the "featured" tag exposed via api/articles.php (v0.24.1,
+// built for the MaterArc/ScratchStats partnership). Purely an API-facing flag -
+// doesn't change how the article looks/behaves anywhere on-site.
+function setArticleFeatured(int $articleId, bool $featured): bool {
+    $db = getDB();
+    $val = $featured ? 1 : 0;
+    $stmt = $db->prepare("UPDATE articles SET is_featured = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $articleId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    if ($affected > 0) syncToGithub();
+    return $affected > 0;
+}
+
 // Small helper to safely print user content
 function e(string $str): string {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
@@ -3230,6 +3245,7 @@ function formatArticleForApi(array $article): array {
         'author' => $article['author'],
         'created_at' => $article['created_at'],
         'updated_at' => $article['updated_at'],
+        'featured' => (bool)($article['is_featured'] ?? 0),
         'views' => (int)$article['views'],
         'likes' => getLikeCount((int)$article['id']),
         'dislikes' => getDislikeCount((int)$article['id']),

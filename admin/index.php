@@ -1,5 +1,15 @@
 <?php
 require_once __DIR__ . '/auth.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['type'] ?? '') === 'toggle_featured') {
+    requireCsrf();
+    $toggleId = (int)($_POST['article_id'] ?? 0);
+    $makeFeatured = ($_POST['featured'] ?? '') === '1';
+    if ($toggleId > 0) setArticleFeatured($toggleId, $makeFeatured);
+    header('Location: /admin');
+    exit;
+}
+
 $articles = getAllArticles(true);
 ?>
 <!DOCTYPE html>
@@ -20,7 +30,7 @@ $articles = getAllArticles(true);
         <p>No articles yet.</p>
     <?php else: ?>
         <table>
-            <tr><th>ID</th><th>Title</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+            <tr><th>ID</th><th>Title</th><th>Author</th><th>Date</th><th>Status</th><th>Featured</th><th>Actions</th></tr>
             <?php foreach ($articles as $a): ?>
                 <tr>
                     <td>#<?= (int)$a['id'] ?></td>
@@ -33,6 +43,16 @@ $articles = getAllArticles(true);
                         elseif ($st === 'unpublished') echo '<span style="color:#888;font-weight:600;">Unpublished</span>';
                         else echo 'Published';
                     ?></td>
+                    <td>
+                        <?php $isFeatured = (bool)($a['is_featured'] ?? 0); ?>
+                        <form method="POST" style="display:inline;padding:0;background:none;box-shadow:none;max-width:none;margin:0;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="type" value="toggle_featured">
+                            <input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+                            <input type="hidden" name="featured" value="<?= $isFeatured ? '0' : '1' ?>">
+                            <button type="submit" style="background:none;border:none;cursor:pointer;font-size:1.1em;padding:0;color:<?= $isFeatured ? '#f7931e' : '#ccc' ?>;" title="<?= $isFeatured ? 'Remove from Featured (API)' : 'Mark Featured (API)' ?>">&#9733;</button>
+                        </form>
+                    </td>
                     <td class="actions">
                         <?php if (($a['status'] ?? 'published') === 'published'): ?>
                         <a href="/article/<?= (int)$a['id'] ?>" target="_blank">View</a>
