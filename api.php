@@ -159,14 +159,6 @@ startSession();
 
     <h3 style="margin-top:2rem;">Errors</h3>
     <p>An invalid API key returns <code>401</code> with <code>{"error": "Invalid API key"}</code>. Exceeding your rate limit returns <code>429</code> with <code>{"error": "Rate limit exceeded, slow down"}</code>.</p>
-
-    <h3 style="margin-top:2rem;">Static mirror (for high-volume or blocked consumers)</h3>
-    <p>InfinityFree's free-tier hosting blocks automated/bot traffic at the network level, which breaks server-to-server API access for some consumers regardless of a valid key. For that case, a periodically-updated static snapshot is available with no auth and no rate limit:</p>
-    <ul>
-        <li><a href="https://raw.githubusercontent.com/xTODB/scratchnews-data/main/data/articles.json">articles.json</a> : all published articles, including <code>views</code>, <code>likes</code>, <code>dislikes</code>, <code>comments</code> per article, so you can replicate any Explore sort yourself</li>
-        <li><a href="https://raw.githubusercontent.com/xTODB/scratchnews-data/main/data/categories.json">categories.json</a></li>
-    </ul>
-    <p>This fallback API updates automatically whenever an article is published, edited, or removed.</p>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 </body>

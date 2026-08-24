@@ -69,7 +69,6 @@ function createArticle(string $title, string $summary, string $content, string $
             createNotification($followerId, 'followed_user_article', $userId, '/article/' . $id, $title);
         }
     }
-    syncToGithub();
     return $id;
 }
 
@@ -81,7 +80,6 @@ function updateArticle(int $id, string $title, string $summary, string $content,
     $stmt->bind_param('ssssssii', $title, $summary, $content, $author, $imageUrl, $status, $userId, $id);
     $ok = $stmt->execute();
     $stmt->close();
-    syncToGithub();
     return $ok;
 }
 
@@ -96,7 +94,6 @@ function deleteArticle(int $id): bool {
     $stmt->bind_param('i', $id);
     $ok = $stmt->execute();
     $stmt->close();
-    syncToGithub();
     return $ok;
 }
 
@@ -111,7 +108,6 @@ function unpublishArticle(int $articleId, int $userId): bool {
     $stmt->execute();
     $affected = $stmt->affected_rows;
     $stmt->close();
-    if ($affected > 0) syncToGithub();
     return $affected > 0;
 }
 
@@ -126,7 +122,6 @@ function setArticleFeatured(int $articleId, bool $featured): bool {
     $stmt->execute();
     $affected = $stmt->affected_rows;
     $stmt->close();
-    if ($affected > 0) syncToGithub();
     return $affected > 0;
 }
 
@@ -1718,9 +1713,9 @@ function translatedArticleFields(array $article): array {
 }
 
 // Lightweight draft-only autosave for admin-authored articles (admin/create.php and
-// admin/edit.php). Deliberately NOT createArticle()/updateArticle(): those call
-// syncToGithub() on every save, which pushes a GitHub commit - fine for a deliberate
-// Publish/Save click, not something to fire every few seconds. This also refuses to
+// admin/edit.php). Deliberately NOT createArticle()/updateArticle(): those fire
+// follower notifications and other publish-time side effects, fine for a deliberate
+// Publish/Save click, not something to trigger every few seconds. This also refuses to
 // touch a row that isn't currently status='draft', so it can never silently overwrite
 // or partially-publish a live article mid-edit. Returns the article id (existing or
 // newly created) on success, or null if there was nothing eligible to save to.
@@ -2328,7 +2323,6 @@ function approveSubmission($id) {
     }
 
     sendSubmissionDecisionEmail($submission['email'], $submission['username'], $submission['title'], true);
-    syncToGithub();
     return true;
 }
 
@@ -3273,31 +3267,6 @@ function getEngagementCounts(): array {
         }
     }
     return $counts;
-}
-
-// Best-effort: never throws, so a GitHub/network hiccup can't break article save/approve/delete.
-function syncToGithub(): array {
-    try {
-        $engagement = getEngagementCounts();
-        $articles = array_map(function ($a) use ($engagement) {
-            $formatted = formatArticleForApi($a);
-            $id = $formatted['id'];
-            $formatted['likes'] = $engagement[$id]['like_count'] ?? 0;
-            $formatted['dislikes'] = $engagement[$id]['dislike_count'] ?? 0;
-            $formatted['comments'] = $engagement[$id]['comment_count'] ?? 0;
-            return $formatted;
-        }, getAllArticles());
-
-        $articlesPayload = ['data' => $articles, 'total' => count($articles), 'synced_at' => gmdate('c')];
-        $categoriesPayload = ['data' => getAllCategories(), 'synced_at' => gmdate('c')];
-
-        return [
-            'articles.json' => pushJsonToGithub('data/articles.json', $articlesPayload),
-            'categories.json' => pushJsonToGithub('data/categories.json', $categoriesPayload),
-        ];
-    } catch (\Throwable $e) {
-        return ['error' => $e->getMessage()];
-    }
 }
 
 

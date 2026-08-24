@@ -15,9 +15,6 @@ define('SITE_NAME', 'ScratchNews');
 define('BREVO_API_KEY', '');
 define('BREVO_SENDER_EMAIL', 'noreply@example.com');
 
-define('GITHUB_TOKEN', '');
-define('GITHUB_REPO', '');
-define('GITHUB_BRANCH', '');
 define('GOOGLE_CLIENT_ID', '');
 
 // v0.24 Groups beta: comma-separated IP(s) allowed to access /groups while it's
