@@ -170,6 +170,27 @@ CREATE TABLE `feedback` (
 -- --------------------------------------------------------
 
 --
+-- Structură tabel pentru tabel `feedback_replies`
+-- v0.24.1 Back-and-Forth: threaded replies for feedback with a logged-in
+-- submitter. Anonymous feedback (feedback.user_id IS NULL) never gets rows
+-- here - it stays one-shot via feedback.reply_message/replied_at/replied_by.
+--
+
+CREATE TABLE `feedback_replies` (
+  `id` int(11) NOT NULL,
+  `feedback_id` int(11) NOT NULL,
+  `sender_type` enum('reader','admin') NOT NULL,
+  `sender_user_id` int(11) DEFAULT NULL,
+  `message` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+--
+
+-- --------------------------------------------------------
+
+--
 -- Structură tabel pentru tabel `impersonation_log`
 --
 
@@ -371,6 +392,14 @@ ALTER TABLE `feedback`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexuri pentru tabele `feedback_replies`
+--
+ALTER TABLE `feedback_replies`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `feedback_id` (`feedback_id`),
+  ADD KEY `sender_user_id` (`sender_user_id`);
+
+--
 -- Indexuri pentru tabele `impersonation_log`
 --
 ALTER TABLE `impersonation_log`
@@ -471,6 +500,12 @@ ALTER TABLE `dislikes`
 --
 ALTER TABLE `feedback`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT pentru tabele `feedback_replies`
+--
+ALTER TABLE `feedback_replies`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT pentru tabele `impersonation_log`

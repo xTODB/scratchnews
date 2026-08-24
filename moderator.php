@@ -46,7 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $replyMessage = trim($_POST['reply_message'] ?? '');
         $feedbackId = (int)($_POST['id'] ?? 0);
         if ($feedbackId > 0 && $replyMessage !== '') {
-            replyToFeedback($feedbackId, (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            // Logged-in submitters get a real thread; anon feedback keeps the
+            // original one-shot reply_message behavior. See admin/feedback.php.
+            $targetFeedback = getFeedbackById($feedbackId);
+            if (!empty($targetFeedback['user_id'])) {
+                addFeedbackReply($feedbackId, 'admin', (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            } else {
+                replyToFeedback($feedbackId, (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            }
             $message = 'Reply sent.';
         }
     } elseif (in_array($action, ['approve_group_request', 'reject_group_request'], true)) {
@@ -212,7 +219,21 @@ $pendingGroupRequests = getPendingGroupRequests();
                 <?php if (!empty($f['image_url'])): ?>
                     <img src="<?= e($f['image_url']) ?>" alt="" style="max-width:280px;display:block;border-radius:6px;margin-bottom:0.5rem;">
                 <?php endif; ?>
-                <?php if (!empty($f['reply_message'])): ?>
+                <?php if (!empty($f['user_id'])): ?>
+                    <?php foreach (getFeedbackThread((int)$f['id']) as $msg): ?>
+                        <p style="opacity:0.85; margin:0.4rem 0; padding:0.5rem 0.7rem; border-radius:6px; background:<?= $msg['sender_type'] === 'admin' ? 'rgba(232,163,61,0.12)' : 'rgba(128,128,128,0.08)' ?>;">
+                            <strong><?= $msg['sender_type'] === 'admin' ? 'Reply' . ($msg['sender_username'] ? ' by @' . e($msg['sender_username']) : '') : '@' . e($f['username']) . ' replied' ?>:</strong>
+                            <?= nl2br(e($msg['message'])) ?>
+                        </p>
+                    <?php endforeach; ?>
+                    <form method="post">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="reply_feedback">
+                        <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+                        <textarea name="reply_message" placeholder="Reply..." required style="width:100%;min-height:60px;"></textarea>
+                        <button class="btn" type="submit">Send Reply</button>
+                    </form>
+                <?php elseif (!empty($f['reply_message'])): ?>
                     <p style="opacity:0.8;"><strong>Reply<?= $f['replied_by_username'] ? ' by @' . e($f['replied_by_username']) : '' ?>:</strong> <?= nl2br(e($f['reply_message'])) ?></p>
                 <?php else: ?>
                     <form method="post">

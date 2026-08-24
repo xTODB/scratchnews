@@ -17,7 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $replyMessage = trim($_POST['reply_message'] ?? '');
         $feedbackId = (int)($_POST['id'] ?? 0);
         if ($feedbackId > 0 && $replyMessage !== '') {
-            replyToFeedback($feedbackId, (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            // Logged-in submitters get a real thread (unlimited back-and-forth);
+            // anonymous feedback has no account to thread with, so it keeps the
+            // original one-shot reply_message behavior.
+            $targetFeedback = getFeedbackById($feedbackId);
+            if (!empty($targetFeedback['user_id'])) {
+                addFeedbackReply($feedbackId, 'admin', (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            } else {
+                replyToFeedback($feedbackId, (int)($_SESSION['reader_id'] ?? 0), $replyMessage);
+            }
         }
     }
     header('Location: /admin/feedback.php');
@@ -40,6 +48,8 @@ markAllFeedbackRead();
 .feedback-row.unread { border-color: #e8a33d; }
 .feedback-meta { opacity: 0.65; font-size: 0.8rem; margin-top: 0.3rem; }
 .feedback-delete { background: none; border: none; color: #c33; cursor: pointer; font-size: 0.85rem; }
+.feedback-thread-msg { opacity: 0.85; margin: 0.4rem 0; padding: 0.5rem 0.7rem; border-radius: 6px; background: rgba(128,128,128,0.08); }
+.feedback-thread-msg.from-admin { background: rgba(232,163,61,0.12); }
 </style>
 </head>
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
@@ -71,7 +81,21 @@ markAllFeedbackRead();
                     </form>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($f['reply_message'])): ?>
+                <?php if (!empty($f['user_id'])): ?>
+                    <?php foreach (getFeedbackThread((int)$f['id']) as $msg): ?>
+                        <p class="feedback-thread-msg <?= $msg['sender_type'] === 'admin' ? 'from-admin' : '' ?>">
+                            <strong><?= $msg['sender_type'] === 'admin' ? 'Reply' . ($msg['sender_username'] ? ' by @' . e($msg['sender_username']) : '') : '@' . e($f['username']) . ' replied' ?>:</strong>
+                            <?= nl2br(e($msg['message'])) ?>
+                        </p>
+                    <?php endforeach; ?>
+                    <form method="post" style="margin-top:0.5rem;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="reply">
+                        <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
+                        <textarea name="reply_message" placeholder="Reply..." required style="width:100%;min-height:50px;"></textarea>
+                        <button class="btn" type="submit">Send Reply</button>
+                    </form>
+                <?php elseif (!empty($f['reply_message'])): ?>
                     <p style="opacity:0.8; margin-top:0.5rem;"><strong>Reply<?= $f['replied_by_username'] ? ' by @' . e($f['replied_by_username']) : '' ?>:</strong> <?= nl2br(e($f['reply_message'])) ?></p>
                 <?php else: ?>
                     <form method="post" style="margin-top:0.5rem;">

@@ -2418,6 +2418,63 @@ function replyToFeedback(int $id, int $adminUserId, string $replyMessage): bool 
     return $ok;
 }
 
+// Feedback thread system (v0.24.1 Back-and-Forth). Anonymous feedback (no
+// user_id) stays one-shot via replyToFeedback()/reply_message above - there's
+// no account to notify or thread view to show them. Logged-in submitters get
+// a real back-and-forth thread in feedback_replies instead, unlimited length
+// in both directions.
+function getFeedbackById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT feedback.*, users.username
+        FROM feedback
+        LEFT JOIN users ON feedback.user_id = users.id
+        WHERE feedback.id = ?
+    ");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function getFeedbackThread(int $feedbackId): array {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT feedback_replies.*, users.username AS sender_username
+        FROM feedback_replies
+        LEFT JOIN users ON feedback_replies.sender_user_id = users.id
+        WHERE feedback_id = ?
+        ORDER BY created_at ASC
+    ");
+    $stmt->bind_param('i', $feedbackId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+// $senderType is 'reader' or 'admin'. Only call this for feedback with a
+// logged-in submitter (feedback.user_id is set) - check before calling.
+function addFeedbackReply(int $feedbackId, string $senderType, ?int $senderUserId, string $message): bool {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO feedback_replies (feedback_id, sender_type, sender_user_id, message) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param('isis', $feedbackId, $senderType, $senderUserId, $message);
+    $ok = $stmt->execute();
+    $stmt->close();
+    if (!$ok) return false;
+
+    if ($senderType === 'admin') {
+        $feedback = getFeedbackById($feedbackId);
+        if (!empty($feedback['user_id'])) {
+            createNotification((int)$feedback['user_id'], 'feedback_reply', $senderUserId, '/feedback-thread.php?id=' . $feedbackId, $message);
+        }
+    } else {
+        notifyAdmins('admin_feedback_reply', $senderUserId, '/admin/feedback', $message);
+    }
+    return true;
+}
+
 function getAllFeedback() {
     $db = getDB();
     $result = $db->query("
@@ -3715,6 +3772,7 @@ const NOTIFICATION_ICONS = [
     'admin_new_report'       => '/assets/icons/report.svg',
     'admin_new_submission'   => '/assets/icons/message.svg',
     'admin_new_feedback'     => '/assets/icons/message.svg',
+    'admin_feedback_reply'   => '/assets/icons/reply.svg',
     'feedback_reply'         => '/assets/icons/reply.svg',
     // group_invite.svg (SN_Groups icon) is also slated to replace nav-profiles.svg
     // once Groups fully ships and Profiles folds into it - not done yet, still beta.
@@ -3806,6 +3864,7 @@ function renderNotificationText(array $n): string {
         case 'admin_new_report': return 'New comment report submitted';
         case 'admin_new_submission': return 'New article submission from ' . $actor;
         case 'admin_new_feedback': return 'New feedback submitted';
+        case 'admin_feedback_reply': return $actor . ' replied on their feedback thread';
         case 'feedback_reply': return 'ScratchNews replied to your feedback';
         case 'group_member_joined': return $actor . ' joined a group you\'re in';
         case 'group_member_promoted': return $actor . ' was promoted to manager';
