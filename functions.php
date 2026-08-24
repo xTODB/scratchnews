@@ -3361,9 +3361,12 @@ function formatProfileCommentForApi(array $comment): array {
     ];
 }
 
-// Public-safe group summary for a user's Groups profile tab. $group must come from
-// getUserGroupsForProfile() (carries host_username, member_count, and the viewing-context
-// user's own role) - used by /api/user-groups.php.
+// Public-safe group summary. $group needs host_username and member_count joined in
+// (getUserGroupsForProfile(), getActiveGroups(), searchGroups() all do; a single group
+// looked up via getGroupById()/getGroupBySlug() needs them filled in by the caller).
+// 'role' is the viewing-context user's own role and is only present on
+// getUserGroupsForProfile() rows - used by /api/user-groups.php, /api/groups.php,
+// /api/search-groups.php.
 function formatGroupForApi(array $group): array {
     return [
         'id' => (int)$group['id'],
@@ -3376,7 +3379,41 @@ function formatGroupForApi(array $group): array {
             'username' => $group['host_username'],
         ],
         'member_count' => (int)$group['member_count'],
-        'role' => $group['role'],
+        'role' => $group['role'] ?? null,
+    ];
+}
+
+// A group wall comment (top-level or reply). $comment must come from getGroupComments()
+// (joins in username/avatar_url) - used by /api/group-comments.php.
+function formatGroupCommentForApi(array $comment): array {
+    return [
+        'id' => (int)$comment['id'],
+        'group_id' => (int)$comment['group_id'],
+        'user' => [
+            'id' => (int)$comment['user_id'],
+            'username' => $comment['username'],
+            'avatar_url' => $comment['avatar_url'] ?? null,
+        ],
+        'content' => $comment['content'],
+        'image_url' => $comment['image_url'] ?? null,
+        'created_at' => $comment['created_at'],
+        'parent_comment_id' => $comment['parent_comment_id'] !== null ? (int)$comment['parent_comment_id'] : null,
+    ];
+}
+
+// A group member row. $member must come from getGroupMembers() (joins in
+// username/avatar_url) - used by /api/group-members.php. Leaves out timeout_until
+// (moderation-internal) to keep this public-safe.
+function formatGroupMemberForApi(array $member): array {
+    return [
+        'group_id' => (int)$member['group_id'],
+        'user' => [
+            'id' => (int)$member['user_id'],
+            'username' => $member['username'],
+            'avatar_url' => $member['avatar_url'] ?? null,
+        ],
+        'role' => $member['role'],
+        'joined_at' => $member['joined_at'],
     ];
 }
 

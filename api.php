@@ -16,8 +16,8 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Welcome to the ScratchNews API!</h2>
-    <p>A small, read-only API for building things on top of ScratchNews: Scripts, dashboards, whatever you want.
-        Access is API-key based and allows 30 requests a minute by default. If you want more, reach out on <a href="https://scratchnews.freedev.app/group/scratchnews-ers">the ScratchNews-ers group</a> and tell me why do you want an API key.</p>
+    <p>A small, read-only API for building things on top of ScratchNews: Discord bots, dashboards, whatever you want.
+        Access is API-key based and allows 30 requests a minute by default. If you want more, reach out on <a href="https://discord.gg/Z6GBswx5Q">Discord</a> and tell me why do you want an API key.</p>
 
     <h3 style="margin-top:2rem;">GET /api/articles.php</h3>
     <p>Returns published articles, paginated. Optional query params: <code>page</code>, <code>per_page</code> (max 50), <code>category</code> (a category slug).</p>
@@ -107,6 +107,52 @@ startSession();
   "per_page": 20,
   "total": 3
 }</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/groups.php</h3>
+    <p>Returns active groups, paginated.</p>
+    <pre class="api-code-block">{
+  "data": [ { "id": 2, "slug": "...", "name": "...", "description": "...",
+              "banner_url": "...", "host": { "id": 3, "username": "..." },
+              "member_count": 14, "role": null } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 3
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/groups.php?id=2</h3>
+    <p>Returns a single active group by ID, same shape as above. Accepts <code>id</code> or <code>slug</code>, or a 404 if it doesn't exist or isn't active.</p>
+
+    <h3 style="margin-top:2rem;">GET /api/group-comments.php?group_id=2</h3>
+    <p>Returns a group's wall comments, newest first, paginated. Optional query params: <code>page</code>, <code>per_page</code> (max 50).</p>
+    <pre class="api-code-block">{
+  "data": [ { "id": 9, "group_id": 2,
+              "user": { "id": 3, "username": "...", "avatar_url": "..." },
+              "content": "...", "image_url": null, "created_at": "...",
+              "parent_comment_id": null } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 6
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/group-members.php?group_id=2</h3>
+    <p>Returns a group's members (host first, then managers, then members). Optional query params: <code>page</code>, <code>per_page</code> (max 50).</p>
+    <pre class="api-code-block">{
+  "data": [ { "group_id": 2,
+              "user": { "id": 3, "username": "...", "avatar_url": "..." },
+              "role": "host", "joined_at": "..." } ],
+  "page": 1,
+  "per_page": 20,
+  "total": 5
+}</pre>
+
+    <h3 style="margin-top:2rem;">GET /api/search-articles.php?q=scratch</h3>
+    <p>Returns published articles matching <code>q</code> against title/summary/content, same response shape as <code>/api/articles.php</code>. Optional query params: <code>page</code>, <code>per_page</code> (max 50).</p>
+
+    <h3 style="margin-top:2rem;">GET /api/search-profiles.php?q=scratch</h3>
+    <p>Returns user profiles matching <code>q</code> against username/bio, same response shape as <code>/api/users.php</code>. Optional query params: <code>page</code>, <code>per_page</code> (max 50).</p>
+
+    <h3 style="margin-top:2rem;">GET /api/search-groups.php?q=scratch</h3>
+    <p>Returns active groups matching <code>q</code> against name/description, same response shape as <code>/api/groups.php</code>. Optional query params: <code>page</code>, <code>per_page</code> (max 50).</p>
 
     <h3 style="margin-top:2rem;">Authentication</h3>
     <p>Send <code>Authorization: Bearer &lt;your key&gt;</code> for a higher rate limit. Without a key you get 30 requests/minute by default, bucketed by IP. Want a key with a higher limit? Reach out on <a href="https://discord.gg/Z6GBswx5Q">Discord</a> and tell me why.</p>
