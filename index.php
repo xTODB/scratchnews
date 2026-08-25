@@ -3,8 +3,41 @@ require_once __DIR__ . '/functions.php';
 startSession();
 logVisit('/');
 $articles = getAllArticles();
-$popular = getPopularArticles(5);
-$featuredList = getFeaturedArticles(5);
+$popular = getPopularArticles(20);
+$featuredList = getFeaturedArticles(20);
+
+// v0.25: row arrows page through additional articles pulled from SQL above
+// (5 per page) instead of horizontally scrolling the same 5.
+function renderNewsRow(string $title, array $items): void {
+    if (empty($items)) return;
+    $pages = array_chunk($items, 5);
+    $pageCount = count($pages);
+    ?>
+    <section class="row-section">
+        <h3 class="row-title"><?= e($title) ?></h3>
+        <div class="row-scroll-wrap">
+            <button type="button" class="row-scroll-arrow prev" aria-label="Previous <?= e($title) ?>" onclick="scrollRow(this,-1)" disabled>&#8249;</button>
+            <div class="row-scroll">
+                <?php foreach ($pages as $i => $page): ?>
+                <div class="row-page<?= $i === 0 ? ' active' : '' ?>">
+                    <?php foreach ($page as $a): ?>
+                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
+                            <?php if (!empty($a['image_url'])): ?>
+                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
+                            <?php else: ?>
+                                <div class="row-card-img row-card-img-placeholder"></div>
+                            <?php endif; ?>
+                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="row-scroll-arrow next" aria-label="Next <?= e($title) ?>" onclick="scrollRow(this,1)" <?= $pageCount <= 1 ? 'disabled' : '' ?>>&#8250;</button>
+        </div>
+    </section>
+    <?php
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,28 +70,19 @@ $featuredList = getFeaturedArticles(5);
         <p>No articles yet. Log in to the <a href="/admin/">login panel</a> to publish the first one.</p>
     <?php else: ?>
         <?php
-            $featured = $articles[0];
-            $side = array_slice($articles, 1, 2);
-            $latestRow = array_slice($articles, 0, 5);
+            $heroBig = $articles[0];
+            $heroSmall = array_slice($articles, 1, 2);
+            $heroList = array_slice($articles, 3, 2);
+            $latestRow = array_slice($articles, 0, 20);
+            $heroTag = function (array $a): ?string {
+                $cats = getArticleCategories((int)$a['id']);
+                return $cats[0]['name'] ?? null;
+            };
         ?>
         <div class="hero">
-            <a href="/article/<?= (int)$featured['id'] ?>" class="hero-featured">
-                <div class="card-media">
-                    <?php if (!empty($featured['image_url'])): ?>
-                        <img src="<?= e($featured['image_url']) ?>" alt="" class="hero-featured-img">
-                    <?php else: ?>
-                        <div class="hero-featured-img hero-featured-img-placeholder"></div>
-                    <?php endif; ?>
-                    <?= renderCardToolbar($featured, getLikeCount($featured['id']), hasUserLiked($featured['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($featured['id']), hasUserDisliked($featured['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($featured['id'])) ?>
-                </div>
-                <div class="hero-featured-body">
-                    <h2><?= e(translatedTitle($featured)) ?></h2>
-                    <div class="meta">By <?= e($featured['author']) ?> &middot; <?= utcTimeTag($featured['created_at']) ?></div>
-                </div>
-            </a>
-            <?php if (!empty($side)): ?>
-            <div class="hero-side">
-                <?php foreach ($side as $a): ?>
+            <?php if (!empty($heroSmall)): ?>
+            <div class="hero-stack">
+                <?php foreach ($heroSmall as $a): ?>
                     <a href="/article/<?= (int)$a['id'] ?>" class="hero-side-card">
                         <div class="card-media">
                             <?php if (!empty($a['image_url'])): ?>
@@ -68,78 +92,39 @@ $featuredList = getFeaturedArticles(5);
                             <?php endif; ?>
                             <?= renderCardToolbar($a, getLikeCount($a['id']), hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($a['id']), hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($a['id'])) ?>
                         </div>
-                        <div class="hero-side-title"><?= e(translatedTitle($a)) ?></div>
+                        <div class="hero-side-title"><?= e(translatedTitle($a)) ?><?php $t = $heroTag($a); if ($t): ?> <span class="hero-caption-tag">| <?= e($t) ?></span><?php endif; ?></div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            <a href="/article/<?= (int)$heroBig['id'] ?>" class="hero-featured">
+                <div class="card-media">
+                    <?php if (!empty($heroBig['image_url'])): ?>
+                        <img src="<?= e($heroBig['image_url']) ?>" alt="" class="hero-featured-img">
+                    <?php else: ?>
+                        <div class="hero-featured-img hero-featured-img-placeholder"></div>
+                    <?php endif; ?>
+                    <?= renderCardToolbar($heroBig, getLikeCount($heroBig['id']), hasUserLiked($heroBig['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($heroBig['id']), hasUserDisliked($heroBig['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($heroBig['id'])) ?>
+                </div>
+                <div class="hero-featured-title"><?= e(translatedTitle($heroBig)) ?><?php $t = $heroTag($heroBig); if ($t): ?> <span class="hero-caption-tag">| <?= e($t) ?></span><?php endif; ?></div>
+            </a>
+            <?php if (!empty($heroList)): ?>
+            <div class="hero-list">
+                <?php foreach ($heroList as $a): ?>
+                    <a href="/article/<?= (int)$a['id'] ?>" class="hero-list-item">
+                        <div class="hero-list-title"><?= e(translatedTitle($a)) ?></div>
+                        <?php if (!empty($a['summary'])): ?><div class="hero-list-summary"><?= e($a['summary']) ?></div><?php endif; ?>
+                        <div class="hero-list-meta"><?php $t = $heroTag($a); if ($t): ?><?= e($t) ?> &middot; <?php endif; ?>by <?= e($a['author']) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
                     </a>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
         </div>
+        <hr class="hero-divider">
 
-        <?php if (!empty($featuredList)): ?>
-        <section class="row-section">
-            <h3 class="row-title">Featured</h3>
-            <div class="row-scroll-wrap">
-                <button type="button" class="row-scroll-arrow prev" aria-label="Scroll left" onclick="scrollRow(this,-1)">&#8249;</button>
-                <div class="row-scroll">
-                    <?php foreach ($featuredList as $a): ?>
-                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                            <?php if (!empty($a['image_url'])): ?>
-                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                            <?php else: ?>
-                                <div class="row-card-img row-card-img-placeholder"></div>
-                            <?php endif; ?>
-                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-                <button type="button" class="row-scroll-arrow next" aria-label="Scroll right" onclick="scrollRow(this,1)">&#8250;</button>
-            </div>
-        </section>
-        <?php endif; ?>
-
-        <?php if (!empty($latestRow)): ?>
-        <section class="row-section">
-            <h3 class="row-title">Latest</h3>
-            <div class="row-scroll-wrap">
-                <button type="button" class="row-scroll-arrow prev" aria-label="Scroll left" onclick="scrollRow(this,-1)">&#8249;</button>
-                <div class="row-scroll">
-                    <?php foreach ($latestRow as $a): ?>
-                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                            <?php if (!empty($a['image_url'])): ?>
-                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                            <?php else: ?>
-                                <div class="row-card-img row-card-img-placeholder"></div>
-                            <?php endif; ?>
-                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-                <button type="button" class="row-scroll-arrow next" aria-label="Scroll right" onclick="scrollRow(this,1)">&#8250;</button>
-            </div>
-        </section>
-        <?php endif; ?>
-
-        <?php if (!empty($popular)): ?>
-        <section class="row-section">
-            <h3 class="row-title">Popular</h3>
-            <div class="row-scroll-wrap">
-                <button type="button" class="row-scroll-arrow prev" aria-label="Scroll left" onclick="scrollRow(this,-1)">&#8249;</button>
-                <div class="row-scroll">
-                    <?php foreach ($popular as $a): ?>
-                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                            <?php if (!empty($a['image_url'])): ?>
-                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                            <?php else: ?>
-                                <div class="row-card-img row-card-img-placeholder"></div>
-                            <?php endif; ?>
-                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-                <button type="button" class="row-scroll-arrow next" aria-label="Scroll right" onclick="scrollRow(this,1)">&#8250;</button>
-            </div>
-        </section>
-        <?php endif; ?>
+        <?php renderNewsRow('Featured', $featuredList); ?>
+        <?php renderNewsRow('Latest', $latestRow); ?>
+        <?php renderNewsRow('Popular', $popular); ?>
     <?php endif; ?>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
@@ -150,8 +135,18 @@ document.addEventListener('click', function(e) {
 });
 function scrollRow(btn, dir) {
     var wrap = btn.closest('.row-scroll-wrap');
-    var track = wrap.querySelector('.row-scroll');
-    track.scrollBy({ left: dir * 320, behavior: 'smooth' });
+    var pages = wrap.querySelectorAll('.row-page');
+    if (!pages.length) return;
+    var idx = 0;
+    pages.forEach(function (p, i) { if (p.classList.contains('active')) idx = i; });
+    var next = idx + dir;
+    if (next < 0 || next >= pages.length) return;
+    pages[idx].classList.remove('active');
+    pages[next].classList.add('active');
+    var prevBtn = wrap.querySelector('.row-scroll-arrow.prev');
+    var nextBtn = wrap.querySelector('.row-scroll-arrow.next');
+    if (prevBtn) prevBtn.disabled = (next === 0);
+    if (nextBtn) nextBtn.disabled = (next === pages.length - 1);
 }
 </script>
 </body>
