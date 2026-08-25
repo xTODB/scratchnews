@@ -79,10 +79,12 @@ if ($isVerified && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $existingDraft = $postedDraftId > 0 ? getUserSubmissionById($postedDraftId, $readerId) : null;
 
-    if ($title === '') {
+        if ($title === '') {
         $error = 'A title is required.';
     } elseif (!$saveAsDraft && ($summary === '' || $content === '')) {
         $error = 'All fields are required to submit for review. Save as a draft if not ready.';
+    } elseif (!$saveAsDraft && countContentWords($content) < 250) {
+        $error = 'Articles need at least 250 words to submit for review (currently ' . countContentWords($content) . '). Save as a draft if it\'s not there yet.';
     } else {
         $cleanContent = $content !== '' ? sanitizeArticleHtml($content) : '';
 
@@ -223,7 +225,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
                 <?php endforeach; ?>
             </div>
 
-            <label for="content">Content</label>
+            <label for="content">Content <span id="wordCountLabel" style="font-weight:normal;font-size:0.85em;">0 / 250 words</span></label>
 <div id="editorWrap">
 <div id="toolbar">
     <button class="ql-bold" title="Bold (Ctrl+B)"><b>B</b></button>
@@ -280,6 +282,14 @@ var quill = new Quill('#editor-container', {
     theme: 'snow',
     modules: { toolbar: '#toolbar' }
 });
+function updateWordCount() {
+    var words = quill.getText().trim().split(/\s+/).filter(Boolean).length;
+    var label = document.getElementById('wordCountLabel');
+    label.textContent = words + ' / 250 words';
+    label.style.color = words >= 250 ? '#2e7d32' : '#c0392b';
+}
+quill.on('text-change', updateWordCount);
+updateWordCount();
 quill.getModule('toolbar').addHandler('image', function() {
     var input = document.createElement('input');
     input.type = 'file';

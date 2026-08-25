@@ -56,6 +56,14 @@ function sanitizeArticleHtml(string $html): string {
     return $html;
 }
 
+// Word count used for the v0.25 250-word minimum on reader submissions -
+// counts plain text only, HTML markup stripped first so tags don't inflate it.
+function countContentWords(string $html): int {
+    $text = trim(strip_tags($html));
+    if ($text === '') return 0;
+    return count(preg_split('/\s+/u', $text));
+}
+
 function createArticle(string $title, string $summary, string $content, string $author, ?string $imageUrl = null, string $status = 'published', ?int $userId = null): int {
     $db = getDB();
     $content = sanitizeArticleHtml($content);

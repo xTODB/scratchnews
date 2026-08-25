@@ -111,7 +111,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
         <?php endif; ?>
         <input type="file" id="cover_image" name="cover_image" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml">
 
-        <label for="content">Full Article Content</label>
+        <label for="content">Full Article Content <span id="wordCountLabel" style="font-weight:normal;font-size:0.85em;">0 words</span></label>
 <div id="editorWrap">
 <div id="toolbar">
     <button class="ql-bold" title="Bold (Ctrl+B)"><b>B</b></button>

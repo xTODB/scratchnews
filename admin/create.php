@@ -104,7 +104,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
             <?php endforeach; ?>
         </div>
 
-        <label for="content">Full Article Content</label>
+        <label for="content">Full Article Content <span id="wordCountLabel" style="font-weight:normal;font-size:0.85em;">0 words</span></label>
 <div id="editorWrap">
 <div id="toolbar">
     <button class="ql-bold" title="Bold (Ctrl+B)"><b>B</b></button>
@@ -154,6 +154,12 @@ var quill = new Quill('#editor-container', {
     theme: 'snow',
     modules: { toolbar: '#toolbar' }
 });
+function updateWordCount() {
+    var words = quill.getText().trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('wordCountLabel').textContent = words + ' words' + (words < 250 ? ' (under the 250 reader minimum)' : '');
+}
+quill.on('text-change', updateWordCount);
+updateWordCount();
 quill.getModule('toolbar').addHandler('image', function() {
     var input = document.createElement('input');
     input.type = 'file';
