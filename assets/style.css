@@ -463,13 +463,6 @@ body.dark .share-option:hover { background: #26292e; }
     text-decoration: none;
     color: inherit;
 }
-/* Latest/Popular always render exactly 4 cards - above 700px, stretch them to fill
-   the row so their total width matches the hero row (featured + 2 side cards) above,
-   instead of leaving empty space next to a fixed 200px width. Mobile keeps the fixed
-   width + horizontal scroll from .row-card above. */
-@media (min-width: 701px) {
-    .row-card { flex: 1 1 0; min-width: 0; }
-}
 .row-card-img {
     width: 100%;
     height: 110px;
