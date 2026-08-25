@@ -42,7 +42,7 @@ header nav a { margin-left: 1rem; font-weight: 600; }
        pick; flip --font-headline to var(--font-grotesk) to try the other. */
     --font-serif: 'Merriweather', Georgia, serif;
     --font-grotesk: 'Space Grotesk', -apple-system, sans-serif;
-    --font-headline: var(--font-serif);
+    --font-headline: var(--font-grotesk);
     --accent-blue: #4c97ff;
 }
 main {
