@@ -3965,6 +3965,14 @@ function resetModerationStrikes(int $userId): void {
     $stmt->close();
 }
 
+// URLs are whitelisted from moderation scanning - digits/text inside a link
+// (e.g. a Scratch project ID) were tripping the phone-number pattern, and
+// link text could accidentally match a word-list substring. Mask links out
+// before running either check; the rest of the message is still scanned.
+function stripUrlsForModeration(string $text): string {
+    return preg_replace('/(https?:\/\/[^\s<>"\']+|\bwww\.[^\s<>"\']+)/i', ' [link] ', $text);
+}
+
 function moderateText(string $text): array {
     static $wordsByCategory = null;
     if ($wordsByCategory === null) {
@@ -3974,7 +3982,8 @@ function moderateText(string $text): array {
         }
     }
 
-    $normalized = strtolower($text);
+    $scanText = stripUrlsForModeration($text);
+    $normalized = strtolower($scanText);
     $flaggedCategories = [];
 
     foreach ($wordsByCategory as $category => $words) {
@@ -3987,7 +3996,7 @@ function moderateText(string $text): array {
     }
 
     foreach (MODERATION_PATTERNS as $pattern) {
-        if (preg_match($pattern, $text)) {
+        if (preg_match($pattern, $scanText)) {
             $flaggedCategories[] = 'personal_info_or_spam';
             break;
         }
