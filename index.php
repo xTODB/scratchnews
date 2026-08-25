@@ -14,7 +14,10 @@ $featuredList = getFeaturedArticles(5);
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= e(SITE_NAME) ?></title>
 <meta name="description" content="ScratchNews is a community-run news site covering updates, features, and stories from the Scratch programming community.">
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css?v=25">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -75,35 +78,21 @@ $featuredList = getFeaturedArticles(5);
         <?php if (!empty($featuredList)): ?>
         <section class="row-section">
             <h3 class="row-title">Featured</h3>
-            <div class="row-scroll">
-                <?php foreach ($featuredList as $a): ?>
-                    <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                        <?php else: ?>
-                            <div class="row-card-img row-card-img-placeholder"></div>
-                        <?php endif; ?>
-                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </section>
-        <?php endif; ?>
-
-        <?php if (!empty($popular)): ?>
-        <section class="row-section">
-            <h3 class="row-title">Popular</h3>
-            <div class="row-scroll">
-                <?php foreach ($popular as $a): ?>
-                    <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                        <?php else: ?>
-                            <div class="row-card-img row-card-img-placeholder"></div>
-                        <?php endif; ?>
-                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                    </a>
-                <?php endforeach; ?>
+            <div class="row-scroll-wrap">
+                <button type="button" class="row-scroll-arrow prev" aria-label="Scroll left" onclick="scrollRow(this,-1)">&#8249;</button>
+                <div class="row-scroll">
+                    <?php foreach ($featuredList as $a): ?>
+                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
+                            <?php if (!empty($a['image_url'])): ?>
+                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
+                            <?php else: ?>
+                                <div class="row-card-img row-card-img-placeholder"></div>
+                            <?php endif; ?>
+                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="row-scroll-arrow next" aria-label="Scroll right" onclick="scrollRow(this,1)">&#8250;</button>
             </div>
         </section>
         <?php endif; ?>
@@ -111,17 +100,43 @@ $featuredList = getFeaturedArticles(5);
         <?php if (!empty($latestRow)): ?>
         <section class="row-section">
             <h3 class="row-title">Latest</h3>
-            <div class="row-scroll">
-                <?php foreach ($latestRow as $a): ?>
-                    <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                        <?php else: ?>
-                            <div class="row-card-img row-card-img-placeholder"></div>
-                        <?php endif; ?>
-                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                    </a>
-                <?php endforeach; ?>
+            <div class="row-scroll-wrap">
+                <button type="button" class="row-scroll-arrow prev" aria-label="Scroll left" onclick="scrollRow(this,-1)">&#8249;</button>
+                <div class="row-scroll">
+                    <?php foreach ($latestRow as $a): ?>
+                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
+                            <?php if (!empty($a['image_url'])): ?>
+                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
+                            <?php else: ?>
+                                <div class="row-card-img row-card-img-placeholder"></div>
+                            <?php endif; ?>
+                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="row-scroll-arrow next" aria-label="Scroll right" onclick="scrollRow(this,1)">&#8250;</button>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <?php if (!empty($popular)): ?>
+        <section class="row-section">
+            <h3 class="row-title">Popular</h3>
+            <div class="row-scroll-wrap">
+                <button type="button" class="row-scroll-arrow prev" aria-label="Scroll left" onclick="scrollRow(this,-1)">&#8249;</button>
+                <div class="row-scroll">
+                    <?php foreach ($popular as $a): ?>
+                        <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
+                            <?php if (!empty($a['image_url'])): ?>
+                                <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
+                            <?php else: ?>
+                                <div class="row-card-img row-card-img-placeholder"></div>
+                            <?php endif; ?>
+                            <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="row-scroll-arrow next" aria-label="Scroll right" onclick="scrollRow(this,1)">&#8250;</button>
             </div>
         </section>
         <?php endif; ?>
@@ -133,6 +148,11 @@ document.addEventListener('click', function(e) {
     var menu = document.getElementById('userMenu');
     if (menu && !e.target.closest('.user-nav')) menu.classList.remove('open');
 });
+function scrollRow(btn, dir) {
+    var wrap = btn.closest('.row-scroll-wrap');
+    var track = wrap.querySelector('.row-scroll');
+    track.scrollBy({ left: dir * 320, behavior: 'smooth' });
+}
 </script>
 </body>
 </html>

@@ -38,6 +38,11 @@ header nav a { margin-left: 1rem; font-weight: 600; }
     --ink: #14181c;
     --brand: #cc8829;
     --brand-bright: #ffaa33;
+    /* v0.25 "news-y" font pairing - both loaded so TODB can compare live and
+       pick; flip --font-headline to var(--font-grotesk) to try the other. */
+    --font-serif: 'Merriweather', Georgia, serif;
+    --font-grotesk: 'Space Grotesk', -apple-system, sans-serif;
+    --font-headline: var(--font-serif);
     --accent-blue: #4c97ff;
 }
 main {
@@ -359,7 +364,7 @@ body.dark .share-option:hover { background: #26292e; }
 }
 .hero-featured-body { padding: 1rem 1.4rem; }
 .hero-featured h2 {
-    font-family: 'Scratch', -apple-system, sans-serif;
+    font-family: var(--font-headline);
     font-size: 1.6rem;
     margin: 0 0 0.4rem;
     color: var(--ink);
@@ -390,6 +395,7 @@ body.dark .share-option:hover { background: #26292e; }
     display: block;
 }
 .hero-side-title {
+    font-family: var(--font-headline);
     padding: 0.6rem 0.9rem;
     font-weight: 600;
     font-size: 0.95rem;
@@ -400,10 +406,39 @@ body.dark .share-option:hover { background: #26292e; }
 
 .row-section { margin-bottom: 1.8rem; }
 .row-title {
-    font-family: 'Scratch', -apple-system, sans-serif;
+    font-family: var(--font-headline);
     font-size: 1.1rem;
     margin: 0 0 0.6rem;
     color: var(--ink);
+}
+.row-scroll-wrap { position: relative; }
+.row-scroll-arrow {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(20,16,10,0.85);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+.row-scroll-arrow:hover { background: var(--brand); }
+.row-scroll-arrow.prev { left: -14px; }
+.row-scroll-arrow.next { right: -14px; }
+.row-scroll-arrow[disabled] { opacity: 0.3; cursor: default; pointer-events: none; }
+/* Arrows only above the mobile breakpoint - under 700px cards are already
+   fixed-width + swipeable, matching the existing .row-card behavior split. */
+@media (min-width: 701px) {
+    .row-scroll-arrow { display: flex; }
 }
 .row-scroll {
     display: flex;
@@ -439,6 +474,7 @@ body.dark .share-option:hover { background: #26292e; }
 }
 .row-card-img-placeholder { background: linear-gradient(135deg, var(--brand-bright), var(--brand)); }
 .row-card-title {
+    font-family: var(--font-headline);
     padding: 0.6rem 0.8rem;
     font-weight: 600;
     font-size: 0.9rem;
