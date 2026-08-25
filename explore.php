@@ -11,11 +11,7 @@ $dateFrom = trim($_GET['from'] ?? '');
 $dateTo = trim($_GET['to'] ?? '');
 
 $articles = getExploreArticles($activeSlug, $sort, $authorFilter, $dateFrom, $dateTo);
-
-// Featured row only shows on the default, unfiltered view - once someone's
-// filtering/sorting they're looking for something specific, not browsing.
-$showFeatured = $activeSlug === 'all' && $sort === 'metrics' && $authorFilter === '' && $dateFrom === '' && $dateTo === '';
-$featuredList = $showFeatured ? getFeaturedArticles(5) : [];
+$groups = getActiveGroups();
 
 function exploreTabLink(string $cat, string $sort, string $author, string $from, string $to): string {
     $params = ['category' => $cat];
@@ -25,6 +21,31 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
     if ($to !== '') $params['to'] = $to;
     return '/explore?' . http_build_query($params);
 }
+
+// v0.25: Recent/Groups rows page through pulled items (renderExploreRow's own
+// helper, kept local/distinct from index.php's renderNewsRow to avoid
+// touching that just-confirmed-live file for this page's rework).
+function renderExploreRow(string $title, array $items, int $perPage, callable $renderCard): void {
+    if (empty($items)) return;
+    $pages = array_chunk($items, $perPage);
+    $pageCount = count($pages);
+    ?>
+    <section class="row-section">
+        <h3 class="row-title"><?= e($title) ?></h3>
+        <div class="row-scroll-wrap">
+            <button type="button" class="row-scroll-arrow prev" aria-label="Previous <?= e($title) ?>" onclick="scrollRow(this,-1)" disabled>&#8249;</button>
+            <div class="row-scroll">
+                <?php foreach ($pages as $i => $page): ?>
+                <div class="row-page<?= $i === 0 ? ' active' : '' ?>">
+                    <?php foreach ($page as $item) $renderCard($item); ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="row-scroll-arrow next" aria-label="Next <?= e($title) ?>" onclick="scrollRow(this,1)" <?= $pageCount <= 1 ? 'disabled' : '' ?>>&#8250;</button>
+        </div>
+    </section>
+    <?php
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +54,7 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Explore - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="stylesheet" href="/assets/style.css?v=26">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -76,95 +97,43 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
         </div>
         </div>
 
-    <?php if (!empty($featuredList)): ?>
-    <section class="row-section">
-        <h3 class="row-title">Featured</h3>
-        <div class="row-scroll">
-            <?php foreach ($featuredList as $a): ?>
-                <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                    <?php if (!empty($a['image_url'])): ?>
-                        <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                    <?php else: ?>
-                        <div class="row-card-img row-card-img-placeholder"></div>
-                    <?php endif; ?>
-                    <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </section>
-    <?php endif; ?>
-
     <?php if (empty($articles)): ?>
         <p>No articles match these filters.</p>
     <?php else: ?>
-        <?php
-            $big = $articles[0] ?? null;
-            $medium = array_slice($articles, 1, 2);
-            $rest = array_slice($articles, 3);
-        ?>
-        <?php if ($big): ?>
-        <div class="explore-grid">
-            <a href="/article/<?= (int)$big['id'] ?>" class="explore-card explore-card-big">
-                <div class="card-media">
-                    <?php if (!empty($big['image_url'])): ?>
-                        <img src="<?= e($big['image_url']) ?>" alt="" class="explore-card-img">
-                    <?php else: ?>
-                        <div class="explore-card-img explore-card-img-placeholder"></div>
-                    <?php endif; ?>
-                    <?= renderCardToolbar($big, getLikeCount($big['id']), hasUserLiked($big['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($big['id']), hasUserDisliked($big['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($big['id'])) ?>
-                </div>
-                <div class="explore-card-title"><?= e(translatedTitle($big)) ?></div>
+        <?php renderExploreRow('Recent', $articles, 3, function (array $a): void { ?>
+            <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
+                <?php if (!empty($a['image_url'])): ?>
+                    <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
+                <?php else: ?>
+                    <div class="row-card-img row-card-img-placeholder"></div>
+                <?php endif; ?>
+                <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
             </a>
-            <?php if (!empty($medium)): ?>
-            <div class="explore-medium-col">
-                <?php foreach ($medium as $a): ?>
-                <a href="/article/<?= (int)$a['id'] ?>" class="explore-card explore-card-medium">
-                    <div class="card-media">
-                        <?php if (!empty($a['image_url'])): ?>
-                            <img src="<?= e($a['image_url']) ?>" alt="" class="explore-card-img">
-                        <?php else: ?>
-                            <div class="explore-card-img explore-card-img-placeholder"></div>
-                        <?php endif; ?>
-                        <?= renderCardToolbar($a, getLikeCount($a['id']), hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), getDislikeCount($a['id']), hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0), getCommentCount($a['id'])) ?>
-                    </div>
-                    <div class="explore-card-title"><?= e(translatedTitle($a)) ?></div>
-                </a>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
+        <?php }); ?>
+    <?php endif; ?>
 
-        <div class="search-results-list" style="margin-top:1.5rem;">
-            <?php foreach ($rest as $a):
-                $likeCount = getLikeCount($a['id']);
-                $dislikeCount = getDislikeCount($a['id']);
-                $commentCount = getCommentCount($a['id']);
-                $desc = $a['summary'] ?? '';
-                if (mb_strlen($desc) > 140) $desc = mb_substr($desc, 0, 140) . '...';
-            ?>
-                <a href="/article/<?= (int)$a['id'] ?>" class="search-result">
-                    <?php if (!empty($a['image_url'])): ?>
-                        <img src="<?= e($a['image_url']) ?>" alt="" class="search-result-thumb">
-                    <?php else: ?>
-                        <div class="search-result-thumb search-result-thumb-placeholder"></div>
+    <?php if (empty($groups)): ?>
+        <p>No groups yet - be the first to request one via <a href="/groups">Groups</a>.</p>
+    <?php else: ?>
+        <?php renderExploreRow('Groups', $groups, 2, function (array $g): void { ?>
+            <a href="/group/<?= e($g['slug']) ?>" class="group-row-card">
+                <?php if (!empty($g['banner_url'])): ?>
+                    <img src="<?= e($g['banner_url']) ?>" alt="" class="group-row-media">
+                <?php else: ?>
+                    <div class="group-row-media group-row-media-placeholder"></div>
+                <?php endif; ?>
+                <div class="group-row-body">
+                    <div class="group-row-title"><?= e($g['name']) ?></div>
+                    <?php if (!empty($g['description'])):
+                        $desc = $g['description'];
+                        if (mb_strlen($desc) > 90) $desc = mb_substr($desc, 0, 90) . '...';
+                    ?>
+                        <div class="group-row-desc"><?= e($desc) ?></div>
                     <?php endif; ?>
-                    <div class="search-result-body">
-                        <div>
-                            <div class="search-result-title"><?= e(translatedTitle($a)) ?></div>
-                            <div class="meta">By <?= e($a['author']) ?> &middot; <?= utcTimeTag($a['created_at']) ?></div>
-                            <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
-                        </div>
-                        <div class="search-result-stats">
-                            <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
-                            <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
-                            <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
-                            <?= renderThreeDotMenu($a, $likeCount, hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), $dislikeCount, hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0)) ?>
-                        </div>
-                    </div>
-                </a>
-            <?php endforeach; ?>
-        </div>
+                    <div class="group-row-meta"><?= (int)$g['member_count'] ?> member<?= (int)$g['member_count'] === 1 ? '' : 's' ?></div>
+                </div>
+            </a>
+        <?php }); ?>
     <?php endif; ?>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
@@ -175,6 +144,21 @@ document.addEventListener('click', function(e) {
     var filterMenu = document.getElementById('filterMenu');
     if (filterMenu && !e.target.closest('.explore-filter-wrap')) filterMenu.classList.remove('open');
 });
+function scrollRow(btn, dir) {
+    var wrap = btn.closest('.row-scroll-wrap');
+    var pages = wrap.querySelectorAll('.row-page');
+    if (!pages.length) return;
+    var idx = 0;
+    pages.forEach(function (p, i) { if (p.classList.contains('active')) idx = i; });
+    var next = idx + dir;
+    if (next < 0 || next >= pages.length) return;
+    pages[idx].classList.remove('active');
+    pages[next].classList.add('active');
+    var prevBtn = wrap.querySelector('.row-scroll-arrow.prev');
+    var nextBtn = wrap.querySelector('.row-scroll-arrow.next');
+    if (prevBtn) prevBtn.disabled = (next === 0);
+    if (nextBtn) nextBtn.disabled = (next === pages.length - 1);
+}
 </script>
 </body>
 </html>
