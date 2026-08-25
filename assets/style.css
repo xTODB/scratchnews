@@ -411,7 +411,11 @@ body.dark .share-option:hover { background: #26292e; }
     margin: 0 0 0.6rem;
     color: var(--ink);
 }
-.row-scroll-wrap { position: relative; }
+.row-scroll-wrap {
+    position: relative;
+    margin: 0 -34px;
+    padding: 0 34px;
+}
 .row-scroll-arrow {
     display: none;
     position: absolute;
@@ -432,8 +436,8 @@ body.dark .share-option:hover { background: #26292e; }
     transition: background 0.15s ease, opacity 0.15s ease;
 }
 .row-scroll-arrow:hover { background: var(--brand); }
-.row-scroll-arrow.prev { left: -14px; }
-.row-scroll-arrow.next { right: -14px; }
+.row-scroll-arrow.prev { left: 0; }
+.row-scroll-arrow.next { right: 0; }
 .row-scroll-arrow[disabled] { opacity: 0.3; cursor: default; pointer-events: none; }
 /* Arrows only above the mobile breakpoint - under 700px cards are already
    fixed-width + swipeable, matching the existing .row-card behavior split. */
