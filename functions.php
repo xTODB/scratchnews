@@ -2751,6 +2751,25 @@ function getPopularArticles(int $limit = 12): array {
     return $rows;
 }
 
+// Powers the homepage/explore "Featured" row (v0.25). Reuses the is_featured
+// flag added in v0.24.1 for the MaterArc/ScratchStats API partnership - that
+// flag was API-only until now, this is its first on-site use.
+function getFeaturedArticles(int $limit = 5): array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT * FROM articles
+         WHERE status = 'published' AND is_featured = 1
+         ORDER BY created_at DESC
+         LIMIT ?"
+    );
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
 function resizeImageIfNeeded(string $path, string $mime, int $maxDim = 1600): void {
     if (!extension_loaded('gd') || $mime === 'image/gif') return;
     $info = getimagesize($path);

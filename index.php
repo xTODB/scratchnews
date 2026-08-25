@@ -4,6 +4,7 @@ startSession();
 logVisit('/');
 $articles = getAllArticles();
 $popular = getPopularArticles(5);
+$featuredList = getFeaturedArticles(5);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,11 +72,11 @@ $popular = getPopularArticles(5);
             <?php endif; ?>
         </div>
 
-        <?php if (!empty($latestRow)): ?>
+        <?php if (!empty($featuredList)): ?>
         <section class="row-section">
-            <h3 class="row-title">Latest</h3>
+            <h3 class="row-title">Featured</h3>
             <div class="row-scroll">
-                <?php foreach ($latestRow as $a): ?>
+                <?php foreach ($featuredList as $a): ?>
                     <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
                         <?php if (!empty($a['image_url'])): ?>
                             <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
@@ -94,6 +95,24 @@ $popular = getPopularArticles(5);
             <h3 class="row-title">Popular</h3>
             <div class="row-scroll">
                 <?php foreach ($popular as $a): ?>
+                    <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
+                        <?php if (!empty($a['image_url'])): ?>
+                            <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
+                        <?php else: ?>
+                            <div class="row-card-img row-card-img-placeholder"></div>
+                        <?php endif; ?>
+                        <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <?php if (!empty($latestRow)): ?>
+        <section class="row-section">
+            <h3 class="row-title">Latest</h3>
+            <div class="row-scroll">
+                <?php foreach ($latestRow as $a): ?>
                     <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
                         <?php if (!empty($a['image_url'])): ?>
                             <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
