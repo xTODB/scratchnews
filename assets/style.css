@@ -1263,3 +1263,71 @@ body.dark .group-row-card:hover .group-row-title { color: var(--brand-bright); }
     .group-row-media { width: 100%; height: 110px; }
     .group-row-body { padding: 0.6rem 0.8rem; }
 }
+
+/* v0.25 homepage Profiles grid + footer watermark (mockup rework) */
+.row-page-grid {
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+.row-page-grid.active { display: grid; }
+.profile-row-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.35rem;
+    padding: 1.1rem 0.7rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    text-decoration: none;
+    color: inherit;
+}
+.profile-row-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.profile-row-avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--brand-bright), var(--brand));
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+.profile-row-username {
+    font-family: var(--font-headline);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--ink);
+}
+.profile-row-card:hover .profile-row-username { color: var(--brand); }
+.profile-row-desc {
+    font-size: 0.75rem;
+    color: var(--ink);
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+body.dark .profile-row-card { background: #1e2125; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+body.dark .profile-row-username,
+body.dark .profile-row-desc { color: #f0f0f0; }
+body.dark .profile-row-card:hover .profile-row-username { color: var(--brand-bright); }
+@media (max-width: 700px) {
+    .row-page-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.footer-watermark {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0 0.5rem;
+    opacity: 0.12;
+}
+.footer-watermark-logo { width: 220px; height: auto; filter: grayscale(1); }
+body.dark .footer-watermark { opacity: 0.18; }

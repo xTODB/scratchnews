@@ -5,6 +5,8 @@ logVisit('/');
 $articles = getAllArticles();
 $popular = getPopularArticles(20);
 $featuredList = getFeaturedArticles(20);
+$groupsList = getActiveGroups();
+$profilesList = getPublicUserList('recent');
 
 // v0.25: row arrows page through additional articles pulled from SQL above
 // (5 per page) instead of horizontally scrolling the same 5.
@@ -38,6 +40,83 @@ function renderNewsRow(string $title, array $items): void {
     </section>
     <?php
 }
+
+// v0.25: Groups row - 2 wide group-row-cards per page (image + title +
+// description + member count), same paging pattern as renderNewsRow above.
+function renderGroupsRow(array $groups): void {
+    if (empty($groups)) return;
+    $pages = array_chunk($groups, 2);
+    $pageCount = count($pages);
+    ?>
+    <section class="row-section">
+        <h3 class="row-title">Groups</h3>
+        <div class="row-scroll-wrap">
+            <button type="button" class="row-scroll-arrow prev" aria-label="Previous Groups" onclick="scrollRow(this,-1)" disabled>&#8249;</button>
+            <div class="row-scroll">
+                <?php foreach ($pages as $i => $page): ?>
+                <div class="row-page<?= $i === 0 ? ' active' : '' ?>">
+                    <?php foreach ($page as $g):
+                        $desc = $g['description'] ?? '';
+                        if (mb_strlen($desc) > 90) $desc = mb_substr($desc, 0, 90) . '...';
+                    ?>
+                        <a href="/group/<?= e($g['slug']) ?>" class="group-row-card">
+                            <?php if (!empty($g['banner_url'])): ?>
+                                <img src="<?= e($g['banner_url']) ?>" alt="" class="group-row-media">
+                            <?php else: ?>
+                                <div class="group-row-media group-row-media-placeholder"></div>
+                            <?php endif; ?>
+                            <div class="group-row-body">
+                                <div class="group-row-title"><?= e($g['name']) ?></div>
+                                <?php if ($desc !== ''): ?><div class="group-row-desc"><?= e($desc) ?></div><?php endif; ?>
+                                <div class="group-row-meta"><?= (int)$g['member_count'] ?> member<?= (int)$g['member_count'] === 1 ? '' : 's' ?></div>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="row-scroll-arrow next" aria-label="Next Groups" onclick="scrollRow(this,1)" <?= $pageCount <= 1 ? 'disabled' : '' ?>>&#8250;</button>
+        </div>
+    </section>
+    <?php
+}
+
+// v0.25: Profiles section - 3x2 grid of avatar cards per page (arrows page
+// through additional profiles), reuses row-scroll-wrap/arrow mechanics but
+// with a grid page instead of a flex row.
+function renderProfilesRow(array $users): void {
+    if (empty($users)) return;
+    $pages = array_chunk($users, 6);
+    $pageCount = count($pages);
+    ?>
+    <section class="row-section">
+        <h3 class="row-title">Profiles</h3>
+        <div class="row-scroll-wrap">
+            <button type="button" class="row-scroll-arrow prev" aria-label="Previous Profiles" onclick="scrollRow(this,-1)" disabled>&#8249;</button>
+            <div class="row-scroll">
+                <?php foreach ($pages as $i => $page): ?>
+                <div class="row-page-grid<?= $i === 0 ? ' active' : '' ?>">
+                    <?php foreach ($page as $u):
+                        $bioFirstLine = trim(explode("\n", (string)($u['bio'] ?? ''))[0]);
+                    ?>
+                        <a href="/@<?= urlencode($u['username']) ?>" class="profile-row-card">
+                            <?php if (!empty($u['avatar_url'])): ?>
+                                <img src="<?= e($u['avatar_url']) ?>" alt="" class="profile-row-avatar">
+                            <?php else: ?>
+                                <span class="profile-row-avatar profile-row-avatar-placeholder"><?= e(mb_strtoupper(mb_substr($u['username'], 0, 1))) ?></span>
+                            <?php endif; ?>
+                            <div class="profile-row-username">@<?= e($u['username']) ?></div>
+                            <?php if ($bioFirstLine !== ''): ?><div class="profile-row-desc"><?= e($bioFirstLine) ?></div><?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="row-scroll-arrow next" aria-label="Next Profiles" onclick="scrollRow(this,1)" <?= $pageCount <= 1 ? 'disabled' : '' ?>>&#8250;</button>
+        </div>
+    </section>
+    <?php
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,7 +129,7 @@ function renderNewsRow(string $title, array $items): void {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/style.css?v=25">
+<link rel="stylesheet" href="/assets/style.css?v=26">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -125,7 +204,12 @@ function renderNewsRow(string $title, array $items): void {
         <?php renderNewsRow('Featured', $featuredList); ?>
         <?php renderNewsRow('Latest', $latestRow); ?>
         <?php renderNewsRow('Popular', $popular); ?>
+        <?php renderGroupsRow($groupsList); ?>
+        <?php renderProfilesRow($profilesList); ?>
     <?php endif; ?>
+    <div class="footer-watermark">
+        <img src="/assets/logo.svg" alt="" class="footer-watermark-logo">
+    </div>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
@@ -135,7 +219,7 @@ document.addEventListener('click', function(e) {
 });
 function scrollRow(btn, dir) {
     var wrap = btn.closest('.row-scroll-wrap');
-    var pages = wrap.querySelectorAll('.row-page');
+    var pages = wrap.querySelectorAll('.row-page, .row-page-grid');
     if (!pages.length) return;
     var idx = 0;
     pages.forEach(function (p, i) { if (p.classList.contains('active')) idx = i; });
