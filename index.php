@@ -207,9 +207,6 @@ function renderProfilesRow(array $users): void {
         <?php renderGroupsRow($groupsList); ?>
         <?php renderProfilesRow($profilesList); ?>
     <?php endif; ?>
-    <div class="footer-watermark">
-        <img src="/assets/logo.svg" alt="" class="footer-watermark-logo">
-    </div>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
