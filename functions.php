@@ -1823,6 +1823,25 @@ function linkifyMentions(string $escapedText): string {
     return preg_replace('/@([A-Za-z0-9_]{3,20})\b/', '<a href="/@$1">@$1</a>', $escapedText);
 }
 
+// Turns plain http(s)/www links in already-escaped comment text into clickable,
+// underlined <a> tags (part of the comment-link ban-bug fix - the ban side used
+// stripUrlsForModeration()'s same URL pattern; this is the display side so a
+// whitelisted link is actually usable instead of just plain text). Input is
+// expected to already be run through e() (and optionally linkifyMentions()) -
+// the matched URL text itself came from the escaped string, so it's safe to
+// reuse as both the href and the label without re-escaping.
+function linkifyUrls(string $escapedText): string {
+    return preg_replace_callback(
+        '/(https?:\/\/[^\s<>"\']+|\bwww\.[^\s<>"\']+)/i',
+        function (array $m): string {
+            $url = $m[1];
+            $href = preg_match('#^https?://#i', $url) ? $url : 'https://' . $url;
+            return '<a href="' . $href . '" class="comment-link" target="_blank" rel="noopener noreferrer nofollow">' . $url . '</a>';
+        },
+        $escapedText
+    );
+}
+
 // Finds @username mentions in comment content and notifies each mentioned user,
 // skipping the actor themselves and anyone in $excludeUserIds (e.g. the article/profile
 // owner or parent comment author, who already got their own notification for this comment).
@@ -1863,7 +1882,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
     $html .= renderRankBadges((int)$comment['user_id']);
     $html .= ' <span class="meta">' . utcTimeTag($comment['created_at'], 'datetime') . '</span>';
     $html .= '</div>';
-    $html .= '<p>' . linkifyMentions(e($comment['content'])) . '</p>';
+    $html .= '<p>' . linkifyUrls(linkifyMentions(e($comment['content']))) . '</p>';
 
     if ($canReply) {
         $formId = 'reply-form-' . (int)$comment['id'];
@@ -3646,7 +3665,7 @@ function renderProfileCommentThread(array $comment, bool $canReply, int $profile
     $html .= renderRankBadges((int)$comment['author_id']);
     $html .= ' <span class="meta">' . date('M j, Y g:i A', strtotime($comment['created_at'])) . '</span>';
     $html .= '</div>';
-    $html .= '<p>' . linkifyMentions(e($comment['content'])) . '</p>';
+    $html .= '<p>' . linkifyUrls(linkifyMentions(e($comment['content']))) . '</p>';
 
     if (!empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator'])) {
         $html .= '<form method="post" action="/profile-comment" class="report-form" onsubmit="return confirm(\'Delete this comment?\');">';
