@@ -299,15 +299,18 @@ body.dark .alert.success { background: #1f4a26; color: #7fdb8f; }
 .engage-bar { display: flex; align-items: center; gap: 1.2rem; margin: 1rem 0 1.4rem; }
 .icon-btn {
     all: unset;
+    appearance: none;
+    -webkit-appearance: none;
     box-sizing: border-box;
     display: inline-flex; align-items: center; gap: 0.35rem;
     cursor: pointer;
     padding: 0.35rem 0.5rem; margin: -0.35rem -0.5rem; border-radius: 8px;
     font-family: inherit; font-weight: 600; font-size: 0.9rem; color: #555;
+    background: none;
     transition: background 0.15s ease;
 }
 .icon-btn:hover:not(:disabled) { background: rgba(0,0,0,0.06); }
-.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; background: none; }
 .icon-svg { width: 24px; height: 24px; object-fit: contain; }
 .icon-svg-sm { width: 15px; height: 15px; vertical-align: -2px; margin-right: 3px; }
 .icon-count { min-width: 1ch; }
@@ -1336,12 +1339,12 @@ body.dark .footer-watermark { opacity: 0.18; }
 .full-article-body { padding: 2rem; }
 .article-header {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: 1.5fr 1fr;
     align-items: stretch;
     background: #14181c;
 }
 .article-header-left {
-    padding: 2rem;
+    padding: 1.75rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 0.7rem;
@@ -1350,13 +1353,14 @@ body.dark .footer-watermark { opacity: 0.18; }
 }
 .article-header-title {
     font-family: var(--font-headline);
-    font-size: 2.1rem;
-    line-height: 1.15;
+    font-weight: 700;
+    font-size: 2.9rem;
+    line-height: 1.1;
     margin: 0;
     color: #fff;
 }
 .article-header-summary {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     color: #d5d5d5;
     margin: 0;
 }
@@ -1373,11 +1377,12 @@ body.dark .footer-watermark { opacity: 0.18; }
 .article-header-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.2rem; }
 .article-header-right { position: relative; min-height: 260px; }
 .article-header-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-body.dark .article-header { background: #2a2d31; }
+body.dark .article-header { background: #0a0b0d; }
 @media (max-width: 720px) {
     .article-header { grid-template-columns: 1fr; }
     .article-header-right { order: -1; min-height: 220px; }
     .article-header-left { padding: 1.4rem; }
+    .article-header-title { font-size: 2.1rem; }
     .full-article-body { padding: 1.4rem; }
 }
 
