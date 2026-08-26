@@ -207,6 +207,7 @@ html {
 .comment { padding: 1rem 0; }
 .comment-top { border-bottom: 1px solid #f0f0f0; }
 .comment .meta { margin-left: 0.5rem; color: #888; font-size: 0.85rem; }
+.comment-link { text-decoration: underline; word-break: break-word; }
 .comment-header { display: flex; align-items: center; gap: 0.5rem; }
 .comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .comment-avatar-placeholder { display: inline-flex; align-items: center; justify-content: center; background: #e8a33d; color: #2a2a2a; font-size: 0.85rem; font-weight: 600; }
