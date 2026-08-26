@@ -100,6 +100,8 @@ $pendingGroupRequests = getPendingGroupRequests();
 <?php require_once __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Moderator Panel</h2>
+    <a href="/moderator-guidelines" class="btn secondary">Moderator Guidelines</a>
+    <br><br>
     <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
 
     <h3>Pending Submissions</h3>
