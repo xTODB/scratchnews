@@ -116,6 +116,7 @@
     -webkit-mask-position: center; mask-position: center;
     -webkit-mask-size: contain; mask-size: contain;
     transition: background-color 0.15s ease;
+    background-color: #ffb957
 }
 .header-icon-link:hover .header-icon-mask,
 .header-icon-link.active .header-icon-mask { background-color: var(--brand-bright, #ffaa33); }
