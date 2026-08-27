@@ -13,6 +13,8 @@ body {
 main { flex: 1 0 auto; width: 100%; }
 .site-footer { flex-shrink: 0; }
 body.no-scroll { overflow: hidden; }
+:root { --header-h: 90px; } /* fallback until header.php's inline script measures the real height */
+body { padding-top: var(--header-h); }
 header {
     background: #d99d4a; /* Scratch orange */
     padding: 1.2rem 1.5rem;
@@ -20,8 +22,11 @@ header {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     z-index: 100;
     transition: padding 0.4s ease;
 }
