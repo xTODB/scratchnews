@@ -1872,8 +1872,18 @@ function renderCommentAvatar(?string $avatarUrl, string $username): string {
     return '<span class="comment-avatar comment-avatar-placeholder">' . e(mb_strtoupper(mb_substr($username, 0, 1))) . '</span>';
 }
 
+// Reply threading depth is admin-configurable via MAX_COMMENT_REPLY_DEPTH in config.php
+// (see config.example.php); falls back to 4 if TODB hasn't set it there yet. Nested divs
+// compound margin, so only levels within this cap get any indent - beyond it, indent stays
+// at 0 (no visual nesting, but replies still thread/post normally) rather than the page
+// getting pushed wider than mobile viewports can handle.
+function getMaxCommentReplyIndentDepth(): int {
+    return defined('MAX_COMMENT_REPLY_DEPTH') ? (int)MAX_COMMENT_REPLY_DEPTH : 4;
+}
+
 function renderCommentThread(array $comment, bool $canReply, int $depth = 0, bool $canReport = false): string {
-    $indent = ($depth > 0 && $depth <= 4) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
+    $maxIndentDepth = getMaxCommentReplyIndentDepth();
+    $indent = ($depth > 0 && $depth <= $maxIndentDepth) ? 14 : 0;
     $topClass = $depth === 0 ? ' comment-top' : '';
     $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
@@ -3655,7 +3665,8 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
 }
 
 function renderProfileCommentThread(array $comment, bool $canReply, int $profileUserId, int $depth = 0): string {
-    $indent = ($depth > 0 && $depth <= 4) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
+    $maxIndentDepth = getMaxCommentReplyIndentDepth();
+    $indent = ($depth > 0 && $depth <= $maxIndentDepth) ? 14 : 0;
     $avatar = $comment['author_avatar'] ?? null;
     $topClass = $depth === 0 ? ' comment-top' : '';
     $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
@@ -5005,7 +5016,8 @@ function getGroupCommentById(int $commentId): ?array {
 // comments (renderCommentThread), so the wall keeps matching that look. $canReply gates
 // the Reply button/form the same way $canComment already gates the top-level composer.
 function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?string $myRole, bool $isSiteMod, bool $canReply, int $depth = 0): string {
-    $indent = ($depth > 0 && $depth <= 4) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
+    $maxIndentDepth = getMaxCommentReplyIndentDepth();
+    $indent = ($depth > 0 && $depth <= $maxIndentDepth) ? 14 : 0;
     $topClass = $depth === 0 ? ' comment-top' : '';
     $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
