@@ -1873,7 +1873,7 @@ function renderCommentAvatar(?string $avatarUrl, string $username): string {
 }
 
 function renderCommentThread(array $comment, bool $canReply, int $depth = 0, bool $canReport = false): string {
-    $indent = ($depth > 0 && $depth <= 3) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
+    $indent = ($depth > 0 && $depth <= 4) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
     $topClass = $depth === 0 ? ' comment-top' : '';
     $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
@@ -3655,7 +3655,7 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
 }
 
 function renderProfileCommentThread(array $comment, bool $canReply, int $profileUserId, int $depth = 0): string {
-    $indent = ($depth > 0 && $depth <= 3) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
+    $indent = ($depth > 0 && $depth <= 4) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
     $avatar = $comment['author_avatar'] ?? null;
     $topClass = $depth === 0 ? ' comment-top' : '';
     $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
@@ -5005,7 +5005,7 @@ function getGroupCommentById(int $commentId): ?array {
 // comments (renderCommentThread), so the wall keeps matching that look. $canReply gates
 // the Reply button/form the same way $canComment already gates the top-level composer.
 function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?string $myRole, bool $isSiteMod, bool $canReply, int $depth = 0): string {
-    $indent = ($depth > 0 && $depth <= 3) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
+    $indent = ($depth > 0 && $depth <= 4) ? 14 : 0; // nested divs compound margin, so only add indent for the first 4 levels; total caps at 56px and stays there
     $topClass = $depth === 0 ? ' comment-top' : '';
     $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
