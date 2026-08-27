@@ -150,7 +150,11 @@
     width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
 }
 .user-nav-menu-profile-info { display: flex; flex-direction: column; gap: 0.35rem; }
-.user-nav-visit-btn { height: 28px; width: auto; padding: 0 0.7rem; font-size: 0.8rem; margin-top: 0; }
+.user-nav-menu-profile-info .user-nav-visit-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 28px; width: auto; padding: 0 0.7rem; font-size: 0.8rem; margin-top: 0;
+    color: #fff; text-decoration: none;
+}
 .user-nav-menu-divider { height: 1px; background: #eee; margin: 0 0.2rem; }
 body.dark .user-nav-menu-divider { background: #333; }
 
