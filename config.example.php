@@ -23,6 +23,14 @@ define('GOOGLE_CLIENT_ID', '');
 // clear it out entirely once Groups is ready to launch to everyone.
 define('GROUPS_BETA_IPS', '');
 
+// How many reply levels get visual indent before comment threads on article/profile/group
+// pages stop nesting further right. Replies past this depth still work exactly the same
+// (post, display, reply to again) - they just render at 0 extra indent instead of pushing
+// the page wider, which is what was cutting off the header/profile UI on mobile. Lower this
+// if threads still look too wide on mobile; raise it if you want deeper visible nesting.
+// If this line is missing from your live config.php, functions.php defaults to 4.
+define('MAX_COMMENT_REPLY_DEPTH', 4);
+
 function getDB(): mysqli {
     static $conn = null;
     if ($conn === null) {
