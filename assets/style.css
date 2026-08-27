@@ -1287,6 +1287,7 @@ body.dark .group-row-card:hover .group-row-title { color: var(--brand-bright); }
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     text-decoration: none;
     color: inherit;
+    min-width: 0;
 }
 .profile-row-avatar {
     width: 56px;
@@ -1318,6 +1319,8 @@ body.dark .group-row-card:hover .group-row-title { color: var(--brand-bright); }
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+    width: 100%;
+    min-width: 0;
 }
 body.dark .profile-row-card { background: #1e2125; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
 body.dark .profile-row-username,
