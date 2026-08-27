@@ -204,7 +204,8 @@ html {
 .likes-section { margin: 1.5rem 0; }
 .comments-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
 .comments-section textarea { width:100%; min-height:80px; padding:0.6rem; border:1px solid #ccc; border-radius:6px; font-family:inherit; margin-bottom:0.6rem; }
-.comment { padding: 1rem 0; overflow-wrap: break-word; word-break: break-word; }
+.comment { padding: 1rem 0; }
+.comment > p { overflow-wrap: break-word; word-break: break-word; }
 .comment-top { border-bottom: 1px solid #f0f0f0; }
 .comment .meta { margin-left: 0.5rem; color: #888; font-size: 0.85rem; }
 .comment-link { text-decoration: underline; word-break: break-word; }
@@ -978,8 +979,9 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .rank-badge {
     display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.02em;
     padding: 0.12rem 0.5rem; border-radius: 999px; color: #fff; vertical-align: middle;
-    text-transform: uppercase;
+    text-transform: uppercase; white-space: nowrap;
 }
+
 .rank-badge.rank-writer { background: #0084ff; }
 .rank-badge.rank-featured-writer { background: #0022ff; }
 .rank-badge.rank-fan { background: #8000ff; }
