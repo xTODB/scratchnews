@@ -28,7 +28,11 @@ startSession();
 haven't talked about!</p>
     <strong>The history of Scratchers, tutorials, events, projects, studios, or even the community itself: ScratchNews has lots of potential for articles, and you can become a writer yourself.</strong>
     <em>Get an idea, go on <a href="https://scratchnews.freedev.app/submit">the submission article page</a> and write out the basics: title, summary, and maybe even a nice thumbnail image. <strong>The world is waiting for your article and you have all the tools to write it!</strong></em>
-    <h3>2: Use proper formatting and don't make these common mistakes.</h3>
+    <h3>2: Do Not Use AI.</h3>
+    <p>
+        Do not use AI in any of your writing, the images, the thumbnails, or anything else in the article. Doing so will cause your article to be unpublished and in some cases, deleted.
+    </p>
+    <h3>3: Use proper formatting and don't make these common mistakes.</h3>
     <ul>
      <li>When making an article, it is recommended to not use two big formats (e.g. Heading 1 + Huge). This applies to bold (don't make Unicode bold text and bold it again), italics and every formatting method that can be formatted using Unicode. Use Heading 1 for opening text (or don't use it at all), Heading 2 for chapter titles, Heading 3 for the last chaper/unchaptered text that's important, but not in the content and Normal for the content itself.</li>
      <li>Do not copy and paste text from somewhere else unedited unless it is from a raw text editor (like Notepad or your notes app), it will probably either use your theme as the outline color, or it will use formatting effects automatically. To convert text to its default form, press the "default" (reload icon) button. Use your own words when making an article and do not use AI to write or "help".</li>
@@ -38,7 +42,7 @@ haven't talked about!</p>
      <li>If you're using VPNs or have multiple ScratchNews tabs that use logins it is advised to copy your article (click the copy button/icon) or click anywhere in the article > Ctrl+A (Select all) > Ctrl+C (Copy) before pressing any submit/save button. This can save your article if the account is wrong or if ScratchNews has bugs.</li>
      <li>When using the linking tool, it's recommended to make the link text blue and/or italic. This indicates to users that it's a proper link.</li>
     </ul>
-    <h3>3: Submit!</h3>
+    <h3>4: Submit!</h3>
     <p>Press the "Submit" / "Submit Article" button once you're done writing it. We'll approve or reject it pretty fast and update you on your profile comments. Thanks for reading this guide and for deciding to help inform Scratch, one article at a time!</p>
     
     <h3>What gets rejected</h3>
