@@ -205,9 +205,9 @@ html {
 .comments-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
 .comments-section textarea { width:100%; min-height:80px; padding:0.6rem; border:1px solid #ccc; border-radius:6px; font-family:inherit; margin-bottom:0.6rem; }
 .comment { padding: 1rem 0; }
-.comment > p { overflow-wrap: break-word; word-break: break-word; }
 .comment-top { border-bottom: 1px solid #f0f0f0; }
 .comment .meta { margin-left: 0.5rem; color: #888; font-size: 0.85rem; }
+.comment > p { overflow-wrap: break-word; word-break: break-word; }
 .comment-link { text-decoration: underline; word-break: break-word; }
 .comment-header { display: flex; align-items: center; gap: 0.5rem; }
 .comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -981,7 +981,6 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
     padding: 0.12rem 0.5rem; border-radius: 999px; color: #fff; vertical-align: middle;
     text-transform: uppercase; white-space: nowrap;
 }
-
 .rank-badge.rank-writer { background: #0084ff; }
 .rank-badge.rank-featured-writer { background: #0022ff; }
 .rank-badge.rank-fan { background: #8000ff; }
