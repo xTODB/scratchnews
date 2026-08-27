@@ -176,15 +176,3 @@ body.dark .user-nav-menu-divider { background: #333; }
 }
 </style>
 </header>
-<script>
-(function() {
-    var header = document.getElementById('siteHeader');
-    if (!header) return;
-    function syncHeaderHeight() {
-        document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
-    }
-    syncHeaderHeight();
-    window.addEventListener('load', syncHeaderHeight);
-    window.addEventListener('resize', syncHeaderHeight);
-})();
-</script>
