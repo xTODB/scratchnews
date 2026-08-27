@@ -246,9 +246,11 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
                 <img src="/assets/banners/sn-banner-4.svg" alt="Copy link to share" class="share-banner-img">
             </button>
             <div class="content"><?= $displayContent ?></div>
-            <button type="button" class="share-banner">
-                <img src="/assets/banners/sn-banner-4.svg" alt="Enjoyed it? Share the link" class="share-banner-img">
-            </button>
+            <?php if (empty($_SESSION['reader_username'])): ?>
+            <a href="/register" class="join-banner">
+                <img src="/assets/banners/sn-banner-join.svg" alt="Join ScratchNews now! Create an account to like, comment, reply, share, save, and write articles." class="join-banner-img">
+            </a>
+            <?php endif; ?>
             <?php if (!empty($relatedArticles)): ?>
             <section class="related-articles">
                 <h3 class="row-title">Related</h3>
