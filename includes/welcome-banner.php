@@ -6,7 +6,7 @@
         <div class="welcome-banner-actions">
             <a href="/explore" class="btn inline welcome-banner-btn">Explore Articles</a>
             <a href="/groups" class="btn inline welcome-banner-btn">Surf Groups</a>
-            <a href="/register" class="btn inline welcome-banner-btn welcome-banner-join">&#9889; Join</a>
+            <a href="/register" class="btn inline welcome-banner-btn welcome-banner-join">Join</a>
         </div>
     </div>
     <div class="welcome-banner-media">
