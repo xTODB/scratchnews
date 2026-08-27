@@ -1006,6 +1006,17 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .share-banner:hover { transform: scale(1.02); }
 .share-banner.copied { transform: scale(1.02); filter: brightness(1.15); }
 .share-banner-img { display: block; width: 100%; height: auto; }
+/* Second below-article banner (v0.25 roadmap "user join banner") - landscape aspect
+   (~4.5:1) unlike the square-ish share banner above, so it gets its own width cap
+   rather than reusing .share-banner's 380px. Logged-out visitors only - gated in
+   article.php since a logged-in reader has already joined. */
+.join-banner {
+    display: block; position: relative; width: 100%; max-width: 640px;
+    margin: 1.2rem auto; border-radius: 10px; overflow: hidden;
+    transition: transform 0.15s ease;
+}
+.join-banner:hover { transform: scale(1.02); }
+.join-banner-img { display: block; width: 100%; height: auto; }
 /* v0.23 Beta stats pages */
 .stat-cards { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0 1.5rem; }
 .stat-card {
