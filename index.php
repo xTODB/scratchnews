@@ -134,6 +134,7 @@ function renderProfilesRow(array $users): void {
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/includes/welcome-banner.php'; ?>
 <?php if (!empty($_SESSION['impersonator_admin_username'])): ?>
 <div class="impersonation-banner">
     Viewing as <strong><?= e($_SESSION['reader_username']) ?></strong> (impersonating)

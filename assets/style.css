@@ -1394,3 +1394,26 @@ body.dark .article-header { background: #0a0b0d; }
     line-height: 1.8;
     letter-spacing: 0.01em;
 }
+.welcome-banner {
+    display: flex; align-items: stretch;
+    background: linear-gradient(135deg, #f7cb84, #ffb95c);
+    overflow: hidden;
+}
+.welcome-banner-text {
+    flex: 1 1 50%; padding: 2.5rem 3rem; display: flex; flex-direction: column;
+    justify-content: center; gap: 0.9rem;
+}
+.welcome-banner-text h1 {
+    margin: 0; font-family: var(--font-headline, inherit); font-size: 2.1rem; color: #a15c1c;
+}
+.welcome-banner-text p { margin: 0; color: #9c6a2e; font-size: 1.05rem; max-width: 480px; }
+.welcome-banner-actions { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.welcome-banner-btn { height: 40px; }
+.welcome-banner-join { background: #ffaa33; }
+.welcome-banner-media { flex: 1 1 50%; position: relative; min-height: 260px; }
+.welcome-banner-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 700px) {
+    .welcome-banner { flex-direction: column; }
+    .welcome-banner-media { min-height: 180px; }
+    .welcome-banner-text { padding: 1.5rem; }
+}
