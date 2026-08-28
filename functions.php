@@ -105,6 +105,53 @@ function deleteArticle(int $id): bool {
     return $ok;
 }
 
+// autosaveArticle() creates a real articles row (status='draft') the moment an admin
+// starts a new article, before Publish/Save is ever clicked. If the tab is closed
+// without publishing, that row - and the ID it took from getNextArticleId() - is
+// orphaned forever, which is why admin's all-statuses article count can run ahead of
+// the public "published" count. Called opportunistically from admin/index.php on
+// dashboard load rather than via cron, so no server-side scheduling is needed.
+// updated_at is bumped automatically (ON UPDATE current_timestamp) by autosaveArticle()'s
+// own UPDATE, so "untouched for $daysOld days" is a reliable staleness signal. Returns
+// the number of rows deleted.
+function cleanupStaleDraftArticles(int $daysOld = 14): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM articles WHERE status = 'draft' AND updated_at < (NOW() - INTERVAL ? DAY)");
+    $stmt->bind_param('i', $daysOld);
+    $stmt->execute();
+    $ids = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+    $stmt->close();
+    foreach ($ids as $staleId) {
+        deleteArticle((int)$staleId);
+    }
+    return count($ids);
+}
+
+// "New since you were away" counters (retention feature). Each cookie holds the epoch
+// timestamp of the last time the visitor DISMISSED that section's badge (see
+// includes/new-since-badge.php + the click handler in includes/footer.php) - it is
+// deliberately NEVER touched on ordinary page load/reload, only via that explicit
+// dismiss click, so the count doesn't evaporate the instant the page is viewed
+// (TODB's explicit requirement). First-ever visit (no cookie yet) just plants the
+// cookie at "now" and returns 0, so nobody sees a huge fake number on their first load.
+// $table is always one of our own fixed table names (never request input).
+function getNewSinceCount(string $cookieName, string $table, string $statusClause = ''): int {
+    if (empty($_COOKIE[$cookieName])) {
+        setcookie($cookieName, (string)time(), time() + 31536000, '/');
+        return 0;
+    }
+    $since = (int)$_COOKIE[$cookieName];
+    $db = getDB();
+    $sql = "SELECT COUNT(*) AS c FROM `$table` WHERE created_at > FROM_UNIXTIME(?)";
+    if ($statusClause !== '') $sql .= " AND $statusClause";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param('i', $since);
+    $stmt->execute();
+    $count = (int)($stmt->get_result()->fetch_assoc()['c'] ?? 0);
+    $stmt->close();
+    return $count;
+}
+
 // Soft-delete: a reader unpublishing their own article. The row (and its likes/
 // comments/views/share history) is kept, just hidden from every public listing/query
 // that filters on status = 'published'. An admin can restore it via admin/edit.php's

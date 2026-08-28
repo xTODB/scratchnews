@@ -7,6 +7,9 @@ $popular = getPopularArticles(20);
 $featuredList = getFeaturedArticles(20);
 $groupsList = getActiveGroups();
 $profilesList = getPublicUserList('recent');
+$newSinceCount = getNewSinceCount('sn_seen_articles', 'articles', "status = 'published'");
+$newSinceCookie = 'sn_seen_articles';
+$newSinceLabel = $newSinceCount === 1 ? 'new article' : 'new articles';
 
 // v0.25: row arrows page through additional articles pulled from SQL above
 // (5 per page) instead of horizontally scrolling the same 5.
@@ -129,7 +132,7 @@ function renderProfilesRow(array $users): void {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/style.css?v=26">
+<link rel="stylesheet" href="/assets/style.css?v=27">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -145,6 +148,7 @@ function renderProfilesRow(array $users): void {
 </div>
 <?php endif; ?>
 <?php include __DIR__ . '/includes/banner-poll-slot.php'; ?>
+<?php include __DIR__ . '/includes/new-since-badge.php'; ?>
 <main class="home-main">
     <?php if (empty($articles)): ?>
         <p>No articles yet. Log in to the <a href="/admin/">login panel</a> to publish the first one.</p>

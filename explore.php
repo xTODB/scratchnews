@@ -11,6 +11,9 @@ $dateFrom = trim($_GET['from'] ?? '');
 $dateTo = trim($_GET['to'] ?? '');
 
 $articles = getExploreArticles($activeSlug, $sort, $authorFilter, $dateFrom, $dateTo);
+$newSinceCount = getNewSinceCount('sn_seen_articles', 'articles', "status = 'published'");
+$newSinceCookie = 'sn_seen_articles';
+$newSinceLabel = $newSinceCount === 1 ? 'new article' : 'new articles';
 
 // Featured row only shows on the default, unfiltered view - once someone's
 // filtering/sorting they're looking for something specific, not browsing.
@@ -33,12 +36,13 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Explore - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="stylesheet" href="/assets/style.css?v=27">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php include __DIR__ . '/includes/banner-poll-slot.php'; ?>
+<?php include __DIR__ . '/includes/new-since-badge.php'; ?>
 <main class="home-main">
     <h2 class="explore-title">Explore</h2>
     <div class="explore-tabs">

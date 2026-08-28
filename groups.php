@@ -12,7 +12,7 @@ if (!isGroupsBetaAllowed()):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Groups - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="stylesheet" href="/assets/style.css?v=27">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
@@ -39,6 +39,9 @@ $groups = getActiveGroups();
 $myGroups = $myId ? getUserGroups($myId) : [];
 $myGroupIds = array_column($myGroups, 'id');
 $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
+$newSinceCount = getNewSinceCount('sn_seen_groups', 'groups', "status = 'active'");
+$newSinceCookie = 'sn_seen_groups';
+$newSinceLabel = $newSinceCount === 1 ? 'new group' : 'new groups';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,7 +51,7 @@ $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Groups - <?= e(SITE_NAME) ?></title>
 <meta name="description" content="Browse ScratchNews community groups.">
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="stylesheet" href="/assets/style.css?v=27">
 <style>
 .groups-beta-tag { font-size: 0.75rem; background: #ffaa33; color: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; margin-left: 0.5rem; vertical-align: middle; }
 .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
@@ -64,6 +67,7 @@ $pendingInvites = $myId ? getPendingGroupInvitesForUser($myId) : [];
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/includes/new-since-badge.php'; ?>
 <main class="home-main">
     <div class="section-switch-tabs">
         <a href="/groups" class="section-switch-tab active">Groups</a>

@@ -1431,3 +1431,27 @@ body.dark .article-header { background: #0a0b0d; }
     .welcome-banner-media { min-height: 180px; }
     .welcome-banner-text { padding: 1.5rem; }
 }
+
+.new-since-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: #ffaa33;
+    color: #1a1a1a;
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    text-align: center;
+    border-radius: 8px;
+    margin: 0.75rem auto;
+    max-width: 900px;
+}
+.new-since-dismiss {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #1a1a1a;
+    padding: 0 0.25rem;
+}

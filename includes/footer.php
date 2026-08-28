@@ -159,3 +159,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 })();
 </script>
+<script>
+(function() {
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.new-since-dismiss');
+        if (!btn) return;
+        var badge = btn.closest('.new-since-badge');
+        var cookieName = badge.getAttribute('data-cookie');
+        document.cookie = cookieName + '=' + Math.floor(Date.now() / 1000) + '; path=/; max-age=31536000';
+        badge.remove();
+    });
+})();
+</script>

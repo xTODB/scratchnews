@@ -6,6 +6,9 @@ logVisit('/profiles');
 $sort = ($_GET['sort'] ?? 'recent') === 'followers' ? 'followers' : 'recent';
 $users = getPublicUserList($sort);
 $myId = $_SESSION['reader_id'] ?? 0;
+$newSinceCount = getNewSinceCount('sn_seen_profiles', 'users', "is_banned = 0 AND username NOT LIKE 'deleted_user_%'");
+$newSinceCookie = 'sn_seen_profiles';
+$newSinceLabel = $newSinceCount === 1 ? 'new profile' : 'new profiles';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,11 +18,12 @@ $myId = $_SESSION['reader_id'] ?? 0;
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Profiles - <?= e(SITE_NAME) ?></title>
 <meta name="description" content="Browse ScratchNews community members.">
-<link rel="stylesheet" href="/assets/style.css?v=21">
+<link rel="stylesheet" href="/assets/style.css?v=27">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/includes/new-since-badge.php'; ?>
 <main class="home-main">
     <div class="section-switch-tabs">
         <a href="/groups" class="section-switch-tab">Groups</a>
