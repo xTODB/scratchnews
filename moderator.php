@@ -34,6 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             resolveReport($reportId);
             $message = $action === 'delete_comment' ? 'Comment deleted.' : 'Report dismissed.';
         }
+    } elseif ($action === 'create_poll') {
+        $question = trim($_POST['poll_question'] ?? '');
+        $pollType = ($_POST['poll_type'] ?? 'single') === 'multi' ? 'multi' : 'single';
+        $options = array_filter(array_map('trim', explode("\n", $_POST['poll_options'] ?? '')), fn($o) => $o !== '');
+        if ($question === '' || count($options) < 2) {
+            $message = 'A poll question and at least 2 options are required.';
+        } else {
+            createPoll($question, $pollType, $options);
+            $message = 'Poll created.';
+        }
     } elseif ($action === 'reset_timeout') {
         $target = getUserByUsername(trim($_POST['username'] ?? ''));
         if ($target) {
@@ -191,6 +201,20 @@ $pendingGroupRequests = getPendingGroupRequests();
             </div>
         <?php endforeach; ?>
     <?php endif; ?>
+
+    <h3>Create Poll</h3>
+    <form method="post" style="margin-bottom:1.5rem;">
+        <?= csrfField() ?>
+        <input type="hidden" name="action" value="create_poll">
+        <p><input type="text" name="poll_question" placeholder="Poll question" style="width:100%;" required></p>
+        <p><textarea name="poll_options" placeholder="One option per line (at least 2)" rows="4" style="width:100%;" required></textarea></p>
+        <p>
+            <label><input type="radio" name="poll_type" value="single" checked> Single choice</label>
+            &nbsp;&nbsp;
+            <label><input type="radio" name="poll_type" value="multi"> Multiple choice</label>
+        </p>
+        <button class="btn" type="submit">Create Poll</button>
+    </form>
 
     <h3>Poll Results</h3>
     <?php if (empty($allPolls)): ?>
