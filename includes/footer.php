@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var source = sessionStorage.getItem(SRC_NAME);
     function ping() {
         if (document.hidden) return;
-        var data = new URLSearchParams({ session_key: key, source: source });
+        var data = new URLSearchParams({ session_key: key, source: source, page: window.location.pathname });
         if (navigator.sendBeacon) {
             navigator.sendBeacon('/heartbeat', data);
         } else {

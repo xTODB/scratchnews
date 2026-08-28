@@ -17,6 +17,9 @@ $ct = getCollectiveTimeStats();
 $collectiveTimeChart = getDailyCollectiveTimeHours($days);
 
 $tos = getTimeOnSiteStats(7);
+$bounce = getBounceRate(7);
+$pageTime = getTimePerPageStats(7);
+$landingPages = getLandingPageBreakdown(7);
 
 $engagementSeries = [
     'Article views' => getDailyArticleViewCounts($days),
@@ -72,6 +75,47 @@ $engagementSeries = [
             &nbsp;|&nbsp; Sessions counted: <?= (int)$tos['count'] ?></p>
     <?php else: ?>
         <p style="color:#888;">No session data yet — will populate as visitors browse with the heartbeat script live.</p>
+    <?php endif; ?>
+
+    <h3 style="margin-top:1.5rem;">Bounce Rate (last 7 days)</h3>
+    <p class="chart-caption">A "bounce" = a session that only ever registered one heartbeat (left within ~15s of arriving). Can't see visitors who leave before the first heartbeat fires at all.</p>
+    <?php if ($bounce['total'] > 0): ?>
+        <p><strong><?= $bounce['rate'] ?>%</strong> bounced (<?= $bounce['bounced'] ?> of <?= $bounce['total'] ?> sessions)</p>
+    <?php else: ?>
+        <p style="color:#888;">No session data yet.</p>
+    <?php endif; ?>
+
+    <h3 style="margin-top:1.5rem;">Time per Page (last 7 days)</h3>
+    <p class="chart-caption">Total time visitors spent on each URL, summed across every visit to it (not just landings).</p>
+    <?php if ($pageTime): ?>
+        <table style="width:100%; border-collapse:collapse;">
+            <tr><th style="text-align:left;">Page</th><th style="text-align:right;">Total time</th></tr>
+            <?php foreach ($pageTime as $p): ?>
+                <tr>
+                    <td><?= e($p['page']) ?></td>
+                    <td style="text-align:right;"><?= (int)floor($p['total_seconds'] / 60) ?>m <?= (int)($p['total_seconds'] % 60) ?>s</td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php else: ?>
+        <p style="color:#888;">No per-page data yet — will populate as visitors browse with the updated heartbeat script live.</p>
+    <?php endif; ?>
+
+    <h3 style="margin-top:1.5rem;">Bounce Rate by Landing Page (last 7 days)</h3>
+    <p class="chart-caption">Only counts sessions that started AFTER this feature went live — existing sessions have no recorded landing page yet.</p>
+    <?php if ($landingPages): ?>
+        <table style="width:100%; border-collapse:collapse;">
+            <tr><th style="text-align:left;">Landing page</th><th style="text-align:right;">Sessions</th><th style="text-align:right;">Bounce rate</th></tr>
+            <?php foreach ($landingPages as $lp): ?>
+                <tr>
+                    <td><?= e($lp['landing_page']) ?></td>
+                    <td style="text-align:right;"><?= $lp['sessions'] ?></td>
+                    <td style="text-align:right;"><?= $lp['bounce_rate'] ?>%</td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php else: ?>
+        <p style="color:#888;">No landing-page data yet — will populate as new sessions start with this feature live.</p>
     <?php endif; ?>
 
     <div class="chart-block">

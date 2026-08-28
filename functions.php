@@ -235,7 +235,7 @@ function getRecentVisits(int $limit = 200, ?string $includeIp = null, ?string $e
 // ---- Time on Site ----
 define('HEARTBEAT_INTERVAL_SECONDS', 15);
 
-function recordHeartbeat(string $sessionKey, ?string $source = null, ?int $userId = null): void {
+function recordHeartbeat(string $sessionKey, ?string $source = null, ?int $userId = null, ?string $page = null): void {
     $db = getDB();
     $stmt = $db->prepare("SELECT last_seen FROM site_sessions WHERE session_key = ?");
     $stmt->bind_param('s', $sessionKey);
@@ -253,8 +253,8 @@ function recordHeartbeat(string $sessionKey, ?string $source = null, ?int $userI
         $stmt->execute();
         $stmt->close();
     } else {
-        $stmt = $db->prepare("INSERT INTO site_sessions (session_key, seconds_active, first_seen, last_seen, source, user_id) VALUES (?, ?, NOW(), NOW(), ?, ?)");
-        $stmt->bind_param('sisi', $sessionKey, $add, $source, $userId);
+        $stmt = $db->prepare("INSERT INTO site_sessions (session_key, seconds_active, first_seen, last_seen, source, landing_page, user_id) VALUES (?, ?, NOW(), NOW(), ?, ?, ?)");
+        $stmt->bind_param('sissi', $sessionKey, $add, $source, $page, $userId);
         $stmt->execute();
         $stmt->close();
     }
@@ -263,6 +263,13 @@ function recordHeartbeat(string $sessionKey, ?string $source = null, ?int $userI
     $stmt->bind_param('ii', $add, $add);
     $stmt->execute();
     $stmt->close();
+
+    if ($page !== null && $page !== '') {
+        $stmt = $db->prepare("INSERT INTO page_time_totals (visit_date, page, total_seconds) VALUES (CURDATE(), ?, ?) ON DUPLICATE KEY UPDATE total_seconds = total_seconds + ?");
+        $stmt->bind_param('sii', $page, $add, $add);
+        $stmt->execute();
+        $stmt->close();
+    }
 
     $db->query("DELETE FROM site_sessions WHERE last_seen < DATE_SUB(NOW(), INTERVAL 7 DAY)");
 }
@@ -290,6 +297,55 @@ function getTimeOnSiteStats(int $days = 7): array {
     $avg = $count ? array_sum($values) / $count : 0;
     $median = $count ? ($count % 2 ? $values[intdiv($count, 2)] : ($values[$count / 2 - 1] + $values[$count / 2]) / 2) : 0;
     return ['count' => $count, 'avg_seconds' => round($avg), 'median_seconds' => round($median)];
+}
+
+// Bounce = a session that only ever registered a single heartbeat (left within about
+// one HEARTBEAT_INTERVAL_SECONDS window of arriving). Not a perfect measure - a visitor
+// who leaves before the FIRST heartbeat fires is invisible to this entirely - but it's
+// the best proxy the existing heartbeat infra can give without new client-side tracking.
+function getBounceRate(int $days = 7): array {
+    $db = getDB();
+    $threshold = HEARTBEAT_INTERVAL_SECONDS;
+    $stmt = $db->prepare("SELECT COUNT(*) AS total, SUM(seconds_active <= ?) AS bounced FROM site_sessions WHERE last_seen >= DATE_SUB(NOW(), INTERVAL ? DAY) AND seconds_active > 0");
+    $stmt->bind_param('ii', $threshold, $days);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $total = (int)($row['total'] ?? 0);
+    $bounced = (int)($row['bounced'] ?? 0);
+    return ['total' => $total, 'bounced' => $bounced, 'rate' => $total ? round($bounced / $total * 100, 1) : 0.0];
+}
+
+// Total time-on-page across ALL visits to that URL (not just landings) - shows which
+// pages people actually spend time on, independent of where their session started.
+function getTimePerPageStats(int $days = 7, int $limit = 15): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT page, SUM(total_seconds) AS total_seconds FROM page_time_totals WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY page ORDER BY total_seconds DESC LIMIT ?");
+    $stmt->bind_param('ii', $days, $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+// Bounce rate broken down by the page a session actually LANDED on (site_sessions.landing_page,
+// set once when that session's first heartbeat fires). Only populates going forward from the
+// migration - sessions recorded before it have landing_page = NULL and are excluded.
+function getLandingPageBreakdown(int $days = 7, int $limit = 15): array {
+    $db = getDB();
+    $threshold = HEARTBEAT_INTERVAL_SECONDS;
+    $stmt = $db->prepare("SELECT landing_page, COUNT(*) AS sessions, SUM(seconds_active <= ?) AS bounced FROM site_sessions WHERE last_seen >= DATE_SUB(NOW(), INTERVAL ? DAY) AND seconds_active > 0 AND landing_page IS NOT NULL GROUP BY landing_page ORDER BY sessions DESC LIMIT ?");
+    $stmt->bind_param('iii', $threshold, $days, $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    foreach ($rows as &$r) {
+        $r['sessions'] = (int)$r['sessions'];
+        $r['bounced'] = (int)$r['bounced'];
+        $r['bounce_rate'] = $r['sessions'] ? round($r['bounced'] / $r['sessions'] * 100, 1) : 0.0;
+    }
+    unset($r);
+    return $rows;
 }
 
 // ---- Stats pages: daily time-series helpers + tiny inline-SVG charts (no JS/CDN dependency) ----
