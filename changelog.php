@@ -18,7 +18,7 @@ startSession();
     <h2>Changelog</h2>
     <p>0.25.1 - QOL changes and features!<br><ul>
         <li>Toggle to turn off group activity messages in Settings or per individual group.</li>
-        <li>Changed invites for efficiency, no page reaccess when inviting someone (just a message).<li>
+        <li>Changed invites for efficiency, no page reaccess when inviting someone (just a message).</li>
         <li>Included replies, group comments, profile comments and profile replies as comments in statistics and comments by a profile.</li>
         <li>Added/Fixed/Closed feedback tags</li>
         <li>Messages and comment actions directly send you to the comment / parent comment after doing the comment action</li>
