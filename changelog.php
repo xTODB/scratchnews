@@ -23,9 +23,10 @@ startSession();
         <li>Added/Fixed/Closed feedback tags</li>
         <li>Messages and comment actions directly send you to the comment / parent comment after doing the comment action</li>
         <li>Changed article attachment to addition, added panel to add your articles into a group or via link</li>
+    </ul>
     <p>[Aug29] v0.25 - 🥳 BIGGEST. UPDATE. EVER.<br><ul>
         <li>Backups for ScratchNews (just in case)</li>
-        <li>Changes to articles: "Featured" article list, minimum 250 words for articles, changed UI for how article and homepage looks<li>
+        <li>Changes to articles: "Featured" article list, minimum 250 words for articles, changed UI for how article and homepage looks</li>
         <li>Changes to UI: Changed header icons to SVG, replaced banners with a welcome banner, replaced share banner below article with a join user banner</li>
         <li>Font changes on articles</li>
         <li>Homepage redesign with groups and profiles</li>
