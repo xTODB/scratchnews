@@ -57,14 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reade
     if (($_POST['action'] ?? '') === 'comment' && !$isBanned) {
         $content = trim($_POST['content'] ?? '');
         $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
-        if ($content !== '') addComment($article['id'], $_SESSION['reader_id'], $content, $parentId);
-        header('Location: /article/' . $article['id']);
+        $newId = $content !== '' ? addComment($article['id'], $_SESSION['reader_id'], $content, $parentId) : null;
+        $anchor = $newId ? '#comment-' . $newId : '';
+        header('Location: /article/' . $article['id'] . $anchor);
         exit;
     }
     if (($_POST['action'] ?? '') === 'report') {
         $commentId = (int)($_POST['comment_id'] ?? 0);
         if ($commentId > 0) reportComment($commentId, $_SESSION['reader_id']);
-        header('Location: /article/' . $article['id']);
+        $anchor = $commentId > 0 ? '#comment-' . $commentId : '';
+        header('Location: /article/' . $article['id'] . $anchor);
         exit;
     }
     if (($_POST['action'] ?? '') === 'unpublish' && $isOwner) {
@@ -76,8 +78,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $article && !empty($_SESSION['reade
         // Pre-existing bug fixed here: this button rendered in renderCommentThread() but had
         // no server-side handler on article.php, so admin comment deletion silently did nothing.
         $commentId = (int)($_POST['comment_id'] ?? 0);
-        if ($commentId > 0) adminDeleteComment($commentId);
-        header('Location: /article/' . $article['id']);
+        $anchor = '';
+        if ($commentId > 0) {
+            // The comment itself won't exist to anchor to once deleted, so fall back
+            // to its parent (if it had one).
+            $target = getCommentById($commentId);
+            if ($target && !empty($target['parent_comment_id'])) {
+                $anchor = '#comment-' . (int)$target['parent_comment_id'];
+            }
+            adminDeleteComment($commentId);
+        }
+        header('Location: /article/' . $article['id'] . $anchor);
         exit;
     }
 }
