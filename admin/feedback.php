@@ -54,7 +54,8 @@ markAllFeedbackRead();
 .feedback-meta { opacity: 0.65; font-size: 0.8rem; margin-top: 0.3rem; }
 .feedback-delete { background: none; border: none; color: #c33; cursor: pointer; font-size: 0.85rem; }
 .feedback-status-row { display: flex; align-items: center; gap: 0.5rem; margin: 0; flex-wrap: wrap; }
-.feedback-status-row form { margin: 0; }
+.feedback-status-row form { display: inline-block; background: none; padding: 0; box-shadow: none; border-radius: 0; max-width: none; margin: 0; }
+body.dark .feedback-status-row form { background: none; box-shadow: none; }
 .feedback-tag { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #fff; }
 .feedback-tag-added { background: #2e9e4b; }
 .feedback-tag-fixed { background: #2b7fd6; }
