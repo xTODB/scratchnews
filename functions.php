@@ -2278,6 +2278,30 @@ function getArticlesByUser(int $userId): array {
     return $rows;
 }
 
+// Paginated, published-only version of getArticlesByUser() - powers the "Add
+// Article" popup on a group's Articles tab (load-more style, see
+// getPublishedArticlesByUserPaginated()'s caller in my-articles-ajax.php).
+function getPublishedArticlesByUserPaginated(int $userId, int $offset, int $limit): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id, title, image_url FROM articles WHERE user_id = ? AND status = 'published' ORDER BY created_at DESC LIMIT ? OFFSET ?");
+    $stmt->bind_param('iii', $userId, $limit, $offset);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function countPublishedArticlesByUser(int $userId): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) FROM articles WHERE user_id = ? AND status = 'published'");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+    return (int)$count;
+}
+
 function deleteUserAccount(int $userId): bool {
     $db = getDB();
     $db->begin_transaction();
@@ -5370,8 +5394,18 @@ function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?stri
 // Uses the group_articles join table - see groups-schema.sql addition, run manually
 // via phpMyAdmin like the rest of the Groups schema.
 
-function canAttachArticleToGroup(?string $role): bool {
-    return $role !== null; // any group member, including host/manager
+function canAttachArticleToGroup(?string $role, string $articlePolicy = 'members', bool $loggedIn = false): bool {
+    if ($role !== null) return true; // any group member, including host/manager
+    return $articlePolicy === 'everyone' && $loggedIn; // policy opened up to any logged-in user
+}
+
+function setGroupArticlePolicy(int $groupId, string $policy): void {
+    if (!in_array($policy, ['everyone', 'members'], true)) return;
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE `groups` SET article_policy = ? WHERE id = ?");
+    $stmt->bind_param('si', $policy, $groupId);
+    $stmt->execute();
+    $stmt->close();
 }
 
 function isArticleAttachedToGroup(int $groupId, int $articleId): bool {

@@ -158,6 +158,19 @@ form textarea { min-height: 200px; resize: vertical; }
     display: inline-block;
 }
 
+/* Group Articles tab - "Add Article" popup listing the current user's own
+   published articles to pick from (0.25.1). */
+.group-add-article-panel {
+    margin-top: 0.6rem; padding: 0.8rem; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;
+}
+.group-add-article-row {
+    display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(128,128,128,0.15);
+}
+.group-add-article-row:last-child { border-bottom: none; }
+.group-add-article-row .search-result-thumb { width: 48px; height: 36px; }
+.group-add-article-title { flex: 1; font-weight: 600; }
+
 .btn {
     display: inline-flex; align-items: center; justify-content: center;
     margin-top: 1.2rem; padding: 0; height: 44px; width: 160px;

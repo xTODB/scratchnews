@@ -87,13 +87,23 @@ if ($action === 'post_comment') {
     groupRedirect($slug, '', '', $anchor);
 
 } elseif ($action === 'attach_article') {
-    if (!canAttachArticleToGroup($myRole)) groupRedirect($slug, 'Only members can attach articles to this group.');
+    if (!canAttachArticleToGroup($myRole, $group['article_policy'] ?? 'members', true)) {
+        groupRedirect($slug, 'Only members can attach articles to this group.');
+    }
     $raw = trim($_POST['article_ref'] ?? '');
-    $articleId = preg_match('~/article/(\d+)~', $raw, $m) ? (int)$m[1] : (int)$raw;
+    // Full article link required - no bare ID (roadmap 0.25.1: "article ADDITION,
+    // that requires full link, not ID").
+    $articleId = preg_match('~/article/(\d+)~', $raw, $m) ? (int)$m[1] : 0;
     $article = $articleId > 0 ? getArticleById($articleId) : null;
-    if (!$article || $article['status'] !== 'published') groupRedirect($slug, 'Article not found - paste the article link or its ID.');
+    if (!$article || $article['status'] !== 'published') groupRedirect($slug, 'Article not found - paste the full article link.');
     $result = attachArticleToGroup($groupId, $articleId, $myId);
     groupRedirect($slug, $result['ok'] ? '' : $result['reason'], $result['ok'] ? 'Article attached.' : '');
+
+} elseif ($action === 'set_article_policy') {
+    if (!($myRole === 'host' || $isSiteMod)) groupRedirect($slug, 'Only the host can change this.');
+    $policy = ($_POST['policy'] ?? '') === 'everyone' ? 'everyone' : 'members';
+    setGroupArticlePolicy($groupId, $policy);
+    groupRedirect($slug);
 
 } elseif ($action === 'detach_article') {
     $articleId = (int)($_POST['article_id'] ?? 0);

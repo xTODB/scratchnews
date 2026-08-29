@@ -30,7 +30,7 @@ $commentTree = buildCommentTree($comments);
 $canComment = canCommentOnGroup($group, $myId ?: null);
 $canPostImage = canPostImageInGroup($myRole);
 $groupArticles = getGroupArticles((int)$group['id']);
-$canAttachArticle = canAttachArticleToGroup($myRole);
+$canAttachArticle = canAttachArticleToGroup($myRole, $group['article_policy'] ?? 'members', (bool)$myId);
 $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((int)$group['id'], $myId) : null;
 $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupRequestForGroup((int)$group['id']) : null;
 $publicInvite = getPublicGroupInviteLink((int)$group['id']);
@@ -48,7 +48,7 @@ if ($myRole) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title><?= e($group['name']) ?> - Groups - <?= e(SITE_NAME) ?></title>
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="stylesheet" href="/assets/style.css?v=25">
 <style>
 .group-header-banner { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; }
 .group-header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.6rem; margin: 0.8rem 0; }
@@ -104,6 +104,13 @@ if ($myRole) {
             <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
             <input type="hidden" name="policy" value="<?= $group['comment_policy'] === 'everyone' ? 'members' : 'everyone' ?>">
             <button class="btn secondary inline" type="submit">Comments: <?= $group['comment_policy'] === 'everyone' ? 'Everyone' : 'Members only' ?></button>
+        </form>
+        <form method="post" action="/group-action" class="group-toggle-form" onsubmit="return confirm('Toggle who can attach articles to this group?');">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="set_article_policy">
+            <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+            <input type="hidden" name="policy" value="<?= ($group['article_policy'] ?? 'members') === 'everyone' ? 'members' : 'everyone' ?>">
+            <button class="btn secondary inline" type="submit">Article adding: <?= ($group['article_policy'] ?? 'members') === 'everyone' ? 'Everyone' : 'Members only' ?></button>
         </form>
         <?php endif; ?>
         </div>
@@ -184,9 +191,15 @@ if ($myRole) {
             <?= csrfField() ?>
             <input type="hidden" name="action" value="attach_article">
             <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
-            <input type="text" name="article_ref" placeholder="Article link or ID" required>
+            <input type="text" name="article_ref" placeholder="Full article link" required>
             <button class="btn inline" type="submit">Attach</button>
+            <button class="btn secondary inline" type="button" id="groupAddArticleBtn">Add Article</button>
         </form>
+        <div id="groupAddArticlePanel" class="group-add-article-panel" style="display:none;">
+            <div id="groupAddArticleList"></div>
+            <p id="groupAddArticleEmpty" style="display:none;">You don't have any published articles yet.</p>
+            <button class="btn secondary inline" type="button" id="groupAddArticleLoadMore" style="display:none;">Load more</button>
+        </div>
         <?php endif; ?>
         <div class="search-results-list">
             <?php foreach ($groupArticles as $ga): ?>
@@ -396,6 +409,90 @@ function showGroupTab(name, el) {
             status.textContent = 'Invite failed. Please try again.';
         });
     });
+})();
+(function() {
+    var openBtn = document.getElementById('groupAddArticleBtn');
+    if (!openBtn) return;
+    var panel = document.getElementById('groupAddArticlePanel');
+    var list = document.getElementById('groupAddArticleList');
+    var emptyMsg = document.getElementById('groupAddArticleEmpty');
+    var loadMoreBtn = document.getElementById('groupAddArticleLoadMore');
+    var groupId = <?= (int)$group['id'] ?>;
+    var csrfToken = document.getElementById('groupAddArticleBtn').closest('form').querySelector('input[name="csrf_token"]').value;
+    var offset = 0;
+    var loaded = false;
+
+    function renderArticle(a) {
+        var row = document.createElement('div');
+        row.className = 'group-add-article-row';
+        var thumb = a.image_url
+            ? '<img src="' + a.image_url + '" alt="" class="search-result-thumb">'
+            : '<div class="search-result-thumb search-result-thumb-placeholder"></div>';
+        row.innerHTML = thumb + '<span class="group-add-article-title"></span>';
+        row.querySelector('.group-add-article-title').textContent = a.title;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn inline';
+        if (a.already_attached) {
+            btn.textContent = 'Added';
+            btn.disabled = true;
+        } else {
+            btn.textContent = 'Add';
+            btn.addEventListener('click', function() {
+                btn.disabled = true;
+                btn.textContent = 'Adding...';
+                fetch('/group-articles-ajax.php', {
+                    method: 'POST',
+                    body: new URLSearchParams({ csrf_token: csrfToken, group_id: groupId, op: 'add', article_id: a.id })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        btn.textContent = 'Added';
+                        window.location.reload();
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = data.error || 'Failed';
+                    }
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    btn.textContent = 'Failed';
+                });
+            });
+        }
+        row.appendChild(btn);
+        list.appendChild(row);
+    }
+
+    function loadPage() {
+        loadMoreBtn.disabled = true;
+        fetch('/group-articles-ajax.php', {
+            method: 'POST',
+            body: new URLSearchParams({ csrf_token: csrfToken, group_id: groupId, op: 'list', offset: offset })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loadMoreBtn.disabled = false;
+            if (!data.success) return;
+            if (offset === 0 && data.articles.length === 0) {
+                emptyMsg.style.display = '';
+            }
+            data.articles.forEach(renderArticle);
+            offset += data.articles.length;
+            loadMoreBtn.style.display = data.has_more ? '' : 'none';
+        });
+    }
+
+    openBtn.addEventListener('click', function() {
+        var opening = panel.style.display === 'none';
+        panel.style.display = opening ? '' : 'none';
+        if (opening && !loaded) {
+            loaded = true;
+            loadPage();
+        }
+    });
+    loadMoreBtn.addEventListener('click', loadPage);
 })();
 </script>
 </body>
