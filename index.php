@@ -154,9 +154,12 @@ function renderProfilesRow(array $users): void {
         <p>No articles yet. Log in to the <a href="/login/">login panel</a> to publish the first one.</p>
     <?php else: ?>
         <?php
-            $heroBig = $articles[0];
-            $heroSmall = array_slice($articles, 1, 2);
-            $heroList = array_slice($articles, 3, 2);
+            // v0.25.2: hero section (5 articles) now uses trending metrics +
+            // 5-like gate instead of pure recency - see getTrendingHeroArticles().
+            $heroSource = getTrendingHeroArticles(5);
+            $heroBig = $heroSource[0] ?? $articles[0];
+            $heroSmall = array_slice($heroSource, 1, 2);
+            $heroList = array_slice($heroSource, 3, 2);
             $latestRow = array_slice($articles, 0, 20);
             $heroTag = function (array $a): ?string {
                 $cats = getArticleCategories((int)$a['id']);

@@ -2953,6 +2953,42 @@ function deleteUploadedImage(?string $url): void {
     }
 }
 
+// v0.25.2: Powers the homepage's 5-article hero section. Reuses the exact
+// same trend formula as Explore's "Metrics (default)" sort
+// (getExploreArticles()'s $trendExpr) so "trending" means the same thing
+// sitewide, gated to articles with 5+ likes per TODB's spec. Falls back to
+// getAllArticles()-style recency if fewer than $limit qualify (shouldn't
+// happen in practice - site has 20+ qualifying articles - but keeps the
+// hero section from ever coming up short).
+function getTrendingHeroArticles(int $limit = 5): array {
+    $db = getDB();
+    $likeExpr = "(SELECT COUNT(*) FROM likes l WHERE l.article_id = a.id)";
+    $commentExpr = "(SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id)";
+    $trendExpr = "(a.views + $likeExpr*3 + $commentExpr*4) / POWER(TIMESTAMPDIFF(HOUR, a.created_at, NOW()) + 2, 1.5)";
+    $stmt = $db->prepare(
+        "SELECT a.* FROM articles a
+         WHERE a.status = 'published' AND $likeExpr >= 5
+         ORDER BY $trendExpr DESC, a.created_at DESC
+         LIMIT ?"
+    );
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    if (count($rows) < $limit) {
+        $existingIds = array_column($rows, 'id');
+        $need = $limit - count($rows);
+        $exclude = $existingIds ? implode(',', array_map('intval', $existingIds)) : '0';
+        $fallback = $db->query(
+            "SELECT * FROM articles WHERE status = 'published' AND id NOT IN ($exclude)
+             ORDER BY created_at DESC LIMIT $need"
+        );
+        $rows = array_merge($rows, $fallback->fetch_all(MYSQLI_ASSOC));
+    }
+    return $rows;
+}
+
 function getPopularArticles(int $limit = 12): array {
     $db = getDB();
     $stmt = $db->prepare(
