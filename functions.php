@@ -3872,6 +3872,32 @@ function changeUsername(int $userId, string $newUsername): string {
     }
 }
 
+// Admin-only variant: same format/uniqueness rules as changeUsername(), but skips
+// the 7-day cooldown check (canChangeUsername()) since a mod/admin is doing this
+// on the user's behalf, not the user self-serving a rename. Still stamps
+// last_username_change so the user's own 7-day clock restarts from this change,
+// same as a normal self-service rename would.
+function adminChangeUsername(int $userId, string $newUsername): string {
+    $newUsername = trim($newUsername);
+    if (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $newUsername)) return 'invalid';
+
+    $user = getUserById($userId);
+    if (!$user) return 'invalid';
+    if (strcasecmp($user['username'], $newUsername) === 0) return 'unchanged';
+
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("UPDATE users SET username = ?, last_username_change = NOW() WHERE id = ?");
+        $stmt->bind_param('si', $newUsername, $userId);
+        $stmt->execute();
+        $stmt->close();
+        return 'ok';
+    } catch (mysqli_sql_exception $e) {
+        if (str_contains($e->getMessage(), 'Duplicate')) return 'duplicate';
+        throw $e;
+    }
+}
+
 // ---- Saved articles ----
 function isArticleSaved(int $articleId, int $userId): bool {
     $db = getDB();

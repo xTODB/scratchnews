@@ -34,6 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             changePassword($userId, $newPassword);
             $message = 'Password reset for that user.';
         }
+    } elseif ($userId > 0 && $action === 'change_username') {
+        $newUsername = trim($_POST['new_username'] ?? '');
+        $result = adminChangeUsername($userId, $newUsername);
+        if ($result === 'ok') {
+            $message = 'Username changed.';
+        } elseif ($result === 'duplicate') {
+            $message = 'That username is already taken.';
+        } elseif ($result === 'unchanged') {
+            $message = 'That\'s already their username.';
+        } else {
+            $message = 'Usernames must be 3-20 characters: letters, numbers, underscores only.';
+        }
     }
 }
 
@@ -101,6 +113,14 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                         <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                         <input type="hidden" name="action" value="reset_password">
                         <input type="hidden" name="new_password" id="resetpw<?= (int)$u['id'] ?>_input" value="">
+                    </form>
+                    &middot;
+                    <a href="#" onclick="var p=prompt('New username for @<?= e($u['username']) ?> (3-20 chars, letters/numbers/underscore):'); if(p===null) return false; document.getElementById('chuser<?= (int)$u['id'] ?>_input').value=p; document.getElementById('chuser<?= (int)$u['id'] ?>').submit(); return false;">Change Username</a>
+                    <form id="chuser<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                        <input type="hidden" name="action" value="change_username">
+                        <input type="hidden" name="new_username" id="chuser<?= (int)$u['id'] ?>_input" value="">
                     </form>
                     <?php if (!$u['is_admin']): ?>
                         &middot;
