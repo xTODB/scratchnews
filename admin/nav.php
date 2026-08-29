@@ -9,6 +9,7 @@
             <a href="/admin/users">Users</a>
             <a href="/admin/visits">Visitor Log</a>
             <a href="/admin/submissions">Submissions<?php $c = getPendingSubmissionsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
+            <a href="/admin/review-log">Review Log</a>
             <a href="/admin/feedback">Feedback<?php $c = getPendingFeedbackCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/reports">Reports<?php $c = getPendingReportsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/move">Move Content</a>

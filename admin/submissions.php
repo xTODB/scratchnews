@@ -16,11 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($submissionId > 0 && in_array($action, ['approve', 'reject'])) {
+        $reviewerId = (int)($_SESSION['reader_id'] ?? 0);
         if ($action === 'approve') {
-            approveSubmission($submissionId);
+            approveSubmission($submissionId, $reviewerId);
             $message = 'Submission approved and published.';
         } else {
-            rejectSubmission($submissionId, $_POST['rejection_reason'] ?? null);
+            rejectSubmission($submissionId, $_POST['rejection_reason'] ?? null, $reviewerId);
             $message = 'Submission rejected.';
         }
     }

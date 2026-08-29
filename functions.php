@@ -2430,9 +2430,10 @@ function getPendingSubmissions() {
 function getSubmissionById($id) {
     $db = getDB();
     $stmt = $db->prepare("
-        SELECT submissions.*, users.username, users.email
+        SELECT submissions.*, users.username, users.email, reviewer.username AS reviewer_username
         FROM submissions
         JOIN users ON submissions.user_id = users.id
+        LEFT JOIN users AS reviewer ON submissions.reviewed_by = reviewer.id
         WHERE submissions.id = ?
     ");
     $stmt->bind_param("i", $id);
@@ -2443,7 +2444,7 @@ function getSubmissionById($id) {
     return $submission ?: null;
 }
 
-function approveSubmission($id) {
+function approveSubmission($id, ?int $reviewerId = null) {
     $db = getDB();
     $submission = getSubmissionById($id);
     if (!$submission || $submission['status'] !== 'pending') {
@@ -2479,8 +2480,8 @@ function approveSubmission($id) {
         notifyPushSubscribersOfNewArticle($articleId, $submission['title'], getSubmissionCategoryIds($id));
     }
 
-    $stmt = $db->prepare("UPDATE submissions SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
-    $stmt->bind_param("i", $id);
+    $stmt = $db->prepare("UPDATE submissions SET status = 'approved', reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
+    $stmt->bind_param("ii", $reviewerId, $id);
     $stmt->execute();
     $stmt->close();
 
@@ -2494,7 +2495,7 @@ function approveSubmission($id) {
     return true;
 }
 
-function rejectSubmission($id, ?string $reason = null) {
+function rejectSubmission($id, ?string $reason = null, ?int $reviewerId = null) {
     $db = getDB();
     $submission = getSubmissionById($id);
     if (!$submission || $submission['status'] !== 'pending') {
@@ -2503,8 +2504,8 @@ function rejectSubmission($id, ?string $reason = null) {
 
     $reason = ($reason !== null && trim($reason) !== '') ? trim($reason) : null;
 
-    $stmt = $db->prepare("UPDATE submissions SET status = 'rejected', reviewed_at = NOW(), rejection_reason = ? WHERE id = ?");
-    $stmt->bind_param("si", $reason, $id);
+    $stmt = $db->prepare("UPDATE submissions SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, rejection_reason = ? WHERE id = ?");
+    $stmt->bind_param("isi", $reviewerId, $reason, $id);
     $stmt->execute();
     $stmt->close();
 
@@ -4232,6 +4233,30 @@ function getPendingReportsCount(): int {
     $db = getDB();
     $result = $db->query("SELECT COUNT(*) AS cnt FROM comment_reports WHERE status = 'pending'");
     return (int)($result->fetch_assoc()['cnt'] ?? 0);
+}
+
+function getReviewedSubmissions(int $limit = 100): array {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT submissions.id, submissions.title, submissions.status, submissions.reviewed_at,
+               submissions.rejection_reason, users.username AS submitter_username,
+               reviewer.username AS reviewer_username
+        FROM submissions
+        JOIN users ON submissions.user_id = users.id
+        LEFT JOIN users AS reviewer ON submissions.reviewed_by = reviewer.id
+        WHERE submissions.status IN ('approved', 'rejected')
+        ORDER BY submissions.reviewed_at DESC
+        LIMIT ?
+    ");
+    $stmt->bind_param("i", $limit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = [];
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    $stmt->close();
+    return $rows;
 }
 
 function getPendingSubmissionsCount(): int {

@@ -16,11 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($action, ['approve', 'reject'], true)) {
         $submissionId = (int)($_POST['submission_id'] ?? 0);
         if ($submissionId > 0) {
+            $reviewerId = (int)($_SESSION['reader_id'] ?? 0);
             if ($action === 'approve') {
-                approveSubmission($submissionId);
+                approveSubmission($submissionId, $reviewerId);
                 $message = 'Submission approved and published.';
             } else {
-                rejectSubmission($submissionId, $_POST['rejection_reason'] ?? null);
+                rejectSubmission($submissionId, $_POST['rejection_reason'] ?? null, $reviewerId);
                 $message = 'Submission rejected.';
             }
         }
@@ -111,6 +112,7 @@ $pendingGroupRequests = getPendingGroupRequests();
 <main>
     <h2>Moderator Panel</h2>
     <a href="/moderator-guidelines.php" class="btn secondary">Moderator Guidelines</a>
+    <a href="/admin/review-log" class="btn secondary">Review Log</a>
     <br><br>
     <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
 
