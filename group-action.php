@@ -108,6 +108,12 @@ if ($action === 'post_comment') {
     $result = inviteUserToGroup($groupId, $myId, (int)$target['id']);
     groupRedirect($slug, $result['ok'] ? '' : $result['reason'], $result['ok'] ? 'Invite sent to @' . $target['username'] . '.' : '');
 
+} elseif ($action === 'set_group_notifications') {
+    if (!$myRole) groupRedirect($slug, 'You must be a member to change this.');
+    $enabled = !empty($_POST['enabled']);
+    setGroupMemberNotificationPreference($groupId, $myId, $enabled);
+    groupRedirect($slug, '', $enabled ? 'Notifications turned on for this group.' : 'Notifications turned off for this group.');
+
 } elseif ($action === 'generate_invite_link') {
     if (!($myRole === 'host' || $myRole === 'manager' || $isSiteMod)) groupRedirect($slug, 'Only the host or managers can generate invite links.');
     $code = createGroupInviteLink($groupId, $myId);

@@ -34,6 +34,12 @@ $canAttachArticle = canAttachArticleToGroup($myRole);
 $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((int)$group['id'], $myId) : null;
 $myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupRequestForGroup((int)$group['id']) : null;
 $publicInvite = getPublicGroupInviteLink((int)$group['id']);
+$myMemberRow = null;
+if ($myRole) {
+    foreach ($members as $m) {
+        if ((int)$m['user_id'] === $myId) { $myMemberRow = $m; break; }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -81,6 +87,16 @@ $publicInvite = getPublicGroupInviteLink((int)$group['id']);
             <h2 style="margin-bottom:0.2rem;"><?= e($group['name']) ?></h2>
             <div class="group-header-meta"><?= (int)$memberCount ?> member<?= $memberCount === 1 ? '' : 's' ?> · hosted by @<?= e($group['host_username']) ?></div>
         </div>
+        <div class="group-header-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <?php if ($myRole): ?>
+        <form method="post" action="/group-action" class="group-toggle-form">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="set_group_notifications">
+            <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
+            <input type="hidden" name="enabled" value="<?= !empty($myMemberRow['notifications_enabled']) ? '0' : '1' ?>">
+            <button class="btn secondary inline" type="submit">Notifications: <?= !empty($myMemberRow['notifications_enabled']) ? 'On' : 'Off' ?></button>
+        </form>
+        <?php endif; ?>
         <?php if ($myRole && ($myRole === 'host' || $isSiteMod)): ?>
         <form method="post" action="/group-action" class="group-toggle-form" onsubmit="return confirm('Toggle the comment policy for this group?');">
             <?= csrfField() ?>
@@ -90,6 +106,7 @@ $publicInvite = getPublicGroupInviteLink((int)$group['id']);
             <button class="btn secondary inline" type="submit">Comments: <?= $group['comment_policy'] === 'everyone' ? 'Everyone' : 'Members only' ?></button>
         </form>
         <?php endif; ?>
+        </div>
     </div>
     <?php if ($group['description']): ?><p><?= nl2br(e($group['description'])) ?></p><?php endif; ?>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>

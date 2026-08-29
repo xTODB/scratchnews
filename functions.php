@@ -4833,6 +4833,18 @@ function getGroupMemberRole(int $groupId, int $userId): ?string {
     return $found ? $role : null;
 }
 
+// Per-group opt-out, separate from the site-wide group_activity_notifs preference on
+// users - both are checked in notifyGroupMembers(). Any member can toggle their own;
+// no role requirement, unlike set_comment_policy/etc.
+function setGroupMemberNotificationPreference(int $groupId, int $userId, bool $enabled): void {
+    $db = getDB();
+    $val = $enabled ? 1 : 0;
+    $stmt = $db->prepare("UPDATE group_members SET notifications_enabled = ? WHERE group_id = ? AND user_id = ?");
+    $stmt->bind_param('iii', $val, $groupId, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
 function getGroupMembers(int $groupId): array {
     $db = getDB();
     $stmt = $db->prepare(
@@ -4870,7 +4882,7 @@ function notifyGroupMembers(int $groupId, string $type, int $excludeUserId, ?str
     foreach (getGroupMembers($groupId) as $m) {
         $memberId = (int)$m['user_id'];
         if ($memberId === $excludeUserId) continue;
-        if (empty($m['group_activity_notifs'])) continue;
+        if (empty($m['group_activity_notifs']) || empty($m['notifications_enabled'])) continue;
         createNotification($memberId, $type, $excludeUserId, $link, $message);
     }
 }
