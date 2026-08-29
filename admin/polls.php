@@ -61,7 +61,7 @@ unset($p);
 <main>
     <h2>Polls</h2>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
-    <p>Poll options can't be edited after creation - delete and recreate the poll if the options need to change. Weight works the same as banner priority weight: they share one pool, higher number = shown more often. Vote results are on the <a href="/moderator">Moderator Panel</a>.</p>
+    <p>Poll options can't be edited after creation - delete and recreate the poll if the options need to change. Weight works the same as banner priority weight: they share one pool, higher number = shown more often. Vote results are on the <a href="/moderator/polls">Moderator Panel's Polls page</a>.</p>
 
     <div class="poll-admin-list">
         <?php foreach ($polls as $p): ?>
