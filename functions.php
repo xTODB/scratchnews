@@ -1494,6 +1494,18 @@ function setAutocolorLinksPreference(int $userId, bool $enabled): void {
     $stmt->close();
 }
 
+// Gates group_member_joined / group_member_promoted / group_new_comment notifications
+// only (the three types fanned out by notifyGroupMembers()) - does not affect
+// group_invite, which is a direct one-to-one notification, not group activity.
+function setGroupActivityNotifsPreference(int $userId, bool $enabled): void {
+    $db = getDB();
+    $val = $enabled ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET group_activity_notifs = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
 // ---- Article translation (MyMemory, no signup/billing required - chosen because
 // TODB is a minor and can't use anything needing a credit card). Free tier is
 // rate-limited (5000 words/day tracked by IP, or 50000/day if a contact email is
@@ -4824,7 +4836,7 @@ function getGroupMemberRole(int $groupId, int $userId): ?string {
 function getGroupMembers(int $groupId): array {
     $db = getDB();
     $stmt = $db->prepare(
-        "SELECT gm.*, u.username, u.avatar_url FROM group_members gm JOIN users u ON u.id = gm.user_id
+        "SELECT gm.*, u.username, u.avatar_url, u.group_activity_notifs FROM group_members gm JOIN users u ON u.id = gm.user_id
          WHERE gm.group_id = ?
          ORDER BY FIELD(gm.role, 'host', 'manager', 'member'), gm.joined_at ASC"
     );
@@ -4858,6 +4870,7 @@ function notifyGroupMembers(int $groupId, string $type, int $excludeUserId, ?str
     foreach (getGroupMembers($groupId) as $m) {
         $memberId = (int)$m['user_id'];
         if ($memberId === $excludeUserId) continue;
+        if (empty($m['group_activity_notifs'])) continue;
         createNotification($memberId, $type, $excludeUserId, $link, $message);
     }
 }

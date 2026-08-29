@@ -42,6 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user['autosave_enabled'] = $enabled ? 1 : 0;
         $user['autosave_interval'] = $interval;
         $message = 'Auto-save preference saved.';
+    } elseif ($action === 'toggle_group_activity_notifs') {
+        $enabled = !empty($_POST['group_activity_notifs']);
+        setGroupActivityNotifsPreference($user['id'], $enabled);
+        $user['group_activity_notifs'] = $enabled ? 1 : 0;
+        $message = 'Group activity notification preference saved.';
     } elseif ($action === 'toggle_autocolor_links') {
         $enabled = !empty($_POST['autocolor_links']);
         setAutocolorLinksPreference($user['id'], $enabled);
@@ -148,6 +153,17 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                     </div>
                     <a href="/@<?= e($user['username']) ?>" class="btn secondary">View Profile</a>
                 </div>
+                <form method="post" class="settings-row" style="border:none;">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="toggle_group_activity_notifs">
+                    <div>
+                        <div class="settings-label">Group Activity Notifications</div>
+                        <div class="settings-sub">Get notified when someone joins, gets promoted, or comments in a group you're in.</div>
+                    </div>
+                    <button type="submit" name="group_activity_notifs" value="<?= !empty($user['group_activity_notifs']) ? '0' : '1' ?>" class="btn">
+                        <?= !empty($user['group_activity_notifs']) ? 'Turn Off' : 'Turn On' ?>
+                    </button>
+                </form>
                 <p class="settings-sub" style="margin-top:1rem;">More general settings are coming soon.</p>
 
             <?php elseif ($activeTab === 'customization'): ?>
