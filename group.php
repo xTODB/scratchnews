@@ -59,6 +59,10 @@ $publicInvite = getPublicGroupInviteLink((int)$group['id']);
 .group-role-tag { font-size: 0.75rem; opacity: 0.75; text-transform: capitalize; }
 .group-member-actions form { display: inline; }
 .group-invite-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.invite-status { font-size: 0.85rem; font-weight: 600; }
+.invite-status.loading { color: #2f7fd6; }
+.invite-status.success { color: #2a8a4a; }
+.invite-status.error { color: #a33; }
 .group-invite-row { border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .group-toggle-form { margin: 0; background: none; padding: 0; border-radius: 0; box-shadow: none; max-width: none; }
 .group-article-row { margin-bottom: 1rem; }
@@ -268,12 +272,13 @@ $publicInvite = getPublicGroupInviteLink((int)$group['id']);
     <?php if ($myRole): ?>
     <div id="group-tab-invite" class="group-tab-panel">
         <p>Invite a ScratchNews user you follow, or who follows you<?= $isSiteMod ? ' (moderators can invite anyone)' : '' ?>.</p>
-        <form method="post" action="/group-action" class="group-invite-form">
+        <form method="post" action="/group-action" class="group-invite-form" id="groupInviteUserForm">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="invite_user">
             <input type="hidden" name="group_id" value="<?= (int)$group['id'] ?>">
             <input type="text" name="username" placeholder="Username" required>
-            <button class="btn inline" type="submit">Invite</button>
+            <button class="btn inline" type="submit" id="groupInviteUserBtn">Invite</button>
+            <span id="groupInviteUserStatus" class="invite-status"></span>
         </form>
         <?php if ($myRole === 'host' || $myRole === 'manager' || $isSiteMod): ?>
         <form method="post" action="/group-action">
@@ -342,6 +347,39 @@ function showGroupTab(name, el) {
     document.getElementById('group-tab-' + name).classList.add('active');
     el.classList.add('active');
 }
+(function() {
+    var form = document.getElementById('groupInviteUserForm');
+    if (!form) return;
+    var btn = document.getElementById('groupInviteUserBtn');
+    var status = document.getElementById('groupInviteUserStatus');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        btn.disabled = true;
+        status.className = 'invite-status loading';
+        status.textContent = 'Loading invite...';
+        fetch('/invite-user-ajax.php', {
+            method: 'POST',
+            body: new URLSearchParams(new FormData(form))
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            if (data.success) {
+                status.className = 'invite-status success';
+                status.textContent = 'Invite Sent!';
+                form.querySelector('input[name="username"]').value = '';
+            } else {
+                status.className = 'invite-status error';
+                status.textContent = data.error || 'Invite failed.';
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            status.className = 'invite-status error';
+            status.textContent = 'Invite failed. Please try again.';
+        });
+    });
+})();
 </script>
 </body>
 </html>
