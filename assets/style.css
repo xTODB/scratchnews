@@ -1003,6 +1003,7 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .rank-badge.rank-featured-writer { background: #0022ff; }
 .rank-badge.rank-fan { background: #8000ff; }
 .rank-badge.rank-moderator { background: #ff00d0; }
+.rank-badge.rank-head-moderator { background: linear-gradient(135deg, #ed0e37, #d90b45); }
 .rank-badge.rank-dev { background: linear-gradient(135deg, #ff0000, #910101); }
 /* v0.23 Beta share rank badge + share-click count badge */
 .rank-badge-share { background: none; padding: 0; display: inline-flex; align-items: center; }
