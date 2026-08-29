@@ -16,12 +16,13 @@ $myId = (int)$_SESSION['reader_id'];
 $isSiteMod = !empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator']);
 $action = $_POST['action'] ?? '';
 
-function groupRedirect(string $slug, string $error = '', string $notice = ''): void {
+function groupRedirect(string $slug, string $error = '', string $notice = '', string $anchor = ''): void {
     $url = '/group/' . $slug;
     $params = [];
     if ($error !== '') $params['error'] = $error;
     if ($notice !== '') $params['notice'] = $notice;
     if ($params) $url .= '?' . http_build_query($params);
+    if ($anchor !== '') $url .= '#' . $anchor;
     header('Location: ' . $url);
     exit;
 }
@@ -70,16 +71,20 @@ if ($action === 'post_comment') {
         $parentComment = getGroupCommentById($parentId);
         if (!$parentComment || (int)$parentComment['group_id'] !== $groupId) $parentId = null;
     }
-    addGroupComment($groupId, $myId, $content, $imageUrl, $parentId);
-    groupRedirect($slug);
+    $newId = addGroupComment($groupId, $myId, $content, $imageUrl, $parentId);
+    groupRedirect($slug, '', '', $newId ? 'comment-' . $newId : '');
 
 } elseif ($action === 'delete_comment') {
     $commentId = (int)($_POST['comment_id'] ?? 0);
     $gc = getGroupCommentById($commentId);
+    $anchor = '';
     if ($gc && ($isSiteMod || $myRole === 'host' || (int)$gc['user_id'] === $myId)) {
+        // The comment itself won't exist to anchor to once deleted, so fall back
+        // to its parent (if it had one).
+        if (!empty($gc['parent_comment_id'])) $anchor = 'comment-' . (int)$gc['parent_comment_id'];
         adminDeleteGroupComment($commentId);
     }
-    groupRedirect($slug);
+    groupRedirect($slug, '', '', $anchor);
 
 } elseif ($action === 'attach_article') {
     if (!canAttachArticleToGroup($myRole)) groupRedirect($slug, 'Only members can attach articles to this group.');
