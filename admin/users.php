@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($userId > 0 && in_array($action, ['make_moderator', 'unmake_moderator'])) {
         setUserModerator($userId, $action === 'make_moderator');
         $message = $action === 'make_moderator' ? 'Moderator rank granted.' : 'Moderator rank removed.';
+    } elseif ($userId > 0 && in_array($action, ['make_head_moderator', 'unmake_head_moderator'])) {
+        setUserHeadModerator($userId, $action === 'make_head_moderator');
+        $message = $action === 'make_head_moderator' ? 'Head Moderator rank granted (Moderator rank included).' : 'Head Moderator rank removed.';
     } elseif ($userId > 0 && $action === 'reset_password') {
         $newPassword = $_POST['new_password'] ?? '';
         if (strlen($newPassword) < 6) {
@@ -104,6 +107,18 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                             <?= csrfField() ?>
                             <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                             <input type="hidden" name="action" value="unmake_moderator">
+                        </form>
+                        &middot;
+                        <a href="#" onclick="document.getElementById('<?= $u['is_head_moderator'] ? 'unheadmod' : 'headmod' ?><?= (int)$u['id'] ?>').submit(); return false;"><?= $u['is_head_moderator'] ? 'Remove Head Mod' : 'Make Head Mod' ?></a>
+                        <form id="headmod<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="make_head_moderator">
+                        </form>
+                        <form id="unheadmod<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="unmake_head_moderator">
                         </form>
                     </div>
                 </td>
