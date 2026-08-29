@@ -23,6 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($userId > 0 && in_array($action, ['make_fan', 'unmake_fan'])) {
         setUserFan($userId, $action === 'make_fan');
         $message = $action === 'make_fan' ? 'Fan rank granted.' : 'Fan rank removed.';
+    } elseif ($userId > 0 && in_array($action, ['make_featured_user', 'unmake_featured_user'])) {
+        setUserFeaturedUser($userId, $action === 'make_featured_user');
+        $message = $action === 'make_featured_user' ? 'Marked as Featured User - their articles will show on the Featured page.' : 'Featured User status removed.';
     } elseif ($userId > 0 && in_array($action, ['make_moderator', 'unmake_moderator'])) {
         setUserModerator($userId, $action === 'make_moderator');
         $message = $action === 'make_moderator' ? 'Moderator rank granted.' : 'Moderator rank removed.';
@@ -68,7 +71,7 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
     <?php if ($message): ?><div class="alert success"><?= e($message) ?></div><?php endif; ?>
     <div style="overflow-x:auto;">
     <table style="width:auto;">
-        <tr><th>Username</th><th>Email</th><th>IP</th><th>Admin</th><th>Verified</th><th>Ranks</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
+        <tr><th>Username</th><th>Email</th><th>IP</th><th>Admin</th><th>Verified</th><th>Ranks</th><th>Featured</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
         <?php foreach ($users as $u): ?>
             <tr>
                 <td><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a></td>
@@ -103,6 +106,15 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                             <input type="hidden" name="action" value="unmake_moderator">
                         </form>
                     </div>
+                </td>
+                <td>
+                    <?php $isFeaturedUser = (bool)($u['is_featured_user'] ?? 0); ?>
+                    <form method="POST" style="display:inline;padding:0;background:none;box-shadow:none;max-width:none;margin:0;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                        <input type="hidden" name="action" value="<?= $isFeaturedUser ? 'unmake_featured_user' : 'make_featured_user' ?>">
+                        <button type="submit" style="background:none;border:none;cursor:pointer;font-size:1.1em;padding:0;color:<?= $isFeaturedUser ? '#f7931e' : '#ccc' ?>;" title="<?= $isFeaturedUser ? 'Remove Featured User (their articles will drop off the Featured page)' : 'Mark Featured User (all their articles will show on the Featured page)' ?>">&#9733;</button>
+                    </form>
                 </td>
                 <td><?= utcTimeTag($u['created_at']) ?></td>
                 <td><?= $u['is_banned'] ? '<span style="color:#a33; font-weight:600;">Banned</span>' : 'Active' ?></td>

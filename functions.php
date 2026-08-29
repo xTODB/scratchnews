@@ -1020,6 +1020,19 @@ function setUserModerator(int $userId, bool $isModerator): void {
     $stmt->close();
 }
 
+// v0.25.2: Featured Users - admin-granted flag (reuses the same star-toggle
+// pattern as setArticleFeatured()/admin/index.php). All of a featured user's
+// published articles automatically count as Featured (see getFeaturedArticles()
+// and getTrendingHeroArticles() below) - no per-article toggling needed for them.
+function setUserFeaturedUser(int $userId, bool $isFeatured): void {
+    $db = getDB();
+    $val = $isFeatured ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_featured_user = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
 // Returns an ordered list of ['label' => string, 'class' => string] badges for a user.
 // Accepts either a full user row (preferred, avoids an extra query for is_fan/is_moderator)
 // or just a user id.
@@ -2857,7 +2870,7 @@ function isUserBanned($userId) {
 
 function getAllUsers() {
     $db = getDB();
-    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, created_at, ip_address FROM users ORDER BY created_at DESC");
+    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, is_featured_user, created_at, ip_address FROM users ORDER BY created_at DESC");
     $rows = [];
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;
@@ -2960,6 +2973,12 @@ function deleteUploadedImage(?string $url): void {
 // getAllArticles()-style recency if fewer than $limit qualify (shouldn't
 // happen in practice - site has 20+ qualifying articles - but keeps the
 // hero section from ever coming up short).
+// v0.25.2: Powers the homepage's 5-article hero section. Formula (per TODB):
+// articles from Featured Users (admin flag, see setUserFeaturedUser()) with
+// 5+ likes, ordered by the same trend expression Explore's "Metrics
+// (default)" sort uses (views + likes*3 + comments*4, decayed by article
+// age) as a tiebreaker within that pool. Falls back to recent
+// published articles if fewer than $limit qualify.
 function getTrendingHeroArticles(int $limit = 5): array {
     $db = getDB();
     $likeExpr = "(SELECT COUNT(*) FROM likes l WHERE l.article_id = a.id)";
@@ -2967,7 +2986,8 @@ function getTrendingHeroArticles(int $limit = 5): array {
     $trendExpr = "(a.views + $likeExpr*3 + $commentExpr*4) / POWER(TIMESTAMPDIFF(HOUR, a.created_at, NOW()) + 2, 1.5)";
     $stmt = $db->prepare(
         "SELECT a.* FROM articles a
-         WHERE a.status = 'published' AND $likeExpr >= 5
+         JOIN users u ON u.id = a.user_id
+         WHERE a.status = 'published' AND u.is_featured_user = 1 AND $likeExpr >= 5
          ORDER BY $trendExpr DESC, a.created_at DESC
          LIMIT ?"
     );
@@ -3011,12 +3031,18 @@ function getPopularArticles(int $limit = 12): array {
 // Powers the homepage/explore "Featured" row (v0.25). Reuses the is_featured
 // flag added in v0.24.1 for the MaterArc/ScratchStats API partnership - that
 // flag was API-only until now, this is its first on-site use.
+// Powers the homepage/explore "Featured" row (v0.25). Reuses the is_featured
+// flag added in v0.24.1 for the MaterArc/ScratchStats API partnership - that
+// per-article flag still works standalone. v0.25.2: also includes every
+// published article by a Featured User (setUserFeaturedUser()) automatically,
+// so admins don't have to star each of that user's articles individually.
 function getFeaturedArticles(int $limit = 5): array {
     $db = getDB();
     $stmt = $db->prepare(
-        "SELECT * FROM articles
-         WHERE status = 'published' AND is_featured = 1
-         ORDER BY created_at DESC
+        "SELECT a.* FROM articles a
+         LEFT JOIN users u ON u.id = a.user_id
+         WHERE a.status = 'published' AND (a.is_featured = 1 OR u.is_featured_user = 1)
+         ORDER BY a.created_at DESC
          LIMIT ?"
     );
     $stmt->bind_param('i', $limit);
