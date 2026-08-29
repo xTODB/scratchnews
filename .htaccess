@@ -54,6 +54,10 @@ RewriteRule ^group/([a-z0-9-]+)/?$ group.php?slug=$1 [L,QSA]
 RewriteRule ^group-action/?$ group-action.php [L,QSA]
 RewriteRule ^invite/([A-Za-z0-9]+)/?$ invite.php?code=$1 [L,QSA]
 
+# Push notifications (retention idea #3)
+RewriteRule ^notify-preferences/?$ notify-preferences.php [L,QSA]
+RewriteRule ^push-subscribe/?$ push-subscribe.php [L,QSA]
+
 # Clean URLs: admin/ nested pages. Same explicit-hardcoded pattern as above
 # (dynamic -f checks are unreliable on InfinityFree and caused 500s).
 RewriteRule ^admin/banners/?$ admin/banners.php [L,QSA]

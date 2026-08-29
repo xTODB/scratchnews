@@ -24,6 +24,7 @@ if ($maintenance_active) {
 }
 // === rest of functions.php continues below ===
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/webpush.php';
 require_once __DIR__ . '/version.php';
 
 function getAllArticles(bool $includeDrafts = false): array {
@@ -335,6 +336,27 @@ function getLandingPageBreakdown(int $days = 7, int $limit = 15): array {
     $db = getDB();
     $threshold = HEARTBEAT_INTERVAL_SECONDS;
     $stmt = $db->prepare("SELECT landing_page, COUNT(*) AS sessions, SUM(seconds_active <= ?) AS bounced FROM site_sessions WHERE last_seen >= DATE_SUB(NOW(), INTERVAL ? DAY) AND seconds_active > 0 AND landing_page IS NOT NULL GROUP BY landing_page ORDER BY sessions DESC LIMIT ?");
+    $stmt->bind_param('iii', $threshold, $days, $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    foreach ($rows as &$r) {
+        $r['sessions'] = (int)$r['sessions'];
+        $r['bounced'] = (int)$r['bounced'];
+        $r['bounce_rate'] = $r['sessions'] ? round($r['bounced'] / $r['sessions'] * 100, 1) : 0.0;
+    }
+    unset($r);
+    return $rows;
+}
+
+// Bounce rate broken down by site_sessions.source (the `?src=` campaign/referral param
+// already captured on every session) - reveals which promo channels (Discord, YouTube,
+// Scratch, etc.) send higher- or lower-quality traffic. Sessions with no ?src= param
+// group under 'direct'.
+function getBounceRateBySource(int $days = 7, int $limit = 15): array {
+    $db = getDB();
+    $threshold = HEARTBEAT_INTERVAL_SECONDS;
+    $stmt = $db->prepare("SELECT COALESCE(NULLIF(source, ''), 'direct') AS source, COUNT(*) AS sessions, SUM(seconds_active <= ?) AS bounced FROM site_sessions WHERE last_seen >= DATE_SUB(NOW(), INTERVAL ? DAY) AND seconds_active > 0 GROUP BY source ORDER BY sessions DESC LIMIT ?");
     $stmt->bind_param('iii', $threshold, $days, $limit);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -2450,6 +2472,12 @@ function approveSubmission($id) {
     }
 
     setArticleCategories($articleId, getSubmissionCategoryIds($id));
+
+    // Only for genuinely new articles, not resubmission-edits of already-published
+    // ones (those shouldn't re-notify as if they were new).
+    if (!$editingArticleId) {
+        notifyPushSubscribersOfNewArticle($articleId, $submission['title'], getSubmissionCategoryIds($id));
+    }
 
     $stmt = $db->prepare("UPDATE submissions SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
     $stmt->bind_param("i", $id);

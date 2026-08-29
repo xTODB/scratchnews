@@ -30,14 +30,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // If autosave already created this article as a draft row, update that
             // same row instead of inserting a second, duplicate one.
             if ($existingDraftId > 0 && getArticleById($existingDraftId)) {
+                $priorStatus = getArticleById($existingDraftId)['status'] ?? 'draft';
                 updateArticle($existingDraftId, $title, $summary, $content, $author ?: 'TODB', $imageUrl, $status, $userId);
                 $id = $existingDraftId;
             } else {
+                $priorStatus = null; // brand new row, never existed before
                 $id = createArticle($title, $summary, $content, $author ?: 'TODB', $imageUrl, $status, $userId);
             }
             $categoryIds = $_POST['categories'] ?? [];
             if (!empty($categoryIds)) {
                 setArticleCategories($id, $categoryIds);
+            }
+            // Only push-notify the first time an article goes live - not on later edits
+            // to an article that was already published.
+            if ($status === 'published' && $priorStatus !== 'published') {
+                notifyPushSubscribersOfNewArticle($id, $title, $categoryIds);
             }
             header('Location: /login/?created=' . $id);
             exit;

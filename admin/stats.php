@@ -20,6 +20,7 @@ $tos = getTimeOnSiteStats(7);
 $bounce = getBounceRate(7);
 $pageTime = getTimePerPageStats(7);
 $landingPages = getLandingPageBreakdown(7);
+$sourceBounce = getBounceRateBySource(7);
 
 $engagementSeries = [
     'Article views' => getDailyArticleViewCounts($days),
@@ -116,6 +117,23 @@ $engagementSeries = [
         </table>
     <?php else: ?>
         <p style="color:#888;">No landing-page data yet — will populate as new sessions start with this feature live.</p>
+    <?php endif; ?>
+
+    <h3 style="margin-top:1.5rem;">Bounce Rate by Traffic Source (last 7 days)</h3>
+    <p class="chart-caption">Grouped by the site's <code>?src=</code> campaign param (Discord, YouTube, etc.) - sessions with no param show as "direct".</p>
+    <?php if ($sourceBounce): ?>
+        <table style="width:100%; border-collapse:collapse;">
+            <tr><th style="text-align:left;">Source</th><th style="text-align:right;">Sessions</th><th style="text-align:right;">Bounce rate</th></tr>
+            <?php foreach ($sourceBounce as $sb): ?>
+                <tr>
+                    <td><?= e($sb['source']) ?></td>
+                    <td style="text-align:right;"><?= $sb['sessions'] ?></td>
+                    <td style="text-align:right;"><?= $sb['bounce_rate'] ?>%</td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php else: ?>
+        <p style="color:#888;">No session data yet.</p>
     <?php endif; ?>
 
     <div class="chart-block">
