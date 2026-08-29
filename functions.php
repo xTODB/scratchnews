@@ -4369,6 +4369,22 @@ function deleteFeedback(int $id): void {
     $stmt->execute();
     $stmt->close();
 }
+
+// Status tag feature (v0.25.1): admin-settable status on a feedback item -
+// 'added' (green), 'fixed' (blue), 'closed' (indigo), or 'none' to clear it.
+// Setting 'closed' also disables further replies on that feedback (enforced
+// in admin/feedback.php and feedback-thread.php, not here).
+const FEEDBACK_STATUSES = ['none', 'added', 'fixed', 'closed'];
+
+function setFeedbackStatus(int $id, string $status): bool {
+    if (!in_array($status, FEEDBACK_STATUSES, true)) return false;
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE feedback SET status = ? WHERE id = ?");
+    $stmt->bind_param('si', $status, $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
 function getActiveBanners(): array {
     $db = getDB();
     return $db->query("SELECT * FROM banners WHERE is_active = 1 ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
