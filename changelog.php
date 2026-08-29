@@ -16,6 +16,13 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>0.25.1 - QOL changes and features!<br><ul>
+        <li>Toggle to turn off group activity messages in Settings or per individual group.</li>
+        <li>Changed invites for efficiency, no page reaccess when inviting someone (just a message)<li>
+        <li>Included replies, group comments, profile comments and profile replies as comments in statistics and comments by a profile.</li>
+        <li>Added/Fixed/Closed feedback tags</li>
+        <li>Messages and comment actions directly send you to the comment / parent comment after doing the comment action</li>
+        <li>Changed article attachment to addition, added panel to add your articles into a group or via link</li>
     <p>[Aug29] v0.25 - 🥳 BIGGEST. UPDATE. EVER.<br><ul>
         <li>Backups for ScratchNews (just in case)</li>
         <li>Changes to articles: "Featured" article list, minimum 250 words for articles, changed UI for how article and homepage looks<li>
