@@ -1,6 +1,15 @@
 <?php
 require_once __DIR__ . '/../functions.php';
-require_once __DIR__ . '/auth.php';
+startSession();
+
+// v0.25.2: Head Moderators get read access to this page too (part of their
+// panel access grant), not just full admins - everything else in admin/ stays
+// admin-only via auth.php.
+if (empty($_SESSION['is_admin']) && empty($_SESSION['is_head_moderator'])) {
+    header('Location: /login');
+    exit;
+}
+$isAdminUser = !empty($_SESSION['is_admin']);
 
 $days = 30;
 
@@ -39,7 +48,7 @@ $engagementSeries = [
 <link rel="stylesheet" href="/assets/style.css?v=22">
 </head>
 <body class="<?= !empty($_SESSION['dark_mode']) ? 'dark' : '' ?>">
-<?php require_once __DIR__ . '/nav.php'; ?>
+<?php if ($isAdminUser) { require_once __DIR__ . '/nav.php'; } else { $isHeadModerator = true; require_once __DIR__ . '/../moderator/nav.php'; } ?>
 <main>
     <h2>Stats (Admin)</h2>
     <p><a href="/stats.php">View public stats page &rarr;</a></p>
