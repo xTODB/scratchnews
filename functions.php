@@ -1020,6 +1020,22 @@ function setUserModerator(int $userId, bool $isModerator): void {
     $stmt->close();
 }
 
+// v0.25.2: Head Moderator - a promotion layered on top of standard Moderator.
+// Granting it also grants the base is_moderator flag (a Head Mod is always a
+// Moderator too); revoking it leaves the base Moderator flag untouched.
+// Gets its own rank badge/color and extra panel access (see moderator/auth.php).
+function setUserHeadModerator(int $userId, bool $isHeadModerator): void {
+    $db = getDB();
+    $val = $isHeadModerator ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_head_moderator = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+    if ($isHeadModerator) {
+        setUserModerator($userId, true);
+    }
+}
+
 // v0.25.2: Featured Users - admin-granted flag (reuses the same star-toggle
 // pattern as setArticleFeatured()/admin/index.php). All of a featured user's
 // published articles automatically count as Featured (see getFeaturedArticles()
@@ -1054,7 +1070,9 @@ function getUserRankBadges($user): array {
     if (!empty($user['is_fan'])) {
         $badges[] = ['label' => 'Fan', 'class' => 'rank-fan'];
     }
-    if (empty($user['is_admin']) && !empty($user['is_moderator'])) {
+    if (empty($user['is_admin']) && !empty($user['is_head_moderator'])) {
+        $badges[] = ['label' => 'Head Moderator', 'class' => 'rank-head-moderator'];
+    } elseif (empty($user['is_admin']) && !empty($user['is_moderator'])) {
         $badges[] = ['label' => 'Moderator', 'class' => 'rank-moderator'];
     }
     return $badges;
@@ -1338,6 +1356,7 @@ function startSession(): void {
                 $_SESSION['reader_username'] = $user['username'];
                 $_SESSION['is_admin'] = !empty($user['is_admin']);
                 $_SESSION['is_moderator'] = !empty($user['is_moderator']);
+                $_SESSION['is_head_moderator'] = !empty($user['is_head_moderator']);
                 $_SESSION['dark_mode'] = $user['dark_mode'];
                 $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
                 $newToken = setRememberToken($user['id']);
@@ -2870,7 +2889,7 @@ function isUserBanned($userId) {
 
 function getAllUsers() {
     $db = getDB();
-    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, is_featured_user, created_at, ip_address FROM users ORDER BY created_at DESC");
+    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, is_head_moderator, is_featured_user, created_at, ip_address FROM users ORDER BY created_at DESC");
     $rows = [];
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;
@@ -3137,6 +3156,7 @@ function impersonateUser(int $adminId, int $targetUserId): bool {
     $_SESSION['reader_username'] = $target['username'];
     $_SESSION['is_admin'] = (bool)$target['is_admin'];
     $_SESSION['is_moderator'] = !empty($target['is_moderator']);
+    $_SESSION['is_head_moderator'] = !empty($target['is_head_moderator']);
     $_SESSION['dark_mode'] = (bool)$target['dark_mode'];
     $_SESSION['translate_lang'] = $target['translate_lang'] ?? '';
     return true;
@@ -3157,6 +3177,7 @@ function stopImpersonation(): bool {
     $_SESSION['reader_username'] = $admin['username'];
     $_SESSION['is_admin'] = (bool)$admin['is_admin'];
     $_SESSION['is_moderator'] = !empty($admin['is_moderator']);
+    $_SESSION['is_head_moderator'] = !empty($admin['is_head_moderator']);
     $_SESSION['dark_mode'] = (bool)$admin['dark_mode'];
     $_SESSION['translate_lang'] = $admin['translate_lang'] ?? '';
     unset($_SESSION['impersonator_admin_id'], $_SESSION['impersonator_admin_username']);
@@ -4685,7 +4706,7 @@ function submitPollVote(int $pollId, array $optionIds, string $voterSid): bool {
 }
 
 // Vote counts per option. Callers must check is_admin/is_moderator themselves
-// before calling this - see moderator.php's Poll Results section.
+// before calling this - see moderator/polls.php's Poll Results section.
 function getPollResults(int $pollId): array {
     $db = getDB();
     $stmt = $db->prepare("
