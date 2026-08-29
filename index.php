@@ -151,7 +151,7 @@ function renderProfilesRow(array $users): void {
 <?php include __DIR__ . '/includes/new-since-badge.php'; ?>
 <main class="home-main">
     <?php if (empty($articles)): ?>
-        <p>No articles yet. Log in to the <a href="/admin/">login panel</a> to publish the first one.</p>
+        <p>No articles yet. Log in to the <a href="/login/">login panel</a> to publish the first one.</p>
     <?php else: ?>
         <?php
             $heroBig = $articles[0];
