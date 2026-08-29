@@ -16,7 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
-    <p>[Aug29] 🥳 BIGGEST. UPDATE. EVER.<br><ul>
+    <p>[Aug29] v0.25 - 🥳 BIGGEST. UPDATE. EVER.<br><ul>
         <li>Backups for ScratchNews (just in case)</li>
         <li>Changes to articles: "Featured" article list, minimum 250 words for articles, changed UI for how article and homepage looks<li>
         <li>Changes to UI: Changed header icons to SVG, replaced banners with a welcome banner, replaced share banner below article with a join user banner</li>
