@@ -204,8 +204,13 @@ html {
 .likes-section { margin: 1.5rem 0; }
 .comments-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
 .comments-section textarea { width:100%; min-height:80px; padding:0.6rem; border:1px solid #ccc; border-radius:6px; font-family:inherit; margin-bottom:0.6rem; }
-.comment { padding: 1rem 0; }
+.comment { padding: 1rem 0; scroll-margin-top: 90px; }
 .comment-top { border-bottom: 1px solid #f0f0f0; }
+.comment:target { animation: comment-target-flash 2s ease-out; }
+@keyframes comment-target-flash {
+    0% { background: rgba(217, 157, 74, 0.25); }
+    100% { background: transparent; }
+}
 .comment .meta { margin-left: 0.5rem; color: #888; font-size: 0.85rem; }
 .comment > p { overflow-wrap: break-word; word-break: break-word; }
 .comment-link { text-decoration: underline; word-break: break-word; }
