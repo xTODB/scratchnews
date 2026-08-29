@@ -53,12 +53,13 @@ markAllFeedbackRead();
 .feedback-row.unread { border-color: #e8a33d; }
 .feedback-meta { opacity: 0.65; font-size: 0.8rem; margin-top: 0.3rem; }
 .feedback-delete { background: none; border: none; color: #c33; cursor: pointer; font-size: 0.85rem; }
-.feedback-status-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.feedback-status-row { display: flex; align-items: center; gap: 0.5rem; margin: 0; flex-wrap: wrap; }
+.feedback-status-row form { margin: 0; }
 .feedback-tag { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #fff; }
 .feedback-tag-added { background: #2e9e4b; }
 .feedback-tag-fixed { background: #2b7fd6; }
 .feedback-tag-closed { background: #4b3f9e; }
-.feedback-status-btn { background: none; border: 1px solid rgba(128,128,128,0.35); border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.75rem; cursor: pointer; opacity: 0.85; }
+.feedback-status-btn { background: none; border: 1px solid rgba(128,128,128,0.35); border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.75rem; cursor: pointer; opacity: 0.85; color: #fff; }
 .feedback-status-btn:hover { opacity: 1; }
 .feedback-closed-notice { opacity: 0.7; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic; }
 .feedback-thread-msg { opacity: 0.85; margin: 0.4rem 0; padding: 0.5rem 0.7rem; border-radius: 6px; background: rgba(128,128,128,0.08); }
