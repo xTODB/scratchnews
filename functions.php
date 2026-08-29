@@ -1895,7 +1895,9 @@ function getCommentsForArticle(int $articleId): array {
     return $rows;
 }
 
-function addComment(int $articleId, int $userId, string $content, ?int $parentId = null): bool {
+// Returns the new comment's id on success, or null on failure. Callers that only
+// cared about success/failure (bool) can just check the return for truthiness.
+function addComment(int $articleId, int $userId, string $content, ?int $parentId = null): ?int {
     $db = getDB();
     if ($parentId === null) {
         $stmt = $db->prepare("INSERT INTO comments (article_id, user_id, content) VALUES (?, ?, ?)");
@@ -1905,11 +1907,13 @@ function addComment(int $articleId, int $userId, string $content, ?int $parentId
         $stmt->bind_param('iisi', $articleId, $userId, $content, $parentId);
     }
     $ok = $stmt->execute();
+    $newId = $ok ? $stmt->insert_id : null;
     $stmt->close();
 
     if ($ok) {
         $article = getArticleById($articleId);
-        $link = '/article/' . $articleId;
+        // Link straight to the new comment/reply itself, not just the article.
+        $link = '/article/' . $articleId . '#comment-' . $newId;
         $excludeFromMentions = [];
         if ($parentId !== null) {
             $pstmt = $db->prepare("SELECT user_id FROM comments WHERE id = ?");
@@ -1929,7 +1933,19 @@ function addComment(int $articleId, int $userId, string $content, ?int $parentId
         notifyAdmins('admin_new_comment', $userId, $link, $content);
     }
 
-    return $ok;
+    return $newId;
+}
+
+// Used before deleting an article comment, so the caller can redirect to the
+// parent comment (the deleted comment itself no longer exists to anchor to).
+function getCommentById(int $commentId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM comments WHERE id = ?");
+    $stmt->bind_param('i', $commentId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
 }
 
 function buildCommentTree(array $comments): array {
@@ -2022,7 +2038,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
     $maxIndentDepth = getMaxCommentReplyIndentDepth();
     $indent = ($depth > 0 && $depth <= $maxIndentDepth) ? 14 : 0;
     $topClass = $depth === 0 ? ' comment-top' : '';
-    $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
+    $html = '<div class="comment' . $topClass . '" id="comment-' . (int)$comment['id'] . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
     $html .= renderCommentAvatar($comment['avatar_url'] ?? null, $comment['username']);
     $html .= '<strong><a href="/@' . e($comment['username']) . '">' . e($comment['username']) . '</a></strong>';
@@ -3834,7 +3850,8 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
     $id = $stmt->insert_id;
     $stmt->close();
 
-    $link = '/@' . getUserById($profileUserId)['username'];
+    // Link straight to the new comment/reply itself, not just the profile.
+    $link = '/@' . getUserById($profileUserId)['username'] . '?view=profile_comments#comment-' . $id;
     $excludeFromMentions = [];
     if ($parentId !== null) {
         $pstmt = $db->prepare("SELECT author_id FROM profile_comments WHERE id = ?");
@@ -3856,12 +3873,24 @@ function addProfileComment(int $profileUserId, int $authorId, string $content, ?
     return $id;
 }
 
+// Used before deleting a profile comment, so the caller can redirect to the
+// parent comment (the deleted comment itself no longer exists to anchor to).
+function getProfileCommentById(int $commentId): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM profile_comments WHERE id = ?");
+    $stmt->bind_param('i', $commentId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
 function renderProfileCommentThread(array $comment, bool $canReply, int $profileUserId, int $depth = 0): string {
     $maxIndentDepth = getMaxCommentReplyIndentDepth();
     $indent = ($depth > 0 && $depth <= $maxIndentDepth) ? 14 : 0;
     $avatar = $comment['author_avatar'] ?? null;
     $topClass = $depth === 0 ? ' comment-top' : '';
-    $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
+    $html = '<div class="comment' . $topClass . '" id="comment-' . (int)$comment['id'] . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
     $html .= renderCommentAvatar($avatar, $comment['author_username']);
     $html .= '<a href="/@' . e($comment['author_username']) . '"><strong>@' . e($comment['author_username']) . '</strong></a>';
@@ -5239,17 +5268,20 @@ function addGroupComment(int $groupId, int $userId, string $content, ?string $im
     $id = $stmt->insert_id;
     $stmt->close();
 
+    // Link straight to the new comment/reply itself, not just the group wall.
     if ($parentId !== null) {
         $parent = getGroupCommentById($parentId);
         if ($parent && (int)$parent['user_id'] !== $userId) {
             $group = getGroupById($groupId);
-            createNotification((int)$parent['user_id'], 'comment_reply', $userId, '/group/' . ($group['slug'] ?? ''), $content);
+            $link = '/group/' . ($group['slug'] ?? '') . '#comment-' . $id;
+            createNotification((int)$parent['user_id'], 'comment_reply', $userId, $link, $content);
         }
     } else {
         // Top-level wall comments only - replies already notify the parent commenter
         // above via comment_reply, so fanning those out here too would double-notify them.
         $group = getGroupById($groupId);
-        notifyGroupMembers($groupId, 'group_new_comment', $userId, $group['name'] ?? null);
+        $link = '/group/' . ($group['slug'] ?? '') . '#comment-' . $id;
+        notifyGroupMembers($groupId, 'group_new_comment', $userId, $group['name'] ?? null, $link);
     }
 
     return $id;
@@ -5290,7 +5322,7 @@ function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?stri
     $maxIndentDepth = getMaxCommentReplyIndentDepth();
     $indent = ($depth > 0 && $depth <= $maxIndentDepth) ? 14 : 0;
     $topClass = $depth === 0 ? ' comment-top' : '';
-    $html = '<div class="comment' . $topClass . '" style="margin-left: ' . $indent . 'px;">';
+    $html = '<div class="comment' . $topClass . '" id="comment-' . (int)$comment['id'] . '" style="margin-left: ' . $indent . 'px;">';
     $html .= '<div class="comment-header">';
     $html .= renderCommentAvatar($comment['avatar_url'] ?? null, $comment['username']);
     $html .= '<strong><a href="/@' . e($comment['username']) . '">' . e($comment['username']) . '</a></strong>';
