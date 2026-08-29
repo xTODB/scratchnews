@@ -25,7 +25,7 @@ $sourceBounce = getBounceRateBySource(7);
 $engagementSeries = [
     'Article views' => getDailyArticleViewCounts($days),
     'Likes' => getDailyCounts('likes', 'DATE(created_at)', $days),
-    'Comments' => getDailyCounts('comments', 'DATE(created_at)', $days),
+    'Comments' => getDailyCountsMulti(['comments', 'group_comments', 'profile_comments'], 'DATE(created_at)', $days),
     'Shared-link clicks' => getDailyCounts('share_clicks', 'DATE(created_at)', $days),
 ];
 ?>

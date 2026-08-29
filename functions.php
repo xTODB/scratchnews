@@ -3661,7 +3661,7 @@ function formatUserForApi(array $user): array {
         'follower_count' => getFollowerCount((int)$user['id']),
         'following_count' => getFollowingCount((int)$user['id']),
         'article_count' => count($publishedArticles),
-        'comment_count' => count(getCommentsByUser((int)$user['id'])),
+        'comment_count' => getUserTotalCommentCount((int)$user['id']),
     ];
 }
 
@@ -3755,6 +3755,54 @@ function getProfileCommentCount(int $userId): int {
     $stmt->fetch();
     $stmt->close();
     return (int)$count;
+}
+
+// Site-wide comment total for the public/admin Stats pages. `comments` and
+// `group_comments` already store replies inline via parent_comment_id (a reply
+// is just another row), so summing COUNT(*) across all three tables covers
+// article comments+replies, group comments+replies, and profile comments+replies
+// without any extra reply-specific query.
+function getTotalCommentCount(): int {
+    $db = getDB();
+    $total = 0;
+    foreach (['comments', 'group_comments', 'profile_comments'] as $table) {
+        $result = $db->query("SELECT COUNT(*) AS c FROM `$table`");
+        $total += (int)($result->fetch_assoc()['c'] ?? 0);
+    }
+    return $total;
+}
+
+// Total comments a single user has authored across all comment types (article
+// comments/replies, group comments/replies, comments/replies they left on other
+// profiles). Used for profile "Comments" counts and the API's comment_count.
+// profile_comments uses author_id instead of user_id.
+function getUserTotalCommentCount(int $userId): int {
+    $db = getDB();
+    $total = 0;
+    foreach (['comments' => 'user_id', 'group_comments' => 'user_id', 'profile_comments' => 'author_id'] as $table => $col) {
+        $stmt = $db->prepare("SELECT COUNT(*) AS c FROM `$table` WHERE `$col` = ?");
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $total += (int)($stmt->get_result()->fetch_assoc()['c'] ?? 0);
+        $stmt->close();
+    }
+    return $total;
+}
+
+// Like getDailyCounts() but sums matching rows across several tables per day,
+// zero-filled. $tables is a list of table names; all must share $dateExpr's
+// column (created_at).
+function getDailyCountsMulti(array $tables, string $dateExpr, int $days): array {
+    $out = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $out[date('Y-m-d', strtotime("-$i days"))] = 0;
+    }
+    foreach ($tables as $table) {
+        foreach (getDailyCounts($table, $dateExpr, $days) as $day => $count) {
+            $out[$day] = ($out[$day] ?? 0) + $count;
+        }
+    }
+    return $out;
 }
 
 function getProfileComments(int $userId): array {

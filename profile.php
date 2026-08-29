@@ -20,6 +20,7 @@ if (!$user) {
 
 $view = $_GET['view'] ?? 'comments';
 $comments = $user ? getCommentsByUser($user['id']) : [];
+$totalCommentCount = $user ? getUserTotalCommentCount($user['id']) : 0;
 $articleCount = $user ? getArticleCountByUser($user['id']) : 0;
 $userArticles = ($user && $view === 'articles') ? getArticlesByUser($user['id']) : [];
 $profileComments = ($user && $view === 'profile_comments') ? getProfileComments($user['id']) : [];
@@ -177,7 +178,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
     <?php endif; ?>
     <div class="profile-stats-row">
         <h3><a href="/@<?= urlencode($user['username']) ?>?view=articles" class="stat-link <?= $view === 'articles' ? 'active' : '' ?>"><?= (int)$articleCount ?> Articles</a></h3>
-        <h3><a href="/@<?= urlencode($user['username']) ?>" class="stat-link <?= $view === 'comments' ? 'active' : '' ?>">Comments (<?= count($comments) ?>)</a></h3>
+        <h3><a href="/@<?= urlencode($user['username']) ?>" class="stat-link <?= $view === 'comments' ? 'active' : '' ?>">Comments (<?= formatCount($totalCommentCount) ?>)</a></h3>
         <h3><a href="/@<?= urlencode($user['username']) ?>?view=profile_comments" class="stat-link <?= $view === 'profile_comments' ? 'active' : '' ?>">Profile Comments (<?= formatCount((int)$profileCommentCount) ?>)</a></h3>
         <?php if ($groupsBetaAllowed): ?>
         <h3><a href="/@<?= urlencode($user['username']) ?>?view=groups" class="stat-link <?= $view === 'groups' ? 'active' : '' ?>">Groups (<?= (int)$userGroupCount ?>)</a></h3>

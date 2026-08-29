@@ -12,7 +12,7 @@ $topUsersByFollowers = getTopUsersByFollowerCount(5);
 $db = getDB();
 $totalUsers = (int)($db->query("SELECT COUNT(*) AS c FROM users WHERE is_banned = 0")->fetch_assoc()['c'] ?? 0);
 $totalArticles = (int)($db->query("SELECT COUNT(*) AS c FROM articles WHERE status = 'published'")->fetch_assoc()['c'] ?? 0);
-$totalComments = (int)($db->query("SELECT COUNT(*) AS c FROM comments")->fetch_assoc()['c'] ?? 0);
+$totalComments = getTotalCommentCount();
 $totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()['c'] ?? 0);
 $totalGroups = (int)($db->query("SELECT COUNT(*) AS c FROM `groups` WHERE status = 'active'")->fetch_assoc()['c'] ?? 0);
 ?>
