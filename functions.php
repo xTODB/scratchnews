@@ -2887,6 +2887,19 @@ function isUserBanned($userId) {
     return $result && (int)$result['is_banned'] === 1;
 }
 
+// Site-wide comment timeout, set manually by a mod/head mod (mirrors
+// setGroupMemberTimeout()'s DATE_ADD pattern). Uses the same
+// comment_locked_until column that recordModerationStrike() sets
+// automatically - resetModerationStrikes() (moderator/clear-timeout.php)
+// already clears it, this is the missing "apply" side for 0.25.2.
+function setUserCommentTimeout(int $userId, int $minutes): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET comment_locked_until = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE id = ?");
+    $stmt->bind_param('ii', $minutes, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
 function getAllUsers() {
     $db = getDB();
     $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, is_head_moderator, is_featured_user, created_at, ip_address FROM users ORDER BY created_at DESC");
