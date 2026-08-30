@@ -19,6 +19,8 @@ startSession();
     <p>[Aug30] 0.25.2 - Cool update!</p><br><ul>
         <li>Revamped the 5-article homepage formula from "recent articles" to "recent articles by featured users with 5+ likes" for more quality articles</li>
         <li>Head Moderator rank, changed moderator panel for simplicity and gave more access to Head Moderators</li>
+        <li>"Chat" page in both Moderator and Head Moderator panel for safety</li>
+        <li>Poll time, poll results and show which moderator created a poll </li>
     <p>0.25.1 - QOL changes and features!</p><br><ul>
         <li>Toggle to turn off group activity messages in Settings or per individual group.</li>
         <li>Changed invites for efficiency, no page reaccess when inviting someone (just a message).</li>
@@ -26,6 +28,8 @@ startSession();
         <li>Added/Fixed/Closed feedback tags</li>
         <li>Messages and comment actions directly send you to the comment / parent comment after doing the comment action</li>
         <li>Changed article attachment to addition, added panel to add your articles into a group or via link</li>
+        <li>FINALLY made header unscrollable</li>
+        <li>Fixed group activity bug (on promotion it used to show different names rather than the one who avtually got promoted)</li>
     </ul>
     <p>[Aug29] v0.25 - 🥳 BIGGEST. UPDATE. EVER.</p><br><ul>
         <li>Backups for ScratchNews (just in case)</li>
