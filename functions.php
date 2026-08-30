@@ -5192,7 +5192,7 @@ function setGroupMemberRole(int $groupId, int $userId, string $newRole, int $act
     $stmt->close();
     if ($newRole === 'manager') {
         $group = getGroupById($groupId);
-        notifyGroupMembers($groupId, 'group_member_promoted', $actorId, $group['name'] ?? null);
+        notifyGroupMembers($groupId, 'group_member_promoted', $userId, $group['name'] ?? null);
     }
     return ['ok' => true];
 }
