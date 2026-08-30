@@ -6,6 +6,7 @@ $pendingReportsCount = getPendingReportsCount();
 $pendingFeedbackCount = getPendingFeedbackCount();
 $pendingGroupRequestsCount = getPendingGroupRequestsCount();
 $activePollCount = count(array_filter(getAllPolls(), fn($p) => !empty($p['is_active'])));
+$chatUnreadCount = getChatUnreadCountForUser((int)($_SESSION['reader_id'] ?? 0));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,6 +41,11 @@ $activePollCount = count(array_filter(getAllPolls(), fn($p) => !empty($p['is_act
             <h3>Reported Comments</h3>
             <p>Handle comments flagged by readers.</p>
             <?php if ($pendingReportsCount > 0): ?><span class="admin-nav-badge"><?= $pendingReportsCount ?></span><?php endif; ?>
+        </a>
+        <a class="mod-tile" href="/moderator/chat">
+            <h3>Chat</h3>
+            <p>Every comment from articles, profiles, and groups in one feed.</p>
+            <?php if ($chatUnreadCount > 0): ?><span class="admin-nav-badge"><?= $chatUnreadCount ?></span><?php endif; ?>
         </a>
         <a class="mod-tile" href="/admin/group-requests">
             <h3>Group Requests</h3>

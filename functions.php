@@ -5561,3 +5561,117 @@ function getGroupArticles(int $groupId): array {
     $stmt->close();
     return $rows;
 }
+
+// ---- Moderator "Chat" feed (0.25.2) - a flat, unified log of every comment
+// from every comment source (article comments, profile comments, group wall
+// comments - replies are just comments with parent_comment_id set within
+// those same three tables, so they're already included, not a 4th source).
+// Deliberately flat/chronological, not threaded, since it's a moderation
+// firehose rather than a conversation view.
+
+function getChatFeed(int $limit = 50, int $beforeId = 0): array {
+    $db = getDB();
+    $beforeClause = $beforeId > 0 ? 'HAVING id < ?' : '';
+    $sql = "
+        SELECT * FROM (
+            SELECT c.id, 'article' AS source, c.article_id AS source_id,
+                   a.title AS source_label,
+                   CONCAT('/article/', c.article_id, '#comment-', c.id) AS source_link,
+                   c.content, c.created_at, c.user_id, u.username, u.avatar_url
+            FROM comments c
+            JOIN users u ON u.id = c.user_id
+            LEFT JOIN articles a ON a.id = c.article_id
+
+            UNION ALL
+
+            SELECT pc.id, 'profile' AS source, pc.profile_user_id AS source_id,
+                   pu.username AS source_label,
+                   CONCAT('/@', pu.username, '?view=profile_comments#comment-', pc.id) AS source_link,
+                   pc.content, pc.created_at, pc.author_id AS user_id, u.username, u.avatar_url
+            FROM profile_comments pc
+            JOIN users u ON u.id = pc.author_id
+            LEFT JOIN users pu ON pu.id = pc.profile_user_id
+
+            UNION ALL
+
+            SELECT gc.id, 'group' AS source, gc.group_id AS source_id,
+                   g.name AS source_label,
+                   CONCAT('/group/', g.slug, '#comment-', gc.id) AS source_link,
+                   gc.content, gc.created_at, gc.user_id, u.username, u.avatar_url
+            FROM group_comments gc
+            JOIN users u ON u.id = gc.user_id
+            LEFT JOIN `groups` g ON g.id = gc.group_id
+        ) feed
+        $beforeClause
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+    ";
+    $stmt = $db->prepare($sql);
+    if ($beforeId > 0) {
+        $stmt->bind_param('ii', $beforeId, $limit);
+    } else {
+        $stmt->bind_param('i', $limit);
+    }
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+function getChatUnreadCount(?string $since): int {
+    if (!$since) return 0;
+    $db = getDB();
+    $sql = "
+        SELECT
+            (SELECT COUNT(*) FROM comments WHERE created_at > ?) +
+            (SELECT COUNT(*) FROM profile_comments WHERE created_at > ?) +
+            (SELECT COUNT(*) FROM group_comments WHERE created_at > ?) AS total
+    ";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param('sss', $since, $since, $since);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return (int)($row['total'] ?? 0);
+}
+
+function getUserChatLastViewedAt(int $userId): ?string {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT chat_last_viewed_at FROM users WHERE id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($val);
+    $stmt->fetch();
+    $stmt->close();
+    return $val;
+}
+
+// Badge count for the "Chat" nav link (the yellow admin-nav-badge, matching
+// Submissions/Feedback/Reports/Group Requests). Unlike those, comments have no
+// pending/actionable state, so this is unread-since-last-visit instead: a
+// moderator who has never opened Chat sees 0 (not a huge backlog number) -
+// markChatViewed() below is what starts the clock.
+function getChatUnreadCountForUser(int $userId): int {
+    return getChatUnreadCount(getUserChatLastViewedAt($userId));
+}
+
+function markChatViewed(int $userId): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET chat_last_viewed_at = NOW() WHERE id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Deletes a chat-feed comment regardless of which of the 3 tables it came
+// from - $source is the 'source' value getChatFeed() already tags each row
+// with, so the Chat page doesn't need its own per-type delete logic.
+function adminDeleteChatComment(string $source, int $commentId): void {
+    if ($source === 'article') {
+        adminDeleteComment($commentId);
+    } elseif ($source === 'profile') {
+        adminDeleteProfileComment($commentId);
+    } elseif ($source === 'group') {
+        adminDeleteGroupComment($commentId);
+    }
+}
