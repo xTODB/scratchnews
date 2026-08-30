@@ -48,12 +48,45 @@ function getArticleById(int $id): ?array {
     return $article ?: null;
 }
 
+// A pure white or pure black inline text color, in any of the forms Quill's
+// color picker writes (keyword / 3- or 6-digit hex / rgb() / rgba()).
+function isWhiteOrBlackColorValue(string $value): bool {
+    $v = strtolower(trim($value));
+    if ($v === 'white' || $v === '#fff' || $v === '#ffffff') return true;
+    if ($v === 'black' || $v === '#000' || $v === '#000000') return true;
+    if (preg_match('/^rgba?\(\s*255\s*,\s*255\s*,\s*255\s*(,.*)?\)$/', $v)) return true;
+    if (preg_match('/^rgba?\(\s*0\s*,\s*0\s*,\s*0\s*(,.*)?\)$/', $v)) return true;
+    return false;
+}
+
+// Drops a hardcoded white/black `color:` declaration out of a style="" attribute
+// (leaving any other declarations - e.g. background-color for a highlight box -
+// untouched) so the theme's own text color always applies instead. Quill's Text
+// Color picker lets writers pick literal white or black, which then rendered fine
+// by coincidence in whichever theme it was authored in and went invisible in the
+// other - this removes that specific footgun without touching other colors.
+function stripWhiteBlackTextColor(string $html): string {
+    return preg_replace_callback('/style\s*=\s*"([^"]*)"/i', function ($m) {
+        $decls = array_filter(array_map('trim', explode(';', $m[1])), fn($d) => $d !== '');
+        $kept = [];
+        foreach ($decls as $decl) {
+            if (preg_match('/^color\s*:\s*(.+)$/i', $decl, $cm) && isWhiteOrBlackColorValue($cm[1])) {
+                continue; // drop this declaration only
+            }
+            $kept[] = $decl;
+        }
+        if (!$kept) return '';
+        return 'style="' . implode('; ', $kept) . '"';
+    }, $html);
+}
+
 // Allow only safe formatting tags in article content (bold, italic, headers, colors via span, etc.)
 function sanitizeArticleHtml(string $html): string {
     $allowed = '<p><br><strong><b><em><i><s><strike><u><h1><h2><h3><span><ul><ol><li><blockquote><a><img>';
     $html = strip_tags($html, $allowed);
     $html = preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $html);
     $html = preg_replace('/(href|src)\s*=\s*("javascript:[^"]*"|\'javascript:[^\']*\')/i', '$1="#"', $html);
+    $html = stripWhiteBlackTextColor($html);
     return $html;
 }
 
