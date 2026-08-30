@@ -52,6 +52,7 @@ $engagementSeries = [
 <main>
     <h2>Stats (Admin)</h2>
     <p><a href="/stats.php">View public stats page &rarr;</a></p>
+    <p><a href="/admin/stats/export" class="btn secondary inline">Export as .txt (full)</a></p>
 
     <div class="stat-cards">
         <div class="stat-card"><p class="stat-card-label">Conversion rate (all-time)</p><p class="stat-card-value"><?= e($conversionRate) ?>%</p></div>

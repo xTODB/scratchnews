@@ -31,6 +31,7 @@ $totalGroups = (int)($db->query("SELECT COUNT(*) AS c FROM `groups` WHERE status
 <main>
     <h2>Stats</h2>
     <p>A look at how <?= e(SITE_NAME) ?> is growing.</p>
+    <p><a href="/stats/export" class="btn secondary inline">Export as .txt</a></p>
 
     <div class="stat-cards">
         <div class="stat-card"><p class="stat-card-label">Users</p><p class="stat-card-value"><?= number_format($totalUsers) ?></p></div>

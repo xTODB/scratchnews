@@ -534,6 +534,167 @@ function getTopUsersByFollowerCount(int $limit = 5): array {
     return $rows;
 }
 
+// v0.26: Stats export. Plain-text dump of the same numbers already shown on stats.php
+// (and admin/stats.php for the admin-only version) - built so TODB can download it and
+// hand the whole thing to Claude in one paste instead of re-typing figures into a
+// handoff by hand. Public version mirrors stats.php's public "Stats:" figures; admin
+// version appends everything admin/stats.php shows (same access gate as that page -
+// admin or head moderator - since head mods already see all of it on-page today).
+function formatSecondsAsMinSec(int $seconds): string {
+    return (int)floor($seconds / 60) . 'm ' . (int)($seconds % 60) . 's';
+}
+
+function buildPublicStatsExportText(): string {
+    $days = 30;
+    $userCounts = getCumulativeUserCounts($days);
+    $topByViews = getTopArticlesByViews(10);
+    $topByLikes = getTopArticlesByLikes(10);
+    $topUsersByArticles = getTopUsersByArticleCount(10);
+    $topUsersByFollowers = getTopUsersByFollowerCount(10);
+
+    $db = getDB();
+    $totalUsers = (int)($db->query("SELECT COUNT(*) AS c FROM users WHERE is_banned = 0")->fetch_assoc()['c'] ?? 0);
+    $totalArticles = (int)($db->query("SELECT COUNT(*) AS c FROM articles WHERE status = 'published'")->fetch_assoc()['c'] ?? 0);
+    $totalComments = getTotalCommentCount();
+    $totalLikes = (int)($db->query("SELECT COUNT(*) AS c FROM likes")->fetch_assoc()['c'] ?? 0);
+    $totalGroups = (int)($db->query("SELECT COUNT(*) AS c FROM `groups` WHERE status = 'active'")->fetch_assoc()['c'] ?? 0);
+
+    $out = "ScratchNews Stats Export\n";
+    $out .= "Generated: " . gmdate('Y-m-d H:i') . " UTC\n";
+    $out .= "==========================================\n\n";
+
+    $out .= "Site Totals\n-----------\n";
+    $out .= "Users: " . number_format($totalUsers) . "\n";
+    $out .= "Articles: " . number_format($totalArticles) . "\n";
+    $out .= "Comments: " . number_format($totalComments) . "\n";
+    $out .= "Likes: " . number_format($totalLikes) . "\n";
+    $out .= "Groups: " . number_format($totalGroups) . "\n\n";
+
+    $out .= "User Count, last $days days (cumulative)\n------------------------------------------\n";
+    foreach ($userCounts as $date => $count) {
+        $out .= "$date: " . number_format($count) . "\n";
+    }
+    $out .= "\n";
+
+    $out .= "Most Popular Articles - by views\n---------------------------------\n";
+    if (empty($topByViews)) { $out .= "(none yet)\n"; }
+    foreach ($topByViews as $a) {
+        $out .= "- " . $a['title'] . " (id " . $a['id'] . "): " . number_format((int)$a['views']) . " views\n";
+    }
+    $out .= "\n";
+
+    $out .= "Most Popular Articles - by likes\n---------------------------------\n";
+    if (empty($topByLikes)) { $out .= "(none yet)\n"; }
+    foreach ($topByLikes as $a) {
+        $out .= "- " . $a['title'] . " (id " . $a['id'] . "): " . number_format((int)$a['like_count']) . " likes\n";
+    }
+    $out .= "\n";
+
+    $out .= "Most Popular Users - by articles published\n-------------------------------------------\n";
+    if (empty($topUsersByArticles)) { $out .= "(none yet)\n"; }
+    foreach ($topUsersByArticles as $u) {
+        $out .= "- @" . $u['username'] . ": " . number_format((int)$u['article_count']) . " articles\n";
+    }
+    $out .= "\n";
+
+    $out .= "Most Popular Users - by followers\n----------------------------------\n";
+    if (empty($topUsersByFollowers)) { $out .= "(none yet)\n"; }
+    foreach ($topUsersByFollowers as $u) {
+        $out .= "- @" . $u['username'] . ": " . number_format((int)$u['follower_count']) . " followers\n";
+    }
+
+    return $out;
+}
+
+function buildAdminStatsExportText(): string {
+    $days = 30;
+    $db = getDB();
+
+    $daily = $db->query("SELECT visit_date, COUNT(*) AS unique_visitors FROM daily_unique_visitors GROUP BY visit_date ORDER BY visit_date ASC LIMIT 30")->fetch_all(MYSQLI_ASSOC);
+    $totalUniqueIps = (int)($db->query("SELECT COUNT(DISTINCT ip_address) AS c FROM daily_unique_visitors")->fetch_assoc()['c'] ?? 0);
+    $totalSignups = (int)($db->query("SELECT COUNT(DISTINCT ip) AS c FROM signup_attempts WHERE successful = 1")->fetch_assoc()['c'] ?? 0);
+    $conversionRate = $totalUniqueIps > 0 ? round(($totalSignups / $totalUniqueIps) * 100, 2) : 0;
+    $ct = getCollectiveTimeStats();
+    $tos = getTimeOnSiteStats(7);
+    $bounce = getBounceRate(7);
+    $pageTime = getTimePerPageStats(7);
+    $landingPages = getLandingPageBreakdown(7);
+    $sourceBounce = getBounceRateBySource(7);
+    $engagementSeries = [
+        'Article views' => getDailyArticleViewCounts($days),
+        'Likes' => getDailyCounts('likes', 'DATE(created_at)', $days),
+        'Comments' => getDailyCountsMulti(['comments', 'group_comments', 'profile_comments'], 'DATE(created_at)', $days),
+        'Shared-link clicks' => getDailyCounts('share_clicks', 'DATE(created_at)', $days),
+    ];
+
+    $out = buildPublicStatsExportText();
+    $out .= "\n\n==========================================\n";
+    $out .= "ADMIN STATS (not shown on the public stats page)\n";
+    $out .= "==========================================\n\n";
+
+    $out .= "Conversion rate (all-time): $conversionRate%\n";
+    $out .= "Signups / unique visitor IPs (all-time, within retention window): $totalSignups / $totalUniqueIps\n";
+    $out .= "Collective time on site (all-time): " . number_format($ct['all_time_hours'], 1) . "h\n";
+    $out .= "Collective time on site (today): " . number_format($ct['today_hours'], 1) . "h\n\n";
+
+    $out .= "Time on Site, last 7 days\n-------------------------\n";
+    if ($tos['count'] > 0) {
+        $out .= "Average: " . formatSecondsAsMinSec($tos['avg_seconds']) . " | Median: " . formatSecondsAsMinSec($tos['median_seconds']) . " | Sessions counted: " . $tos['count'] . "\n\n";
+    } else {
+        $out .= "(no session data yet)\n\n";
+    }
+
+    $out .= "Bounce Rate, last 7 days\n-------------------------\n";
+    if ($bounce['total'] > 0) {
+        $out .= $bounce['rate'] . "% bounced (" . $bounce['bounced'] . " of " . $bounce['total'] . " sessions)\n\n";
+    } else {
+        $out .= "(no session data yet)\n\n";
+    }
+
+    $out .= "Time per Page, last 7 days\n---------------------------\n";
+    if ($pageTime) {
+        foreach ($pageTime as $p) {
+            $out .= "- " . $p['page'] . ": " . formatSecondsAsMinSec((int)$p['total_seconds']) . "\n";
+        }
+    } else {
+        $out .= "(no data yet)\n";
+    }
+    $out .= "\n";
+
+    $out .= "Bounce Rate by Landing Page, last 7 days\n-----------------------------------------\n";
+    if ($landingPages) {
+        foreach ($landingPages as $lp) {
+            $out .= "- " . $lp['landing_page'] . ": " . $lp['sessions'] . " sessions, " . $lp['bounce_rate'] . "% bounce\n";
+        }
+    } else {
+        $out .= "(no data yet)\n";
+    }
+    $out .= "\n";
+
+    $out .= "Bounce Rate by Traffic Source, last 7 days\n-------------------------------------------\n";
+    if ($sourceBounce) {
+        foreach ($sourceBounce as $sb) {
+            $out .= "- " . $sb['source'] . ": " . $sb['sessions'] . " sessions, " . $sb['bounce_rate'] . "% bounce\n";
+        }
+    } else {
+        $out .= "(no data yet)\n";
+    }
+    $out .= "\n";
+
+    $out .= "Engagement per day, last $days days\n------------------------------------\n";
+    foreach ($engagementSeries as $label => $series) {
+        $out .= "$label: " . implode(', ', array_map(fn($d, $v) => "$d=$v", array_keys($series), $series)) . "\n";
+    }
+    $out .= "\n";
+
+    $out .= "Daily Unique Visitors, last 30 days\n------------------------------------\n";
+    foreach ($daily as $d) {
+        $out .= "- " . $d['visit_date'] . ": " . (int)$d['unique_visitors'] . "\n";
+    }
+
+    return $out;
+}
+
 // Renders a small bar chart from a 'label' => value array. $opts['highlight_last']
 // draws the final bar in a lighter color (used for "today", since it's always a
 // partial day of data).
