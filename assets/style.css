@@ -23,7 +23,9 @@ header {
     position: sticky;
     top: 0;
     z-index: 100;
-    transition: padding 0.4s ease;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform;
 }
 header.shrink { padding: 1.2rem 1.5rem; }
 header.shrink .logo-svg { height: 27px; transition: height 0.4s ease; }
