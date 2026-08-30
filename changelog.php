@@ -19,7 +19,7 @@ startSession();
     <p>[Aug30] 0.25.2 - Cool update!</p><br><ul>
         <li>Revamped the 5-article homepage formula from "recent articles" to "recent articles by featured users with 5+ likes" for more quality articles</li>
         <li>Head Moderator rank, changed moderator panel for simplicity and gave more access to Head Moderators</li>
-        <li>"Chat" page in both Moderator and Head Moderator panel for safety</li>
+        <li>"Chat" page in both Moderator and Head Moderator panel, shows every comment from any comment source, for safety and moderation</li>
         <li>Poll time, poll results and show which moderator created a poll</li>
     </ul>
     <p>0.25.1 - QOL changes and features!</p><br><ul>
