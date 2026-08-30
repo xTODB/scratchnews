@@ -33,7 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setDarkModePreference($user['id'], $enabled);
         $_SESSION['dark_mode'] = $enabled ? 1 : 0;
         $user['dark_mode'] = $enabled ? 1 : 0;
-        $message = 'Theme preference saved.';
+        $message = 'Dark mode preference saved.';
+    } elseif ($action === 'update_theme') {
+        $theme = trim($_POST['color_theme'] ?? 'default');
+        if (!array_key_exists($theme, colorThemeOptions())) $theme = 'default';
+        setColorThemePreference($user['id'], $theme);
+        $_SESSION['color_theme'] = $theme;
+        $user['color_theme'] = $theme;
+        $message = 'Color theme saved.';
     } elseif ($action === 'update_autosave') {
         $enabled = !empty($_POST['autosave_enabled']);
         $interval = (int)($_POST['autosave_interval'] ?? 30);
@@ -129,6 +136,13 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
 .username-form-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .username-form-row input[type=text] { flex: 1; min-width: 160px; }
 .username-cooldown-note { font-size: 0.8rem; opacity: 0.7; margin-top: 0.4rem; }
+.theme-swatch-grid { display: flex; flex-wrap: wrap; gap: 0.9rem; }
+.theme-swatch { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; width: 76px; }
+.theme-swatch input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.theme-swatch-preview { width: 52px; height: 52px; border-radius: 50%; border: 3px solid transparent; box-shadow: 0 1px 4px rgba(0,0,0,0.25); transition: border-color 0.15s, transform 0.15s; }
+.theme-swatch.selected .theme-swatch-preview { border-color: var(--ink); transform: scale(1.08); }
+body.dark .theme-swatch.selected .theme-swatch-preview { border-color: #fff; }
+.theme-swatch-label { font-size: 0.78rem; text-align: center; opacity: 0.85; }
 </style>
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
@@ -178,6 +192,26 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
                         <?= !empty($user['dark_mode']) ? 'Turn Off' : 'Turn On' ?>
                     </button>
                 </form>
+                <div class="settings-row" style="display:block;">
+                    <div>
+                        <div class="settings-label">Color Theme</div>
+                        <div class="settings-sub">Pick an accent color, used for buttons, links, and gradients across the site. Works with Dark Mode either way.</div>
+                    </div>
+                    <form method="post" style="margin-top:0.75rem;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="update_theme">
+                        <div class="theme-swatch-grid">
+                            <?php $currentTheme = $user['color_theme'] ?? 'default'; ?>
+                            <?php foreach (colorThemeOptions() as $key => $t): ?>
+                                <label class="theme-swatch <?= $currentTheme === $key ? 'selected' : '' ?>">
+                                    <input type="radio" name="color_theme" value="<?= e($key) ?>" <?= $currentTheme === $key ? 'checked' : '' ?> onchange="this.form.submit()">
+                                    <span class="theme-swatch-preview" style="background:linear-gradient(135deg, <?= e($t['bright']) ?>, <?= e($t['brand']) ?>);"></span>
+                                    <span class="theme-swatch-label"><?= e($t['label']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </form>
+                </div>
                 <div class="settings-row" style="display:block;">
                     <div>
                         <div class="settings-label">Username</div>

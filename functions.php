@@ -1552,6 +1552,7 @@ function startSession(): void {
                 $_SESSION['is_moderator'] = !empty($user['is_moderator']);
                 $_SESSION['is_head_moderator'] = !empty($user['is_head_moderator']);
                 $_SESSION['dark_mode'] = $user['dark_mode'];
+                $_SESSION['color_theme'] = $user['color_theme'] ?? 'default';
                 $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
                 $newToken = setRememberToken($user['id']);
                 setcookie('remember_me', $user['id'] . ':' . $newToken, [
@@ -1698,6 +1699,39 @@ function setDarkModePreference(int $userId, bool $enabled): void {
     $val = $enabled ? 1 : 0;
     $stmt = $db->prepare("UPDATE users SET dark_mode = ? WHERE id = ?");
     $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// v0.26: Color Themes. Each preset just overrides --brand/--brand-bright/--accent-blue
+// (the same CSS variables the site already builds gradients and accent colors from, e.g.
+// row-card-img-placeholder's `linear-gradient(135deg, var(--brand-bright), var(--brand))`),
+// so picking a theme re-colors buttons/links/gradients everywhere without touching
+// dark mode's background/text colors - the two combine freely. 'default' is the
+// site's original orange and is never persisted as a body class (no theme-default
+// CSS rule needed since :root already has those values).
+function colorThemeOptions(): array {
+    return [
+        'default' => ['label' => 'Default (Orange)', 'brand' => '#cc8829', 'bright' => '#ffaa33'],
+        'ocean'   => ['label' => 'Ocean',             'brand' => '#1c6ea4', 'bright' => '#29b6f6'],
+        'sunset'  => ['label' => 'Sunset',             'brand' => '#c2410c', 'bright' => '#fb923c'],
+        'forest'  => ['label' => 'Forest',             'brand' => '#2f6b3a', 'bright' => '#4ade80'],
+        'grape'   => ['label' => 'Grape',              'brand' => '#6d28d9', 'bright' => '#c084fc'],
+        'rose'    => ['label' => 'Rose',               'brand' => '#be123c', 'bright' => '#fb7185'],
+        'mono'    => ['label' => 'Mono',               'brand' => '#4b5563', 'bright' => '#9ca3af'],
+    ];
+}
+
+function getColorTheme(): string {
+    $theme = $_SESSION['color_theme'] ?? 'default';
+    return array_key_exists($theme, colorThemeOptions()) ? $theme : 'default';
+}
+
+function setColorThemePreference(int $userId, string $theme): void {
+    if (!array_key_exists($theme, colorThemeOptions())) $theme = 'default';
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE users SET color_theme = ? WHERE id = ?");
+    $stmt->bind_param('si', $theme, $userId);
     $stmt->execute();
     $stmt->close();
 }
@@ -3365,6 +3399,7 @@ function impersonateUser(int $adminId, int $targetUserId): bool {
     $_SESSION['is_moderator'] = !empty($target['is_moderator']);
     $_SESSION['is_head_moderator'] = !empty($target['is_head_moderator']);
     $_SESSION['dark_mode'] = (bool)$target['dark_mode'];
+    $_SESSION['color_theme'] = $target['color_theme'] ?? 'default';
     $_SESSION['translate_lang'] = $target['translate_lang'] ?? '';
     return true;
 }
@@ -3386,6 +3421,7 @@ function stopImpersonation(): bool {
     $_SESSION['is_moderator'] = !empty($admin['is_moderator']);
     $_SESSION['is_head_moderator'] = !empty($admin['is_head_moderator']);
     $_SESSION['dark_mode'] = (bool)$admin['dark_mode'];
+    $_SESSION['color_theme'] = $admin['color_theme'] ?? 'default';
     $_SESSION['translate_lang'] = $admin['translate_lang'] ?? '';
     unset($_SESSION['impersonator_admin_id'], $_SESSION['impersonator_admin_username']);
     return true;

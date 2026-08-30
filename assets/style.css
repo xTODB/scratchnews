@@ -44,6 +44,19 @@ header nav a { margin-left: 1rem; font-weight: 600; }
     --font-headline: var(--font-grotesk);
     --accent-blue: #4c97ff;
 }
+/* v0.26 Themes - each preset just overrides the brand/accent variables above, so
+   every gradient and accent color already built from them (buttons, links, hover
+   states, row-card-img-placeholder's 135deg gradient, etc.) re-colors automatically.
+   Doesn't touch dark mode's background/text colors, so a theme + dark mode combine
+   freely (e.g. body.dark.theme-ocean). No .theme-default rule needed - :root already
+   holds those values. */
+body.theme-ocean  { --brand: #1c6ea4; --brand-bright: #29b6f6; --accent-blue: #29b6f6; }
+body.theme-sunset { --brand: #c2410c; --brand-bright: #fb923c; --accent-blue: #fb923c; }
+body.theme-forest { --brand: #2f6b3a; --brand-bright: #4ade80; --accent-blue: #4ade80; }
+body.theme-grape  { --brand: #6d28d9; --brand-bright: #c084fc; --accent-blue: #c084fc; }
+body.theme-rose   { --brand: #be123c; --brand-bright: #fb7185; --accent-blue: #fb7185; }
+body.theme-mono   { --brand: #4b5563; --brand-bright: #9ca3af; --accent-blue: #9ca3af; }
+
 main {
     max-width: 780px;
     margin: 2rem auto;
