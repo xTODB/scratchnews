@@ -8,6 +8,7 @@
             <a href="/moderator">Overview</a>
             <a href="/admin/submissions">Submissions<?php $c = getPendingSubmissionsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/moderator/reports">Reported Comments<?php $c = getPendingReportsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
+            <a href="/moderator/chat">Chat<?php $c = getChatUnreadCountForUser((int)($_SESSION['reader_id'] ?? 0)); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/group-requests">Group Requests<?php $c = getPendingGroupRequestsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/feedback">Feedback<?php $c = getPendingFeedbackCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/moderator/polls">Polls</a>
