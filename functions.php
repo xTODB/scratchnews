@@ -4608,17 +4608,32 @@ function getActivePolls(): array {
 
 function getAllPolls(): array {
     $db = getDB();
-    return $db->query("SELECT * FROM polls ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
+    return $db->query("
+        SELECT polls.*, creator.username AS creator_username
+        FROM polls
+        LEFT JOIN users AS creator ON polls.created_by = creator.id
+        ORDER BY polls.sort_order ASC, polls.id ASC
+    ")->fetch_all(MYSQLI_ASSOC);
 }
 
 function getPollById(int $id): ?array {
     $db = getDB();
-    $stmt = $db->prepare("SELECT * FROM polls WHERE id = ?");
+    $stmt = $db->prepare("
+        SELECT polls.*, creator.username AS creator_username
+        FROM polls
+        LEFT JOIN users AS creator ON polls.created_by = creator.id
+        WHERE polls.id = ?
+    ");
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     return $row ?: null;
+}
+
+// True once a poll's ends_at has passed. Polls with no ends_at (null) never expire.
+function isPollExpired(array $poll): bool {
+    return !empty($poll['ends_at']) && strtotime($poll['ends_at']) <= time();
 }
 
 function getPollOptions(int $pollId): array {
@@ -4631,11 +4646,11 @@ function getPollOptions(int $pollId): array {
     return $rows;
 }
 
-function createPoll(string $question, string $pollType, array $optionTexts, int $sortOrder = 0): int {
+function createPoll(string $question, string $pollType, array $optionTexts, int $sortOrder = 0, ?int $createdBy = null, ?string $endsAt = null): int {
     $pollType = $pollType === 'multi' ? 'multi' : 'single';
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO polls (question, poll_type, sort_order) VALUES (?, ?, ?)");
-    $stmt->bind_param('ssi', $question, $pollType, $sortOrder);
+    $stmt = $db->prepare("INSERT INTO polls (question, poll_type, sort_order, created_by, ends_at) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param('ssiis', $question, $pollType, $sortOrder, $createdBy, $endsAt);
     $stmt->execute();
     $pollId = $db->insert_id;
     $stmt->close();
@@ -4653,12 +4668,12 @@ function createPoll(string $question, string $pollType, array $optionTexts, int 
     return $pollId;
 }
 
-function updatePoll(int $id, string $question, string $pollType, int $sortOrder, bool $isActive): bool {
+function updatePoll(int $id, string $question, string $pollType, int $sortOrder, bool $isActive, ?string $endsAt = null): bool {
     $pollType = $pollType === 'multi' ? 'multi' : 'single';
     $db = getDB();
-    $stmt = $db->prepare("UPDATE polls SET question = ?, poll_type = ?, sort_order = ?, is_active = ? WHERE id = ?");
+    $stmt = $db->prepare("UPDATE polls SET question = ?, poll_type = ?, sort_order = ?, is_active = ?, ends_at = ? WHERE id = ?");
     $active = $isActive ? 1 : 0;
-    $stmt->bind_param('ssiii', $question, $pollType, $sortOrder, $active, $id);
+    $stmt->bind_param('ssiisi', $question, $pollType, $sortOrder, $active, $endsAt, $id);
     $ok = $stmt->execute();
     $stmt->close();
     return $ok;
@@ -4694,6 +4709,7 @@ function hasVotedOnPoll(int $pollId, string $voterSid): bool {
 function submitPollVote(int $pollId, array $optionIds, string $voterSid): bool {
     $poll = getPollById($pollId);
     if (!$poll || !$poll['is_active']) return false;
+    if (isPollExpired($poll)) return false;
     if (hasVotedOnPoll($pollId, $voterSid)) return false;
 
     $validOptionIds = array_column(getPollOptions($pollId), 'id');
@@ -4783,8 +4799,14 @@ function getBannerOrPollSlot(): ?array {
 
     $voterSid = ensureShareId();
     foreach ($polls as $p) {
-        if (!hasVotedOnPoll((int)$p['id'], $voterSid)) {
+        $expired = isPollExpired($p);
+        // An expired poll shows its results to everyone regardless of vote status
+        // (there's nothing left to vote on); a live poll only shows if this visitor
+        // hasn't voted on it yet, same as before.
+        if ($expired || !hasVotedOnPoll((int)$p['id'], $voterSid)) {
             $p['options'] = getPollOptions((int)$p['id']);
+            $p['expired'] = $expired;
+            if ($expired) $p['results'] = getPollResults((int)$p['id']);
             return ['type' => 'poll', 'poll' => $p];
         }
     }

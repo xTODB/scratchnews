@@ -33,6 +33,20 @@ $slot = getBannerOrPollSlot();
     });
 })();
 </script>
+<?php elseif ($slot && $slot['type'] === 'poll' && !empty($slot['poll']['expired'])): $p = $slot['poll'];
+    $results = $p['results'] ?? [];
+    $totalVotes = array_sum(array_column($results, 'votes'));
+?>
+<div id="promoPoll" class="promo-poll promo-poll-results" data-poll-id="<?= (int)$p['id'] ?>">
+    <p class="promo-poll-question"><?= e($p['question']) ?></p>
+    <p class="promo-poll-ended-label">Poll ended - here's how it went:</p>
+    <?php foreach ($results as $opt): $pct = $totalVotes > 0 ? round(($opt['votes'] / $totalVotes) * 100) : 0; ?>
+        <div class="promo-poll-result-row">
+            <div class="promo-poll-result-label"><?= e($opt['option_text']) ?> <span class="promo-poll-result-pct"><?= $pct ?>% (<?= (int)$opt['votes'] ?>)</span></div>
+            <div class="promo-poll-result-bar-track"><div class="promo-poll-result-bar" style="width:<?= $pct ?>%;"></div></div>
+        </div>
+    <?php endforeach; ?>
+</div>
 <?php elseif ($slot && $slot['type'] === 'poll'): $p = $slot['poll']; ?>
 <div id="promoPoll" class="promo-poll" data-poll-id="<?= (int)$p['id'] ?>">
     <form class="promo-poll-form" data-poll-type="<?= e($p['poll_type']) ?>">

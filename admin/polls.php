@@ -10,10 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pollType = ($_POST['poll_type'] ?? 'single') === 'multi' ? 'multi' : 'single';
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $options = array_filter(array_map('trim', explode("\n", $_POST['options'] ?? '')), fn($o) => $o !== '');
+        $endsAtRaw = trim($_POST['ends_at'] ?? '');
+        $endsAt = $endsAtRaw !== '' ? str_replace('T', ' ', $endsAtRaw) . ':00' : null;
         if ($question === '' || count($options) < 2) {
             $error = 'A question and at least 2 options are required.';
         } else {
-            createPoll($question, $pollType, $options, $sortOrder);
+            createPoll($question, $pollType, $options, $sortOrder, (int)($_SESSION['reader_id'] ?? 0) ?: null, $endsAt);
         }
     } elseif ($action === 'update') {
         $id = (int)($_POST['id'] ?? 0);
@@ -22,7 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pollType = ($_POST['poll_type'] ?? 'single') === 'multi' ? 'multi' : 'single';
             $sortOrder = (int)($_POST['sort_order'] ?? 0);
             $isActive = !empty($_POST['is_active']);
-            updatePoll($id, $question, $pollType, $sortOrder, $isActive);
+            $endsAtRaw = trim($_POST['ends_at'] ?? '');
+            $endsAt = $endsAtRaw !== '' ? str_replace('T', ' ', $endsAtRaw) . ':00' : null;
+            updatePoll($id, $question, $pollType, $sortOrder, $isActive, $endsAt);
         }
     } elseif ($action === 'delete') {
         deletePoll((int)($_POST['id'] ?? 0));
@@ -64,7 +68,10 @@ unset($p);
     <p>Poll options can't be edited after creation - delete and recreate the poll if the options need to change. Weight works the same as banner priority weight: they share one pool, higher number = shown more often. Vote results are on the <a href="/moderator/polls">Moderator Panel's Polls page</a>.</p>
 
     <div class="poll-admin-list">
-        <?php foreach ($polls as $p): ?>
+        <?php foreach ($polls as $p):
+            $expired = isPollExpired($p);
+            $endsAtInputVal = $p['ends_at'] ? str_replace(' ', 'T', substr($p['ends_at'], 0, 16)) : '';
+        ?>
             <form method="post" class="poll-admin-row">
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
@@ -76,8 +83,12 @@ unset($p);
                     <option value="multi" <?= $p['poll_type'] === 'multi' ? 'selected' : '' ?>>Multiple choice</option>
                 </select>
                 <p class="poll-admin-options">Options: <?= e(implode(', ', array_column($p['options'], 'option_text'))) ?></p>
+                <p class="poll-admin-options">Created by: <?= e($p['creator_username'] ?? 'Unknown') ?></p>
                 <label>Weight (higher = shown more often, shares a pool with banners)</label>
                 <input type="number" name="sort_order" value="<?= (int)$p['sort_order'] ?>">
+                <label>Ends at (optional - leave blank to run indefinitely)</label>
+                <input type="datetime-local" name="ends_at" value="<?= e($endsAtInputVal) ?>">
+                <?php if ($expired): ?><p class="poll-admin-options" style="color:#d90b45;">Ended - visitors now see results instead of the vote form.</p><?php endif; ?>
                 <label><input type="checkbox" name="is_active" <?= $p['is_active'] ? 'checked' : '' ?>> Active</label>
                 <div class="poll-admin-row-actions">
                     <button class="btn" type="submit">Save</button>
@@ -106,6 +117,8 @@ unset($p);
         <textarea name="options" rows="4" required></textarea>
         <label>Weight (higher = shown more often, shares a pool with banners)</label>
         <input type="number" name="sort_order" value="0">
+        <label>Ends at (optional - leave blank to run indefinitely; once passed, visitors see results instead of the vote form)</label>
+        <input type="datetime-local" name="ends_at">
         <button class="btn" type="submit">Add Poll</button>
     </form>
 </main>

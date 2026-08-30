@@ -992,6 +992,12 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .promo-poll-option input { margin-right: 0.5rem; }
 .promo-poll-submit { margin-top: 0.4rem; }
 .promo-poll-message { margin-top: 0.6rem; font-size: 0.9rem; }
+.promo-poll-ended-label { font-size: 0.85rem; opacity: 0.75; margin: 0 0 0.8rem; }
+.promo-poll-result-row { margin-bottom: 0.7rem; }
+.promo-poll-result-label { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.9rem; margin-bottom: 0.25rem; }
+.promo-poll-result-pct { opacity: 0.75; white-space: nowrap; }
+.promo-poll-result-bar-track { background: rgba(128,128,128,0.25); border-radius: 6px; height: 10px; overflow: hidden; }
+.promo-poll-result-bar { background: var(--brand, #ed0e37); height: 100%; border-radius: 6px; }
 /* v0.19 rank badges */
 .rank-badges { display: inline-flex; gap: 0.3rem; margin-left: 0.4rem; vertical-align: middle; }
 .rank-badge {

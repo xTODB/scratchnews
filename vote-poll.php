@@ -25,6 +25,12 @@ try {
         exit;
     }
 
+    $poll = getPollById($pollId);
+    if ($poll && isPollExpired($poll)) {
+        echo json_encode(['success' => false, 'error' => 'This poll has ended.']);
+        exit;
+    }
+
     if (!submitPollVote($pollId, $optionIds, $voterSid)) {
         echo json_encode(['success' => false, 'error' => 'Vote failed. Please refresh and try again.']);
         exit;
