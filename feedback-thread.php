@@ -47,7 +47,7 @@ $thread = getFeedbackThread($feedbackId);
 <style>
 .thread-page { max-width: 700px; margin: 0 auto; }
 .thread-msg { padding: 0.9rem; border: 1px solid rgba(128,128,128,0.2); border-radius: 8px; margin-bottom: 0.6rem; }
-.thread-msg.from-admin { border-color: #e8a33d; }
+.thread-msg.from-admin { border-color: var(--brand-bright); }
 .thread-msg-meta { opacity: 0.65; font-size: 0.8rem; margin-bottom: 0.3rem; }
 .thread-page textarea { width: 100%; min-height: 80px; padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; margin-bottom: 0.6rem; }
 .feedback-tag { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #fff; margin-left: 0.4rem; }
