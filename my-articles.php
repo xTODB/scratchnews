@@ -48,7 +48,7 @@ if ($view === 'drafts') {
 <style>
 .my-articles-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .my-articles-tab { padding: 0.6rem 1.2rem; border-radius: 6px; text-decoration: none; color: inherit; border: 1px solid rgba(128,128,128,0.3); font-weight: 600; }
-.my-articles-tab.active { background: #e8a33d; color: #2a2a2a; border-color: #e8a33d; }
+.my-articles-tab.active { background: var(--brand-bright); color: #2a2a2a; border-color: var(--brand-bright); }
 .unsave-form { margin-top: 0.4rem; }
 .unsave-btn { background: transparent; border: 1px solid currentColor; color: inherit; opacity: 0.75; padding: 0.25rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; }
 .unsave-btn:hover { opacity: 1; }
