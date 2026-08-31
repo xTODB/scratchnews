@@ -129,7 +129,7 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
 .settings-sub { font-size: 0.85rem; opacity: 0.75; margin-top: 0.2rem; }
 .verified-badge { color: #2a8a4a; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; }
 .unverified-badge { color: #a33; font-weight: 600; }
-.settings-row .btn { margin-top: 0; width: auto; height: auto; padding: 0.55rem 1.2rem; background: #ff8c1a; }
+.settings-row .btn { margin-top: 0; width: auto; height: auto; padding: 0.55rem 1.2rem; }
 .lock-icon { width: 16px; height: 16px; flex-shrink: 0; }
 .settings-row .btn, .settings-tab, button { -webkit-tap-highlight-color: transparent; }
 .settings-row .btn:focus, .settings-tab:focus { outline: 2px solid #e8a33d; outline-offset: 2px; }
