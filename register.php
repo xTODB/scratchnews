@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .wizard-card { max-width:640px; margin:0 auto; }
 .wizard-progress-row { display:flex; align-items:center; gap:0.75rem; margin:0.5rem 0 1.25rem; }
 .wizard-progress-track { flex:1; height:10px; border-radius:5px; background:#ccc; overflow:hidden; }
-.wizard-progress-fill { height:100%; background:#e8a33d; border-radius:5px; transition:width 0.25s ease; }
+.wizard-progress-fill { height:100%; background:var(--brand-bright); border-radius:5px; transition:width 0.25s ease; }
 .wizard-progress-label { font-weight:bold; white-space:nowrap; }
 .wizard-step { visibility: hidden; height: 0; overflow: hidden; }
 .wizard-step.active { visibility: visible; height: auto; overflow: visible; }
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .wizard-darkmode-toggle svg { width:16px; height:16px; fill:currentColor; }
 .verify-row { background:#f2f2f2; border-radius:8px; padding:0.85rem 1rem; margin-bottom:0.75rem; display:flex; align-items:flex-start; gap:0.75rem; }
 body.dark .verify-row { background:#2a2a2a; }
-.verify-num { font-size:1.4rem; font-weight:bold; color:#e8a33d; min-width:1.6rem; }
+.verify-num { font-size:1.4rem; font-weight:bold; color:var(--brand-bright); min-width:1.6rem; }
 .verify-body { flex:1; }
 .verify-code-row { display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem; }
 .verify-code { font-family:monospace; font-size:1rem; background:#e0e0e0; border-radius:5px; padding:0.25rem 0.6rem; }
@@ -139,7 +139,7 @@ body.dark .verify-code { background:#444; }
 body.dark .auth-method { border-color:#444; }
 .auth-method-header { display:flex; align-items:center; gap:0.6rem; width:100%; background:#f2f2f2; border:none; padding:0.75rem 1rem; cursor:pointer; color:inherit; font-size:1rem; font-weight:bold; text-align:left; }
 body.dark .auth-method-header { background:#2a2a2a; }
-.auth-method-check { width:16px; height:16px; fill:#cc8829; flex-shrink:0; }
+.auth-method-check { width:16px; height:16px; fill:var(--brand); flex-shrink:0; }
 .auth-method-header span { flex:1; }
 .auth-method-chevron { width:18px; height:18px; fill:currentColor; transition:transform 0.15s ease; flex-shrink:0; }
 .auth-method.open .auth-method-chevron { transform:rotate(180deg); }
