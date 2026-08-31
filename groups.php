@@ -19,7 +19,7 @@ if (!isGroupsBetaAllowed()):
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="home-main">
     <h2>Groups</h2>
-    <div class="alert" style="background: rgba(255,170,51,0.15); border: 1px solid #ffaa33;">
+    <div class="alert" style="background: color-mix(in srgb, var(--brand-bright) 15%, transparent); border: 1px solid var(--brand-bright);">
         🚧 Groups is a work in progress! We're still building it out - check back soon.
     </div>
 </main>
@@ -53,7 +53,7 @@ $newSinceLabel = $newSinceCount === 1 ? 'new group' : 'new groups';
 <meta name="description" content="Browse ScratchNews community groups.">
 <link rel="stylesheet" href="/assets/style.css?v=27">
 <style>
-.groups-beta-tag { font-size: 0.75rem; background: #ffaa33; color: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; margin-left: 0.5rem; vertical-align: middle; }
+.groups-beta-tag { font-size: 0.75rem; background: var(--brand-bright); color: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; margin-left: 0.5rem; vertical-align: middle; }
 .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
 .group-card { border: 1px solid rgba(128,128,128,0.3); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
 .group-card-banner { width: 100%; height: 90px; object-fit: cover; background: rgba(128,128,128,0.15); }
