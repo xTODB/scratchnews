@@ -186,13 +186,13 @@ form textarea { min-height: 200px; resize: vertical; }
 .btn {
     display: inline-flex; align-items: center; justify-content: center;
     margin-top: 1.2rem; padding: 0; height: 44px; width: 160px;
-    background: #ff8c1a; color: #fff; border: none; border-radius: 6px;
+    background: var(--brand-bright); color: #fff; border: none; border-radius: 6px;
     font-weight: 600; cursor: pointer; text-decoration: none; font-size: 1rem;
     font-family: inherit; line-height: 1; appearance: none; box-sizing: border-box;
 }
 .btn.inline { margin-top: 0; width: auto; padding: 0 1.2rem; }
 .btn.danger { background: #d9392a; }
-.btn.secondary { background: #6c757d; }
+.btn.secondary { background: var(--brand); }
 table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
 table th, table td { text-align: left; padding: 0.8rem; border-bottom: 1px solid #eee; }
 table th { background: #fafafa; }
