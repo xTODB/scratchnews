@@ -55,7 +55,7 @@ if ($myRole) {
 .group-header-meta { opacity: 0.8; font-size: 0.9rem; }
 .group-tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid rgba(128,128,128,0.3); margin-bottom: 1rem; }
 .group-tab { padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 2px solid transparent; }
-.group-tab.active { border-bottom-color: #cc8829; font-weight: 700; }
+.group-tab.active { border-bottom-color: var(--brand); font-weight: 700; }
 .group-tab-panel { display: none; }
 .group-tab-panel.active { display: block; }
 .group-wall-form { max-width: 520px; margin: 0 0 1.5rem; }
