@@ -210,8 +210,8 @@ function renderProfilesRow(array $users): void {
         <hr class="hero-divider">
 
         <?php renderNewsRow('Featured', $featuredList); ?>
-        <?php renderNewsRow('Latest', $latestRow); ?>
         <?php renderNewsRow('Popular', $popular); ?>
+        <?php renderNewsRow('Latest', $latestRow); ?>
         <?php renderGroupsRow($groupsList); ?>
         <?php renderProfilesRow($profilesList); ?>
     <?php endif; ?>
