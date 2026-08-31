@@ -120,7 +120,7 @@ $usernameCooldown = canChangeUsername($user);
 .settings-layout { display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap; }
 .settings-tabs { display: flex; flex-direction: column; gap: 0.5rem; min-width: 180px; }
 .settings-tab { display: block; padding: 0.7rem 1rem; border-radius: 6px; text-decoration: none; color: inherit; border: 1px solid rgba(128,128,128,0.3); font-weight: 600; }
-.settings-tab.active { background: #e8a33d; color: #2a2a2a; border-color: #e8a33d; }
+.settings-tab.active { background: var(--brand-bright); color: #2a2a2a; border-color: var(--brand-bright); }
 .settings-panel { flex: 1; min-width: 280px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 0; border-bottom: 1px solid rgba(128,128,128,0.2); }
 form.settings-row { background: transparent !important; padding: 0.9rem 0 !important; border-radius: 0 !important; box-shadow: none !important; max-width: none !important; margin: 0 !important; }
@@ -132,7 +132,7 @@ form.settings-row { background: transparent !important; padding: 0.9rem 0 !impor
 .settings-row .btn { margin-top: 0; width: auto; height: auto; padding: 0.55rem 1.2rem; }
 .lock-icon { width: 16px; height: 16px; flex-shrink: 0; }
 .settings-row .btn, .settings-tab, button { -webkit-tap-highlight-color: transparent; }
-.settings-row .btn:focus, .settings-tab:focus { outline: 2px solid #e8a33d; outline-offset: 2px; }
+.settings-row .btn:focus, .settings-tab:focus { outline: 2px solid var(--brand-bright); outline-offset: 2px; }
 .username-form-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .username-form-row input[type=text] { flex: 1; min-width: 160px; }
 .username-cooldown-note { font-size: 0.8rem; opacity: 0.7; margin-top: 0.4rem; }
