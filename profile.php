@@ -49,8 +49,8 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 <link rel="stylesheet" href="/assets/style.css?v=24">
 <style>
 /* Page-scoped stopgap — fold into style.css once shared */
-.profile-banner { width:100%; height:200px; border-radius:10px; background:linear-gradient(135deg,#e8a33d,#d97b1f); margin:0.75rem 0; }
-.profile-banner-img { width:100%; max-height:280px; height:auto; object-fit:contain; object-position:center; border-radius:10px; margin:0.75rem 0; background:linear-gradient(135deg,#e8a33d,#d97b1f); display:block; }
+.profile-banner { width:100%; height:200px; border-radius:10px; background:linear-gradient(135deg,var(--brand-bright),var(--brand)); margin:0.75rem 0; }
+.profile-banner-img { width:100%; max-height:280px; height:auto; object-fit:contain; object-position:center; border-radius:10px; margin:0.75rem 0; background:linear-gradient(135deg,var(--brand-bright),var(--brand)); display:block; }
 .profile-header-row { display:flex; align-items:flex-start; gap:1rem; }
 .profile-avatar { width:88px; height:88px; border-radius:50%; object-fit:cover; background:#ccc; flex-shrink:0; }
 .profile-avatar-fallback { width:88px; height:88px; border-radius:50%; background:#d97b1f; color:#fff; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:bold; flex-shrink:0; }
