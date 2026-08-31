@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Aug31] 0.26 - Themes, Stats export as .txt</p>
     <p>[Aug30] 0.25.2 - Cool update!</p><br><ul>
         <li>Revamped the 5-article homepage formula from "recent articles" to "recent articles by featured users with 5+ likes" for more quality articles</li>
         <li>Head Moderator rank, changed moderator panel for simplicity and gave more access to Head Moderators</li>
