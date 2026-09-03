@@ -220,7 +220,7 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
                         </div>
                     </div>
                     <?php if ($isBanned): ?>
-                        <p class="article-header-banned-note">Your account is restricted from liking and commenting.</p>
+                        <p class="article-header-banned-note">Your account is restricted from liking and commenting. <a href="/banned">View details</a></p>
                     <?php endif; ?>
                     <?php $articleCats = getArticleCategories($article['id']); if (!empty($articleCats)): ?>
                     <div class="article-header-tags">
