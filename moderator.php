@@ -87,7 +87,7 @@ $chatUnreadCount = getChatUnreadCountForUser((int)($_SESSION['reader_id'] ?? 0))
             <p>Messages from users, addressed to Head Mods and the dev.</p>
             <?php $pendingContactCount = getPendingContactCount(); if ($pendingContactCount > 0): ?><span class="admin-nav-badge"><?= $pendingContactCount ?></span><?php endif; ?>
         </a>
-        <a class="mod-tile" href="/admin/related-accounts">
+        <a class="mod-tile" href="/admin/related-accounts.php">
             <h3>Related Accounts</h3>
             <p>Look up every account that's ever shared a login IP with a username.</p>
         </a>
