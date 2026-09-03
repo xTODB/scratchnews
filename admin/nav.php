@@ -12,7 +12,7 @@
             <a href="/admin/review-log">Review Log</a>
             <a href="/admin/feedback">Feedback<?php $c = getPendingFeedbackCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/contact">Contact Us<?php $c = getPendingContactCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
-            <a href="/admin/related-accounts">Related Accounts</a>
+            <a href="/admin/related-accounts.php">Related Accounts</a>
             <a href="/admin/reports">Reports<?php $c = getPendingReportsCount(); if ($c > 0): ?><span class="admin-nav-badge"><?= $c ?></span><?php endif; ?></a>
             <a href="/admin/move">Move Content</a>
             <a href="/admin/moderation-words">Moderation Words</a>
