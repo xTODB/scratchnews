@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($userId > 0 && in_array($action, ['ban', 'unban', 'delete'])) {
         if ($action === 'ban') {
-            banUser($userId);
+            banUser($userId, $_POST['ban_reason'] ?? null);
             $message = 'User banned.';
         } elseif ($action === 'unban') {
             unbanUser($userId);
@@ -164,11 +164,12 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                             <input type="hidden" name="action" value="unban">
                         </form>
                         <?php else: ?>
-                        <a href="#" onclick="if(confirm('Ban this user?')) document.getElementById('ban<?= (int)$u['id'] ?>').submit(); return false;">Ban</a>
+                        <a href="#" onclick="var r=prompt('Reason for banning @<?= e($u['username']) ?> (shown to them):'); if(r===null) return false; document.getElementById('ban<?= (int)$u['id'] ?>_reason').value=r; document.getElementById('ban<?= (int)$u['id'] ?>').submit(); return false;">Ban</a>
                         <form id="ban<?= (int)$u['id'] ?>" method="post" style="display:none;">
                             <?= csrfField() ?>
                             <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                             <input type="hidden" name="action" value="ban">
+                            <input type="hidden" name="ban_reason" id="ban<?= (int)$u['id'] ?>_reason" value="">
                         </form>
                         <?php endif; ?>
                         <a href="#" onclick="if(confirm('Delete this user?')) document.getElementById('del<?= (int)$u['id'] ?>').submit(); return false;">Delete</a>
