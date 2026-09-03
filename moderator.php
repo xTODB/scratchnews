@@ -82,6 +82,11 @@ $chatUnreadCount = getChatUnreadCountForUser((int)($_SESSION['reader_id'] ?? 0))
             <h3>Admin Stats</h3>
             <p>Site-wide traffic and engagement stats.</p>
         </a>
+        <a class="mod-tile" href="/admin/contact">
+            <h3>Contact Us</h3>
+            <p>Messages from users, addressed to Head Mods and the dev.</p>
+            <?php $pendingContactCount = getPendingContactCount(); if ($pendingContactCount > 0): ?><span class="admin-nav-badge"><?= $pendingContactCount ?></span><?php endif; ?>
+        </a>
         <?php endif; ?>
     </div>
 </main>
