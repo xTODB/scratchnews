@@ -176,3 +176,12 @@ body.dark .user-nav-menu-divider { background: #333; }
 }
 </style>
 </header>
+<?php
+    $__navBanStatus = !empty($_SESSION['reader_id']) ? getUserBanStatus((int)$_SESSION['reader_id']) : ['banned' => false, 'reason' => null];
+    if ($__navBanStatus['banned'] && !in_array($__navPage, ['banned.php', 'signout.php'], true)):
+?>
+<div class="alert error" style="border-radius:0;margin:0;text-align:center;">
+    Your account has been banned<?= $__navBanStatus['reason'] ? ': ' . e($__navBanStatus['reason']) : '.' ?>
+    <a href="/banned">View details</a>
+</div>
+<?php endif; ?>
