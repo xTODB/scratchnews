@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
-        header('Location: ' . ($_SESSION['is_admin'] ? '/admin/' : $redirect));
+        header('Location: ' . (!empty($user['is_banned']) ? '/banned' : ($_SESSION['is_admin'] ? '/admin/' : $redirect)));
         exit;
     } else {
         $error = $loginMethod === 'wordlist' ? 'Incorrect username or word list.' : 'Incorrect username or password.';
