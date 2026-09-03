@@ -2972,6 +2972,130 @@ function getAllFeedback() {
     return $rows;
 }
 
+// ---- Contact Us (v0.26.1) ----
+// Separate from Feedback: goes to Head Moderators + the dev only (not regular
+// Moderators), and every thread gets real back-and-forth - even anonymous
+// submitters, via a random access_token they use to return to their thread
+// (no account to tie it to, so no login-gated view like feedback-thread.php).
+function submitContactMessage(?int $userId, string $message): array {
+    $db = getDB();
+    $token = $userId ? null : bin2hex(random_bytes(20));
+    $stmt = $db->prepare("INSERT INTO contact_threads (user_id, access_token, message) VALUES (?, ?, ?)");
+    $stmt->bind_param("iss", $userId, $token, $message);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    notifyContactRecipients('admin_new_contact', $userId, '/admin/contact', $message);
+    return ['id' => $id, 'token' => $token];
+}
+
+function getContactThreadById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT contact_threads.*, users.username
+        FROM contact_threads
+        LEFT JOIN users ON contact_threads.user_id = users.id
+        WHERE contact_threads.id = ?
+    ");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function getContactThread(int $threadId): array {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT contact_replies.*, users.username AS sender_username
+        FROM contact_replies
+        LEFT JOIN users ON contact_replies.sender_user_id = users.id
+        WHERE thread_id = ?
+        ORDER BY created_at ASC
+    ");
+    $stmt->bind_param('i', $threadId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+// $senderType is 'reader' or 'staff'. A reader reply flips is_read back to 0
+// so it resurfaces for staff; a staff reply notifies the reader (if they have
+// an account - anonymous submitters just check their bookmarked thread link).
+function addContactReply(int $threadId, string $senderType, ?int $senderUserId, string $message): bool {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO contact_replies (thread_id, sender_type, sender_user_id, message) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param('isis', $threadId, $senderType, $senderUserId, $message);
+    $ok = $stmt->execute();
+    $stmt->close();
+    if (!$ok) return false;
+
+    if ($senderType === 'staff') {
+        $db->query("UPDATE contact_threads SET is_read = 1 WHERE id = " . (int)$threadId);
+        $thread = getContactThreadById($threadId);
+        if (!empty($thread['user_id'])) {
+            createNotification((int)$thread['user_id'], 'contact_reply', $senderUserId, '/contact-thread.php?id=' . $threadId, $message);
+        }
+    } else {
+        $db->query("UPDATE contact_threads SET is_read = 0 WHERE id = " . (int)$threadId);
+        $thread = getContactThreadById($threadId);
+        notifyContactRecipients('admin_contact_reply', $senderUserId, '/admin/contact', $message, $thread['user_id'] ?? null);
+    }
+    return true;
+}
+
+function getAllContactThreads(): array {
+    $db = getDB();
+    $result = $db->query("
+        SELECT contact_threads.*, users.username
+        FROM contact_threads
+        LEFT JOIN users ON contact_threads.user_id = users.id
+        ORDER BY contact_threads.status = 'open' DESC, contact_threads.created_at DESC
+    ");
+    $rows = [];
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    return $rows;
+}
+
+function setContactThreadStatus(int $id, string $status): bool {
+    if (!in_array($status, ['open', 'closed'], true)) return false;
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE contact_threads SET status = ? WHERE id = ?");
+    $stmt->bind_param('si', $status, $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+function getPendingContactCount(): int {
+    $db = getDB();
+    $result = $db->query("SELECT COUNT(*) AS cnt FROM contact_threads WHERE is_read = 0");
+    return (int)($result->fetch_assoc()['cnt'] ?? 0);
+}
+
+function markAllContactRead(): void {
+    $db = getDB();
+    $db->query("UPDATE contact_threads SET is_read = 1 WHERE is_read = 0");
+}
+
+// Notifies is_admin=1 OR is_head_moderator=1 users only (not regular
+// Moderators) - Contact Us is scoped to Head Mods + the dev, per TODB's spec.
+// $excludeUserId skips notifying whichever staffer just triggered this (e.g.
+// a Head Mod who is also the reader replying to their own thread).
+function notifyContactRecipients(string $type, ?int $actorId = null, ?string $link = null, ?string $message = null, ?int $excludeUserId = null): void {
+    $db = getDB();
+    $result = $db->query("SELECT id FROM users WHERE is_admin = 1 OR is_head_moderator = 1");
+    while ($row = $result->fetch_assoc()) {
+        $recipientId = (int)$row['id'];
+        if ($actorId !== null && $recipientId === $actorId) continue;
+        if ($excludeUserId !== null && $recipientId === $excludeUserId) continue;
+        createNotification($recipientId, $type, $actorId, $link, $message);
+    }
+}
+
 function searchArticles(string $query): array {
     $db = getDB();
     $like = '%' . $query . '%';
@@ -3088,21 +3212,47 @@ function adminDeleteProfileComment(int $commentId): void {
     $stmt->close();
 }
 
-function banUser($userId) {
+function banUser($userId, ?string $reason = null) {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE users SET is_banned = 1 WHERE id = ?");
-    $stmt->bind_param("i", $userId);
+    $reason = ($reason !== null && trim($reason) !== '') ? trim($reason) : null;
+    $stmt = $db->prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?");
+    $stmt->bind_param("si", $reason, $userId);
     $stmt->execute();
     $stmt->close();
-    createNotification($userId, 'account_banned');
+    createNotification($userId, 'account_banned', null, '/banned', $reason);
 }
 
 function unbanUser($userId) {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE users SET is_banned = 0 WHERE id = ?");
+    $stmt = $db->prepare("UPDATE users SET is_banned = 0, ban_reason = NULL WHERE id = ?");
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $stmt->close();
+}
+
+function getUserBanReason($userId): ?string {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT ban_reason FROM users WHERE id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row['ban_reason'] ?? null;
+}
+
+// Single-query combo for includes/header.php's sitewide banner, so a banned
+// check doesn't cost two DB round trips on every logged-in page load.
+function getUserBanStatus($userId): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT is_banned, ban_reason FROM users WHERE id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return [
+        'banned' => !empty($row['is_banned']),
+        'reason' => $row['ban_reason'] ?? null,
+    ];
 }
 
 function isUserBanned($userId) {
@@ -4428,6 +4578,9 @@ const NOTIFICATION_ICONS = [
     'admin_new_feedback'     => '/assets/icons/message.svg',
     'admin_feedback_reply'   => '/assets/icons/reply.svg',
     'feedback_reply'         => '/assets/icons/reply.svg',
+    'admin_new_contact'      => '/assets/icons/message.svg',
+    'admin_contact_reply'    => '/assets/icons/reply.svg',
+    'contact_reply'          => '/assets/icons/reply.svg',
     // group_invite.svg (SN_Groups icon) is also slated to replace nav-profiles.svg
     // once Groups fully ships and Profiles folds into it - not done yet, still beta.
     'group_invite'           => '/assets/icons/group_invite.svg',
@@ -4520,6 +4673,9 @@ function renderNotificationText(array $n): string {
         case 'admin_new_feedback': return 'New feedback submitted';
         case 'admin_feedback_reply': return $actor . ' replied on their feedback thread';
         case 'feedback_reply': return 'ScratchNews replied to your feedback';
+        case 'admin_new_contact': return 'New Contact Us message submitted';
+        case 'admin_contact_reply': return 'New reply on a Contact Us thread';
+        case 'contact_reply': return 'ScratchNews replied to your Contact Us message';
         case 'group_member_joined': return $actor . ' joined a group you\'re in';
         case 'group_member_promoted': return $actor . ' was promoted to manager';
         case 'group_new_comment': return $actor . ' commented in a group you\'re in';
