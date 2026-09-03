@@ -16,6 +16,11 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Sep3] 0.26.1 - Trust &amp; safety update!</p><br><ul>
+        <li>Banned users now see WHY they were banned, right in the sitewide banner, instead of just "you're banned"</li>
+        <li>Contact Us for banned/logged-out users, so they can actually reach the team instead of being stuck</li>
+        <li>New Related Accounts tool (admin/Head Mod only) - trace every account that's ever shared a login IP with a given account, transitively across the whole network, to catch alts and ban evasion</li>
+    </ul>
     <p>[Aug31] 0.26 - Themes, Stats export as .txt</p>
     <p>[Aug30] 0.25.2 - Cool update!</p><br><ul>
         <li>Revamped the 5-article homepage formula from "recent articles" to "recent articles by featured users with 5+ likes" for more quality articles</li>
