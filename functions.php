@@ -928,6 +928,81 @@ function updateUserIp(int $userId, string $ip): void {
     $stmt->bind_param('si', $ip, $userId);
     $stmt->execute();
     $stmt->close();
+    logUserIp($userId, $ip);
+}
+
+// ---- IP login history (Related Accounts network detection) ----
+function logUserIp(int $userId, string $ip): void {
+    if ($ip === '' || $ip === '0.0.0.0' || $ip === 'unknown') return;
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO ip_login_history (user_id, ip_address) VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE last_seen_at = NOW()");
+    $stmt->bind_param('is', $userId, $ip);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Given a username, walks the shared-IP graph transitively (any account that
+// ever logged in from an IP any other account in the network ever used) and
+// returns the connected accounts plus which IP(s) link each one back in.
+function getRelatedAccounts(string $username): ?array {
+    $root = getUserByUsername($username);
+    if (!$root) return null;
+
+    $db = getDB();
+    $visitedUserIds = [(int)$root['id'] => true];
+    $visitedIps = [];
+    $linkedByIp = []; // user_id => [ip => true]
+    $queue = [(int)$root['id']];
+
+    while ($queue) {
+        $uid = array_shift($queue);
+        $stmt = $db->prepare("SELECT ip_address FROM ip_login_history WHERE user_id = ?");
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $ips = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'ip_address');
+        $stmt->close();
+
+        foreach ($ips as $ip) {
+            if (isset($visitedIps[$ip])) continue;
+            $visitedIps[$ip] = true;
+
+            $stmt2 = $db->prepare("SELECT DISTINCT user_id FROM ip_login_history WHERE ip_address = ?");
+            $stmt2->bind_param('s', $ip);
+            $stmt2->execute();
+            $otherIds = array_column($stmt2->get_result()->fetch_all(MYSQLI_ASSOC), 'user_id');
+            $stmt2->close();
+
+            foreach ($otherIds as $otherId) {
+                $otherId = (int)$otherId;
+                $linkedByIp[$otherId][$ip] = true;
+                if (!isset($visitedUserIds[$otherId])) {
+                    $visitedUserIds[$otherId] = true;
+                    $queue[] = $otherId;
+                }
+            }
+        }
+    }
+
+    unset($visitedUserIds[(int)$root['id']]);
+    $networkIds = array_keys($visitedUserIds);
+    $network = [];
+    if ($networkIds) {
+        $placeholders = implode(',', array_fill(0, count($networkIds), '?'));
+        $types = str_repeat('i', count($networkIds));
+        $stmt3 = $db->prepare("SELECT id, username, is_banned, is_admin, is_moderator, created_at FROM users WHERE id IN ($placeholders)");
+        $stmt3->bind_param($types, ...$networkIds);
+        $stmt3->execute();
+        $rows = $stmt3->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt3->close();
+        foreach ($rows as $row) {
+            $row['shared_ips'] = array_keys($linkedByIp[(int)$row['id']] ?? []);
+            $network[] = $row;
+        }
+        usort($network, fn($a, $b) => strcasecmp($a['username'], $b['username']));
+    }
+
+    return ['root' => $root, 'network' => $network];
 }
 
 // ---- Suspicious IP flagging (phone verification fallback) ----
@@ -1554,6 +1629,7 @@ function startSession(): void {
                 $_SESSION['dark_mode'] = $user['dark_mode'];
                 $_SESSION['color_theme'] = $user['color_theme'] ?? 'default';
                 $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
+                logUserIp((int)$user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
                 $newToken = setRememberToken($user['id']);
                 setcookie('remember_me', $user['id'] . ':' . $newToken, [
                     'expires' => time() + 60 * 60 * 24 * 30,
