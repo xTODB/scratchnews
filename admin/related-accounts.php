@@ -2,8 +2,10 @@
 require_once __DIR__ . '/../functions.php';
 startSession();
 
-// Scoped to Head Moderators + the dev, same gating as admin/contact.php -
-// this surfaces IP data, which is already admin/head-mod-only elsewhere.
+// Page access: Admin + Head Moderator (same gating as admin/contact.php).
+// Raw IP addresses are DEV/ADMIN ONLY though - $isAdminUser gates the
+// .ra-ip-tag output further down, so Head Mods see usernames/status but
+// never the linking IPs.
 if (empty($_SESSION['is_admin']) && empty($_SESSION['is_head_moderator'])) {
     header('Location: /login');
     exit;
@@ -70,11 +72,13 @@ if ($searched !== '') {
                         <?php if (!empty($u['is_moderator'])): ?><span class="ra-tags">moderator</span><?php endif; ?>
                         <div class="ra-tags">joined <?= utcTimeTag($u['created_at']) ?></div>
                     </div>
+                    <?php if ($isAdminUser): ?>
                     <div>
                         <?php foreach ($u['shared_ips'] as $ip): ?>
                             <span class="ra-ip-tag"><?= e($ip) ?></span>
                         <?php endforeach; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
