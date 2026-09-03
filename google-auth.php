@@ -30,12 +30,6 @@ if ($user) {
         linkGoogleIdToUser($user['id'], $googleId);
     }
 
-    if (isUserBanned($user['id'])) {
-        http_response_code(403);
-        echo json_encode(['error' => 'This account is restricted.']);
-        exit;
-    }
-
     updateUserIp($user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
 
     $_SESSION['reader_id'] = $user['id'];
@@ -53,6 +47,11 @@ if ($user) {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
+
+    if (isUserBanned($user['id'])) {
+        echo json_encode(['redirect' => '/banned']);
+        exit;
+    }
 
     echo json_encode(['redirect' => !empty($user['is_admin']) ? '/admin/' : $redirect]);
     exit;
