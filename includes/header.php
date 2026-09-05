@@ -36,6 +36,27 @@
     </a>
 </div>
 <nav>
+    <div class="app-menu-nav">
+        <button class="app-menu-toggle" onclick="document.getElementById('appMenu').classList.toggle('open')" title="Menu">
+            <span class="header-icon-mask icon-appmenu"></span>
+        </button>
+        <div id="appMenu" class="app-menu-dropdown">
+            <div class="app-menu-title">Menu</div>
+            <div class="app-menu-list">
+                <a href="/explore" class="app-menu-item primary">Explore <span class="app-menu-arrow">&#8250;</span></a>
+                <a href="/groups" class="app-menu-item primary">Groups <span class="app-menu-arrow">&#8250;</span></a>
+                <a href="/profiles" class="app-menu-item primary">Profiles <span class="app-menu-arrow">&#8250;</span></a>
+                <a href="/writers-contest" class="app-menu-item secondary">Writers' Contest <span class="app-menu-arrow">&#8250;</span></a>
+                <span class="app-menu-item secondary disabled" title="Forums haven't launched yet">Forums <small>(coming soon)</small></span>
+                <div class="app-menu-divider"></div>
+                <a href="/about" class="app-menu-item secondary">About</a>
+                <?php if (!empty($_SESSION['reader_username'])): ?>
+                <a href="/settings" class="app-menu-item secondary">Settings</a>
+                <a href="/@<?= e($_SESSION['reader_username']) ?>" class="app-menu-item secondary">My Profile</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
     <?php if (!empty($_SESSION['reader_username'])):
         $navUser = getUserById($_SESSION['reader_id']);
         $navAvatar = $navUser['avatar_url'] ?? null;
@@ -131,6 +152,58 @@
 .icon-moderator { -webkit-mask-image: url(/assets/icons/nav-moderator.svg); mask-image: url(/assets/icons/nav-moderator.svg); }
 .icon-donate { -webkit-mask-image: url(/assets/icons/nav-donate.svg); mask-image: url(/assets/icons/nav-donate.svg); }
 .icon-logout { -webkit-mask-image: url(/assets/icons/nav-logout.svg); mask-image: url(/assets/icons/nav-logout.svg); }
+.icon-appmenu { -webkit-mask-image: url(/assets/icons/nav-menu.svg); mask-image: url(/assets/icons/nav-menu.svg); }
+
+/* --- App Menu (3x3 grid dropdown) --- */
+.app-menu-nav { position: relative; margin-right: 0.6rem; }
+.app-menu-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    border: none; border-radius: 50%;
+    background: rgba(0,0,0,0.14);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.app-menu-toggle:hover { background: rgba(0,0,0,0.26); }
+.app-menu-toggle .header-icon-mask { width: 20px; height: 20px; }
+.app-menu-dropdown {
+    display: none;
+    position: absolute; top: calc(100% + 10px); right: 0;
+    width: 240px;
+    background: #fff; color: #14181c;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    padding: 0.6rem 0;
+    z-index: 900;
+}
+.app-menu-dropdown.open { display: block; }
+body.dark .app-menu-dropdown { background: #22262b; color: #f0f0f0; }
+.app-menu-title {
+    font-weight: 700; font-size: 1.05rem;
+    padding: 0.3rem 1rem 0.6rem;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0.3rem;
+}
+body.dark .app-menu-title { border-bottom-color: #333; }
+/* Scrollable + easy to extend: new items just need another .app-menu-item row,
+   the list grows/scrolls on its own rather than needing a redesign. */
+.app-menu-list { max-height: 60vh; overflow-y: auto; }
+.app-menu-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    color: inherit; text-decoration: none;
+    font-size: 1rem;
+}
+.app-menu-item:hover { background: rgba(255,170,51,0.12); }
+.app-menu-item.primary { font-size: 1.15rem; font-weight: 600; }
+.app-menu-item.secondary { font-size: 0.95rem; }
+.app-menu-item.disabled { color: #999; cursor: default; }
+.app-menu-item.disabled:hover { background: none; }
+.app-menu-item.disabled small { font-size: 0.8rem; }
+.app-menu-arrow { opacity: 0.5; }
+.app-menu-divider { height: 1px; background: #eee; margin: 0.4rem 0.9rem; }
+body.dark .app-menu-divider { background: #333; }
 
 /* Dropdown-menu icon rows: 20px, sit on currentColor so they auto-match the
    link's text color in both light and dark theme without a separate override. */
@@ -175,6 +248,12 @@ body.dark .user-nav-menu-divider { background: #333; }
     body { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
 }
 </style>
+<script>
+document.addEventListener('click', function (e) {
+    var menu = document.getElementById('appMenu');
+    if (menu && !e.target.closest('.app-menu-nav')) menu.classList.remove('open');
+});
+</script>
 </header>
 <?php
     $__navBanStatus = !empty($_SESSION['reader_id']) ? getUserBanStatus((int)$_SESSION['reader_id']) : ['banned' => false, 'reason' => null];
