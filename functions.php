@@ -3659,7 +3659,7 @@ function getTrendingHeroArticles(int $limit = 5): array {
     $stmt = $db->prepare(
         "SELECT a.* FROM articles a
          JOIN users u ON u.id = a.user_id
-         WHERE a.status = 'published' AND u.is_featured_user = 1 AND $likeExpr >= 5
+         WHERE a.status = 'published' AND u.is_featured_user = 1 AND $likeExpr >= 3
          ORDER BY $trendExpr DESC, a.created_at DESC
          LIMIT ?"
     );
