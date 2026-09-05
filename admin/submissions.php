@@ -52,6 +52,9 @@ $pending = getPendingSubmissions();
             <div class="submission-card" id="sub-<?= (int)$sub['id'] ?>" style="border:1px solid #ccc; border-radius:8px; padding:1rem; margin-bottom:1.5rem;">
                 <h3><?= e($sub['title']) ?></h3>
                 <p><strong>By:</strong> <a href="/@<?= e($sub['username']) ?>"><?= e($sub['username']) ?></a> &middot; <?= e($sub['created_at']) ?></p>
+                <?php if (!empty($sub['contest_scratcher'])): ?>
+                    <p><strong>Writers' Contest entry</strong> - about @<?= e($sub['contest_scratcher']) ?></p>
+                <?php endif; ?>
                 <p><em><?= e($sub['summary']) ?></em></p>
                 <div class="submission-content"><?= $sub['content'] /* already sanitized on submit */ ?></div>
 

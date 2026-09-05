@@ -2825,10 +2825,10 @@ function bulkDeleteAnonymizedUsers(): int {
     return $count;
 }
 
-function createSubmission($userId, $title, $summary, $content, ?string $imageUrl = null, array $categoryIds = [], string $status = 'pending', ?int $articleId = null) {
+function createSubmission($userId, $title, $summary, $content, ?string $imageUrl = null, array $categoryIds = [], string $status = 'pending', ?int $articleId = null, ?string $contestScratcher = null) {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO submissions (user_id, title, summary, content, image_url, status, article_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssssi", $userId, $title, $summary, $content, $imageUrl, $status, $articleId);
+    $stmt = $db->prepare("INSERT INTO submissions (user_id, title, summary, content, image_url, status, article_id, contest_scratcher) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssssis", $userId, $title, $summary, $content, $imageUrl, $status, $articleId, $contestScratcher);
     $stmt->execute();
     $id = $db->insert_id;
     $stmt->close();
@@ -2839,10 +2839,18 @@ function createSubmission($userId, $title, $summary, $content, ?string $imageUrl
     return $id;
 }
 
-function updateSubmission(int $id, string $title, string $summary, string $content, ?string $imageUrl, array $categoryIds, string $status = 'pending'): bool {
+// $contestScratcher: false (default) means "leave the column as-is" - used by
+// submit-autosave.php, which never touches this field. Pass null to explicitly
+// clear it, or a scratcher slug to set it - both used by submit.php's real POST handler.
+function updateSubmission(int $id, string $title, string $summary, string $content, ?string $imageUrl, array $categoryIds, string $status = 'pending', $contestScratcher = false): bool {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE submissions SET title = ?, summary = ?, content = ?, image_url = ?, status = ? WHERE id = ?");
-    $stmt->bind_param("sssssi", $title, $summary, $content, $imageUrl, $status, $id);
+    if ($contestScratcher === false) {
+        $stmt = $db->prepare("UPDATE submissions SET title = ?, summary = ?, content = ?, image_url = ?, status = ? WHERE id = ?");
+        $stmt->bind_param("sssssi", $title, $summary, $content, $imageUrl, $status, $id);
+    } else {
+        $stmt = $db->prepare("UPDATE submissions SET title = ?, summary = ?, content = ?, image_url = ?, status = ?, contest_scratcher = ? WHERE id = ?");
+        $stmt->bind_param("ssssssi", $title, $summary, $content, $imageUrl, $status, $contestScratcher, $id);
+    }
     $ok = $stmt->execute();
     $stmt->close();
     setSubmissionCategories($id, $categoryIds);
@@ -2863,6 +2871,38 @@ function getSubmissionCategoryIds(int $submissionId): array {
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     return array_map('intval', array_column($rows, 'category_id'));
+}
+
+// Writers' Contest: how many of a writer's already-APPROVED articles are contest
+// entries. Pending/draft submissions don't count toward the 5-entry limit.
+function countApprovedContestEntries(int $userId): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COUNT(*) AS c FROM articles WHERE user_id = ? AND contest_scratcher IS NOT NULL");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return (int)($row['c'] ?? 0);
+}
+
+// True if this writer already has an approved article OR a still-pending submission
+// about this Scratcher - stops someone parking a second pending entry on the same
+// Scratcher while the first one is still awaiting review.
+function hasContestSubmissionForScratcher(int $userId, string $scratcher): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT 1 FROM submissions WHERE user_id = ? AND contest_scratcher = ? AND status = 'pending' LIMIT 1");
+    $stmt->bind_param('is', $userId, $scratcher);
+    $stmt->execute();
+    $hasPending = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($hasPending) return true;
+
+    $stmt = $db->prepare("SELECT 1 FROM articles WHERE user_id = ? AND contest_scratcher = ? LIMIT 1");
+    $stmt->bind_param('is', $userId, $scratcher);
+    $stmt->execute();
+    $hasApproved = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $hasApproved;
 }
 
 function setSubmissionCategories(int $submissionId, array $categoryIds): void {
@@ -2969,10 +3009,20 @@ function approveSubmission($id, ?int $reviewerId = null) {
         $stmt->close();
     } else {
         $articleId = getNextArticleId();
-        $stmt = $db->prepare("INSERT INTO articles (id, title, summary, content, author, image_url, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssssi", $articleId, $submission['title'], $submission['summary'], $submission['content'], $submission['username'], $submission['image_url'], $submission['user_id']);
+        $stmt = $db->prepare("INSERT INTO articles (id, title, summary, content, author, image_url, user_id, contest_scratcher) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssssis", $articleId, $submission['title'], $submission['summary'], $submission['content'], $submission['username'], $submission['image_url'], $submission['user_id'], $submission['contest_scratcher']);
         $stmt->execute();
         $stmt->close();
+
+        // First-ever approved contest entry for this writer: auto-grant the Contest
+        // Writer badge, replacing the old manual admin toggle (setUserContestWriter()
+        // is still callable by hand if TODB ever needs to override it).
+        if (!empty($submission['contest_scratcher'])) {
+            $writer = getUserById((int)$submission['user_id']);
+            if ($writer && empty($writer['is_contest_writer'])) {
+                setUserContestWriter((int)$submission['user_id'], true);
+            }
+        }
     }
 
     setArticleCategories($articleId, getSubmissionCategoryIds($id));

@@ -79,12 +79,26 @@ if ($isVerified && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $existingDraft = $postedDraftId > 0 ? getUserSubmissionById($postedDraftId, $readerId) : null;
 
+    // Writers' Contest: a scratcher pick only counts on a brand-new submission, never
+    // on a resubmission-edit of an already-published article (article_id set) - that's
+    // chosen at first-submission time only, per TODB.
+    $isResubmissionEdit = $existingDraft && !empty($existingDraft['article_id']);
+    $contestScratcherPick = trim($_POST['contest_scratcher'] ?? '');
+    if ($isResubmissionEdit || !in_array($contestScratcherPick, CONTEST_SCRATCHERS, true)) {
+        $contestScratcherPick = '';
+    }
+    $contestScratcherToStore = $contestScratcherPick !== '' ? $contestScratcherPick : null;
+
         if ($title === '') {
         $error = 'A title is required.';
     } elseif (!$saveAsDraft && ($summary === '' || $content === '')) {
         $error = 'All fields are required to submit for review. Save as a draft if not ready.';
     } elseif (!$saveAsDraft && countContentWords($content) < 250) {
         $error = 'Articles need at least 250 words to submit for review (currently ' . countContentWords($content) . '). Save as a draft if it\'s not there yet.';
+    } elseif (!$saveAsDraft && $contestScratcherPick !== '' && countApprovedContestEntries($readerId) >= 5) {
+        $error = "You've already used all 5 of your Writers' Contest entries.";
+    } elseif (!$saveAsDraft && $contestScratcherPick !== '' && hasContestSubmissionForScratcher($readerId, $contestScratcherPick)) {
+        $error = 'You already have an entry (approved or still pending review) about that Scratcher. Pick a different one from the list.';
     } else {
         $cleanContent = $content !== '' ? sanitizeArticleHtml($content) : '';
 
@@ -100,10 +114,10 @@ if ($isVerified && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$existingDraft || $existingDraft['status'] !== 'draft') {
                     throw new RuntimeException('That draft could not be found.');
                 }
-                updateSubmission($postedDraftId, $title, $summary, $cleanContent, $imageUrl, $categoryIds, $status);
+                updateSubmission($postedDraftId, $title, $summary, $cleanContent, $imageUrl, $categoryIds, $status, $contestScratcherToStore);
                 $savedId = $postedDraftId;
             } else {
-                $savedId = createSubmission($readerId, $title, $summary, $cleanContent, $imageUrl, $categoryIds, $status);
+                $savedId = createSubmission($readerId, $title, $summary, $cleanContent, $imageUrl, $categoryIds, $status, null, $contestScratcherToStore);
             }
 
             if ($saveAsDraft) {
@@ -129,6 +143,8 @@ if ($isVerified && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'summary' => $summary,
                 'content' => $content,
                 'image_url' => $imageUrl ?? ($existingDraft['image_url'] ?? null),
+                'contest_scratcher' => $contestScratcherPick,
+                'article_id' => $existingDraft['article_id'] ?? null,
             ];
             $draftCategoryIds = array_map('intval', $categoryIds);
         }
@@ -141,6 +157,10 @@ $formSummary = $draft['summary'] ?? '';
 $formContent = $draft['content'] ?? '';
 $formImageUrl = $draft['image_url'] ?? null;
 $formDraftId = (int)($draft['id'] ?? 0);
+// Hide the Contest Scratcher pick entirely once we're resubmitting an edit to an
+// already-published article - that choice is submission-time-only, per TODB.
+$isResubmissionEditView = !empty($draft['article_id']);
+$formContestScratcher = $isResubmissionEditView ? '' : ($draft['contest_scratcher'] ?? '');
 // A separate SELECT * lookup (rather than adding these columns to the query above) so
 // this page doesn't break with a SQL error if the autosave_enabled/autosave_interval/
 // autocolor_links columns haven't been added to the users table yet.
@@ -214,6 +234,20 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
                 <button type="button" id="coverRemoveBtn" class="cover-remove-btn <?= $formImageUrl ? 'show' : '' ?>">Remove image</button>
             </div>
             <input type="file" id="cover_image" name="cover_image" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml">
+
+            <?php if (defined('CONTEST_MODE') && CONTEST_MODE && !$isResubmissionEditView): ?>
+            <label for="contest_scratcher">Writers' Contest Scratcher (optional)</label>
+            <select id="contest_scratcher" name="contest_scratcher">
+                <option value="">Not a contest entry</option>
+                <?php foreach (CONTEST_SCRATCHERS as $s): ?>
+                    <option value="<?= e($s) ?>" <?= $formContestScratcher === $s ? 'selected' : '' ?>>@<?= e($s) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <div id="contestGuidelinesBox" class="alert" style="<?= $formContestScratcher !== '' ? '' : 'display:none;' ?> margin:0.5rem 0 1rem;">
+                This counts as a Writers' Contest entry once approved. You can have up to <strong>5</strong> approved entries total, each about a <strong>different</strong> Scratcher.
+                Full rules: <a href="/writers-contest" target="_blank">the Writers' Contest page</a>.
+            </div>
+            <?php endif; ?>
 
             <label>Categories (pick up to 3)</label>
             <div class="category-checkboxes">
@@ -476,6 +510,14 @@ coverRemoveBtn.addEventListener('click', function() {
 document.getElementById('submitForm').addEventListener('submit', function(e) {
     document.getElementById('content').value = quill.root.innerHTML;
 });
+
+var contestSelect = document.getElementById('contest_scratcher');
+if (contestSelect) {
+    contestSelect.addEventListener('change', function() {
+        var box = document.getElementById('contestGuidelinesBox');
+        box.style.display = this.value ? '' : 'none';
+    });
+}
 
 document.querySelectorAll('.category-cb').forEach(function(cb) {
     cb.addEventListener('change', function() {
