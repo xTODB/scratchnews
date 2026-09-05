@@ -34,7 +34,7 @@ body.dark .contest-scratcher-chip { border-color:#444; }
         <li>You can write up to <strong>5 contest entries</strong>, each about a <strong>different</strong> Scratcher from the list below.</li>
         <li>Entries get a small "this article is about @username" banner linking to that Scratcher's own ScratchNews profile.</li>
         <li>For that link to actually work, the Scratcher being written about needs to make a <strong>Contest account</strong> - verified as really being them, not something a writer can do on their behalf.</li>
-        <li>No following or mentioning them anywhere required - just write something they (and everyone else) would want to read.</li>
+        <li>No following or mentioning them anywhere required: just write something they (and everyone else) would want to read.</li>
     </ul>
 
     <h3>Pick a Scratcher to write about</h3>
@@ -45,7 +45,7 @@ body.dark .contest-scratcher-chip { border-color:#444; }
     </div>
 
     <h3>Are you one of the Scratchers above?</h3>
-    <p>Make your Contest account so entries about you actually link to your profile - and so you can get notified when someone writes about you.</p>
+    <p>Make your Contest account so entries about you actually link to your profile: and so you can get notified when someone writes about you.</p>
     <div class="contest-cta-row">
         <a href="/register/contest" class="btn">Make a Contest Account</a>
     </div>
