@@ -898,6 +898,9 @@ body.dark .profile-actions-form { background: none; box-shadow: none; }
 .category-checkbox { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; font-weight: normal; }
 .article-categories { display: flex; gap: 0.5rem; margin: 0.5rem 0; }
 .category-badge { background: var(--brand-bright); color: #fff; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+.contest-mention-banner { display: inline-block; background: #fff3d6; color: #7a5b00; border: 1px solid #e0c060; border-radius: 8px; padding: 0.3rem 0.75rem; font-size: 0.85rem; margin: 0.5rem 0; }
+.contest-mention-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
+body.dark .contest-mention-banner { background: #3a2f00; color: #e0c060; border-color: #7a5b00; }
 
 .explore-title { text-align: center; color: var(--brand-bright); }
 .explore-tabs { display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0 1.5rem; }

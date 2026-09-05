@@ -170,6 +170,17 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
                             · Updated <?= utcTimeTag($article['updated_at']) ?>
                         <?php endif; ?>
                     </div>
+                    <?php if (!empty($article['contest_scratcher'])):
+                        $contestScratcherAccount = getContestScratcherAccount($article['contest_scratcher']); ?>
+                    <div class="contest-mention-banner">
+                        This article is about
+                        <?php if ($contestScratcherAccount): ?>
+                            <a href="/@<?= e($contestScratcherAccount['username']) ?>">@<?= e($article['contest_scratcher']) ?></a>
+                        <?php else: ?>
+                            @<?= e($article['contest_scratcher']) ?>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                     <div class="engage-bar">
                         <form method="post">
                             <?= csrfField() ?>

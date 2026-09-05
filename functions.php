@@ -1345,6 +1345,20 @@ const CONTEST_SCRATCHERS = [
     'Vryell', 'SkyCedar', 'Zolk2', 'TheEggyHippo', 'TheNotableMan',
 ];
 
+// The ScratchNews account (if any) a given Scratcher from CONTEST_SCRATCHERS has
+// made - their scratch_username is exactly the CONTEST_SCRATCHERS slug, verified via
+// Comment Auth at registration (see register-contest.php). Used both to link the
+// mention banner to their profile and to know where to send a mention notification.
+function getContestScratcherAccount(string $scratcher): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id, username FROM users WHERE scratch_username = ? AND is_contest_scratcher = 1 LIMIT 1");
+    $stmt->bind_param('s', $scratcher);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
 // Admin-only (not Head Mods) view of every Contest account (Writer or Scratcher) -
 // so TODB can personally reach someone by phone number if they lose their account.
 // Phone numbers are collected, not SMS-verified (same as the existing suspicious-IP
@@ -3021,6 +3035,13 @@ function approveSubmission($id, ?int $reviewerId = null) {
             $writer = getUserById((int)$submission['user_id']);
             if ($writer && empty($writer['is_contest_writer'])) {
                 setUserContestWriter((int)$submission['user_id'], true);
+            }
+
+            // If that Scratcher has made a Contest account, let them know - both an
+            // in-app notification and a push if they've got a device linked.
+            $scratcherAccount = getContestScratcherAccount($submission['contest_scratcher']);
+            if ($scratcherAccount && (int)$scratcherAccount['id'] !== (int)$submission['user_id']) {
+                notifyContestScratcherOfMention((int)$scratcherAccount['id'], (int)$submission['user_id'], $submission['username'], $articleId, $submission['title']);
             }
         }
     }
@@ -4920,6 +4941,7 @@ function renderNotificationText(array $n): string {
         case 'group_member_joined': return $actor . ' joined a group you\'re in';
         case 'group_member_promoted': return $actor . ' was promoted to manager';
         case 'group_new_comment': return $actor . ' commented in a group you\'re in';
+        case 'contest_mention': return $actor . ' wrote an article about you';
         default: return 'New notification';
     }
 }

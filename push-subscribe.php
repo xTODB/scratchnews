@@ -1,11 +1,15 @@
 <?php
 require_once __DIR__ . '/functions.php';
+startSession();
 header('Content-Type: application/json');
 
 // No login required - a push subscription is tied to the browser, not an account,
 // so logged-out visitors (the whole point of this feature) can use it. No CSRF token
 // either, same reasoning as heartbeat.php: there's no session/account state to hijack
 // here, just a browser-local subscription the visitor explicitly opted into.
+// If the visitor happens to be logged in, we link the subscription to their account
+// too (see savePushSubscription()) - this is what lets a Contest Scratcher get a
+// targeted "someone wrote about you" push, on top of the normal category broadcasts.
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
@@ -29,7 +33,7 @@ if ($action === 'subscribe') {
         exit;
     }
 
-    savePushSubscription($endpoint, $p256dh, $auth, $categoryIds);
+    savePushSubscription($endpoint, $p256dh, $auth, $categoryIds, !empty($_SESSION['reader_id']) ? (int)$_SESSION['reader_id'] : null);
     echo json_encode(['ok' => true]);
     exit;
 }

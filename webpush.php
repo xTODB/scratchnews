@@ -189,11 +189,14 @@ function sendWebPush(array $subscription, string $title, string $body, string $u
 }
 
 // Stores/updates a subscription and its category opt-ins (empty $categoryIds = all
-// categories). Returns the subscription's DB id.
-function savePushSubscription(string $endpoint, string $p256dh, string $auth, array $categoryIds = []): int {
+// categories). $userId links the subscription to a logged-in account (needed to target
+// one specific person, e.g. a Contest Scratcher mention) - null leaves it anonymous.
+// COALESCE on conflict means a subscription already linked to a user never gets
+// silently unlinked by a later anonymous call from the same browser.
+function savePushSubscription(string $endpoint, string $p256dh, string $auth, array $categoryIds = [], ?int $userId = null): int {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO push_subscriptions (endpoint, p256dh, auth) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
-    $stmt->bind_param('sss', $endpoint, $p256dh, $auth);
+    $stmt = $db->prepare("INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_id) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth), user_id = COALESCE(VALUES(user_id), user_id)");
+    $stmt->bind_param('sssi', $endpoint, $p256dh, $auth, $userId);
     $stmt->execute();
     $stmt->close();
 
@@ -221,6 +224,19 @@ function setPushSubscriptionCategories(int $subscriptionId, array $categoryIds):
         $stmt->execute();
     }
     $stmt->close();
+}
+
+// A specific logged-in user's subscription(s) - e.g. a Contest Scratcher checking
+// for a device to push their "someone wrote about you" notification to. Most users
+// will have 0 or 1, but nothing stops multiple devices linking to the same account.
+function getPushSubscriptionsForUser(int $userId): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM push_subscriptions WHERE user_id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
 }
 
 function deletePushSubscriptionByEndpoint(string $endpoint): void {
@@ -291,6 +307,28 @@ function notifyPushSubscribersOfNewArticle(int $articleId, string $title, array 
         } catch (Throwable $e) {
             // One bad subscription shouldn't stop the rest of the batch from sending.
             error_log('Push send failed for subscription ' . $sub['id'] . ': ' . $e->getMessage());
+        }
+    }
+}
+
+// Call this once a Writers' Contest entry gets approved and published. Sends both an
+// in-app notification and, if they have a linked device, a push to the specific
+// Scratcher the entry is about - separate from notifyPushSubscribersOfNewArticle()'s
+// broadcast-by-category, since this needs to reach exactly one person regardless of
+// their category subscriptions.
+function notifyContestScratcherOfMention(int $scratcherUserId, int $writerUserId, string $writerUsername, int $articleId, string $articleTitle): void {
+    $link = '/article/' . $articleId;
+    createNotification($scratcherUserId, 'contest_mention', $writerUserId, $link, $articleTitle);
+
+    $subs = getPushSubscriptionsForUser($scratcherUserId);
+    foreach ($subs as $sub) {
+        try {
+            $status = sendWebPush($sub, 'Someone wrote about you!', $writerUsername . ' published an article about you: ' . $articleTitle, $link);
+            if ($status === 404 || $status === 410) {
+                deletePushSubscriptionById((int)$sub['id']);
+            }
+        } catch (Throwable $e) {
+            error_log('Contest mention push failed for subscription ' . $sub['id'] . ': ' . $e->getMessage());
         }
     }
 }
