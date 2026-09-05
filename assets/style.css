@@ -1038,9 +1038,7 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .badge-modal-progress-tier.current { opacity: 1; }
 .badge-modal-progress-tier img { width: 28px; height: 28px; }
 .badge-modal-progress-line { flex: 1; height: 2px; background: #ddd; }
-/* v0.23 Beta share rank badge + share-click count badge */
-.rank-badge-share { background: none; padding: 0; display: inline-flex; align-items: center; }
-.rank-badge-share img { height: 1.4rem; width: auto; vertical-align: middle; }
+/* v0.23 Beta share-click count badge (Share tier badge itself now renders via .rank-badge-icon, folded into the v0.27 modal system above) */
 .share-click-badge {
     position: absolute; top: -8px; right: -10px;
     background: #ff9c2b; color: #fff;
