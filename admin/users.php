@@ -26,6 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($userId > 0 && in_array($action, ['make_featured_user', 'unmake_featured_user'])) {
         setUserFeaturedUser($userId, $action === 'make_featured_user');
         $message = $action === 'make_featured_user' ? 'Marked as Featured User - their articles will show on the Featured page.' : 'Featured User status removed.';
+    } elseif ($userId > 0 && in_array($action, ['make_contest_writer', 'unmake_contest_writer'])) {
+        setUserContestWriter($userId, $action === 'make_contest_writer');
+        $message = $action === 'make_contest_writer' ? "Writers' Contest Writer badge granted." : "Writers' Contest Writer badge removed.";
+    } elseif ($userId > 0 && in_array($action, ['make_contest_scratcher', 'unmake_contest_scratcher'])) {
+        setUserContestScratcher($userId, $action === 'make_contest_scratcher');
+        $message = $action === 'make_contest_scratcher' ? "Writers' Contest Scratcher badge granted." : "Writers' Contest Scratcher badge removed.";
     } elseif ($userId > 0 && in_array($action, ['make_moderator', 'unmake_moderator'])) {
         setUserModerator($userId, $action === 'make_moderator');
         $message = $action === 'make_moderator' ? 'Moderator rank granted.' : 'Moderator rank removed.';
@@ -129,6 +135,20 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                         <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                         <input type="hidden" name="action" value="<?= $isFeaturedUser ? 'unmake_featured_user' : 'make_featured_user' ?>">
                         <button type="submit" style="background:none;border:none;cursor:pointer;font-size:1.1em;padding:0;color:<?= $isFeaturedUser ? '#f7931e' : '#ccc' ?>;" title="<?= $isFeaturedUser ? 'Remove Featured User (their articles will drop off the Featured page)' : 'Mark Featured User (all their articles will show on the Featured page)' ?>">&#9733;</button>
+                    </form>
+                    <?php $isContestWriter = (bool)($u['is_contest_writer'] ?? 0); ?>
+                    <form method="POST" style="display:inline;padding:0;background:none;box-shadow:none;max-width:none;margin:0 0 0 0.4em;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                        <input type="hidden" name="action" value="<?= $isContestWriter ? 'unmake_contest_writer' : 'make_contest_writer' ?>">
+                        <button type="submit" style="background:none;border:1px solid <?= $isContestWriter ? '#0084ff' : '#ccc' ?>;border-radius:4px;cursor:pointer;font-size:0.7em;font-weight:700;padding:0.1em 0.3em;color:<?= $isContestWriter ? '#0084ff' : '#ccc' ?>;" title="<?= $isContestWriter ? "Remove Writers' Contest Writer badge" : "Grant Writers' Contest Writer badge" ?>">CW</button>
+                    </form>
+                    <?php $isContestScratcher = (bool)($u['is_contest_scratcher'] ?? 0); ?>
+                    <form method="POST" style="display:inline;padding:0;background:none;box-shadow:none;max-width:none;margin:0 0 0 0.2em;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                        <input type="hidden" name="action" value="<?= $isContestScratcher ? 'unmake_contest_scratcher' : 'make_contest_scratcher' ?>">
+                        <button type="submit" style="background:none;border:1px solid <?= $isContestScratcher ? '#ff8c1a' : '#ccc' ?>;border-radius:4px;cursor:pointer;font-size:0.7em;font-weight:700;padding:0.1em 0.3em;color:<?= $isContestScratcher ? '#ff8c1a' : '#ccc' ?>;" title="<?= $isContestScratcher ? "Remove Writers' Contest Scratcher badge" : "Grant Writers' Contest Scratcher badge" ?>">CS</button>
                     </form>
                 </td>
                 <td><?= utcTimeTag($u['created_at']) ?></td>

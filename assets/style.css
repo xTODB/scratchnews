@@ -1010,19 +1010,34 @@ body.dark .footer-language select { background: #222; color: #eee; border-color:
 .promo-poll-result-pct { opacity: 0.75; white-space: nowrap; }
 .promo-poll-result-bar-track { background: rgba(128,128,128,0.25); border-radius: 6px; height: 10px; overflow: hidden; }
 .promo-poll-result-bar { background: var(--brand, #ed0e37); height: 100%; border-radius: 6px; }
-/* v0.19 rank badges */
+/* v0.27 rank badges - icon-only redesign, replaces the old colored text chips */
 .rank-badges { display: inline-flex; gap: 0.3rem; margin-left: 0.4rem; vertical-align: middle; }
-.rank-badge {
-    display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.02em;
-    padding: 0.12rem 0.5rem; border-radius: 999px; color: #fff; vertical-align: middle;
-    text-transform: uppercase; white-space: nowrap;
+.rank-badge-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    vertical-align: middle; line-height: 0;
 }
-.rank-badge.rank-writer { background: #0084ff; }
-.rank-badge.rank-featured-writer { background: #0022ff; }
-.rank-badge.rank-fan { background: #8000ff; }
-.rank-badge.rank-moderator { background: #ff00d0; }
-.rank-badge.rank-head-moderator { background: linear-gradient(135deg, #ed0e37, #d90b45); }
-.rank-badge.rank-dev { background: linear-gradient(135deg, #ff0000, #910101); }
+.rank-badge-icon img { height: 1.4rem; width: auto; vertical-align: middle; }
+.rank-badge-icon:hover img, .rank-badge-icon:focus-visible img { filter: brightness(1.15); }
+/* v0.27 badge-details modal, opened by clicking any .rank-badge-icon (site-wide, markup lives once in includes/footer.php) */
+.badge-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1200; }
+.badge-modal-backdrop[hidden] { display: none; }
+.badge-modal-card { background: #fff; color: #111; border-radius: 10px; padding: 1.5rem; max-width: 640px; width: 92%; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.badge-modal-close { position: absolute; top: 0.6rem; right: 0.9rem; background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: #333; }
+.badge-modal-body { display: flex; gap: 1.25rem; }
+.badge-modal-thumbs { display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
+.badge-modal-thumb { display: block; background: #f2f2f2; border: 2px solid transparent; border-radius: 8px; padding: 0.4rem; cursor: pointer; }
+.badge-modal-thumb img { display: block; width: 32px; height: 32px; }
+.badge-modal-thumb.active { border-color: var(--brand-bright, #ff8c1a); background: #fff3e6; }
+.badge-modal-main { flex: 1; min-width: 0; }
+.badge-modal-icon { width: 64px; height: 64px; display: block; margin-bottom: 0.5rem; }
+.badge-modal-title { margin: 0 0 0.5rem; font-size: 1.4rem; }
+.badge-modal-desc { margin: 0 0 1rem; color: #333; }
+.badge-modal-progress { display: flex; align-items: center; gap: 0.6rem; padding-top: 0.8rem; border-top: 1px solid #eee; }
+.badge-modal-progress-tier { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; opacity: 0.4; }
+.badge-modal-progress-tier.current { opacity: 1; }
+.badge-modal-progress-tier img { width: 28px; height: 28px; }
+.badge-modal-progress-line { flex: 1; height: 2px; background: #ddd; }
 /* v0.23 Beta share rank badge + share-click count badge */
 .rank-badge-share { background: none; padding: 0; display: inline-flex; align-items: center; }
 .rank-badge-share img { height: 1.4rem; width: auto; vertical-align: middle; }

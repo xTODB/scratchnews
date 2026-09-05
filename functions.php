@@ -1318,33 +1318,142 @@ function setUserFeaturedUser(int $userId, bool $isFeatured): void {
     $stmt->close();
 }
 
-// Returns an ordered list of ['label' => string, 'class' => string] badges for a user.
+// v0.27: Writers' Contest badges - manually toggled for now (mirrors the Featured
+// User star-toggle pattern) until the Writers' Contest feature itself defines how
+// entrants get flagged; these two setters are the placeholder mechanism.
+function setUserContestWriter(int $userId, bool $isContestWriter): void {
+    $db = getDB();
+    $val = $isContestWriter ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_contest_writer = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function setUserContestScratcher(int $userId, bool $isContestScratcher): void {
+    $db = getDB();
+    $val = $isContestScratcher ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_contest_scratcher = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// v0.27: Badge Redesign. All rank badges now render as clickable icons (see
+// assets/badges/ranks/) instead of colored text chips. Central registry below -
+// slug => definition. 'group'/'order' link the 5 Writer tiers together so the
+// click-through modal can draw a full tier-progression row. 'description' is
+// TODB's copy to write per-badge; PLACEHOLDER text below until he supplies real
+// copy - just swap the strings, nothing else needs to change.
+function getBadgeDefinitions(): array {
+    return [
+        'user'               => ['label' => 'User',               'icon' => 'rank-user.svg',               'group' => null,     'order' => 0, 'description' => 'PLACEHOLDER: everyone starts here.'],
+        'writer'             => ['label' => 'Writer',              'icon' => 'rank-writer.svg',              'group' => 'writer', 'order' => 1, 'description' => 'PLACEHOLDER: write 1 article and get it approved.'],
+        'dedicated-writer'   => ['label' => 'Dedicated Writer',    'icon' => 'rank-dedicated-writer.svg',    'group' => 'writer', 'order' => 2, 'description' => 'PLACEHOLDER: write 3 or more articles and get them approved.'],
+        'featured-writer'    => ['label' => 'Featured Writer',     'icon' => 'rank-featured-writer.svg',     'group' => 'writer', 'order' => 3, 'description' => 'PLACEHOLDER: write 5 or more articles and get them approved.'],
+        'master-writer'      => ['label' => 'Master Writer',       'icon' => 'rank-master-writer.svg',       'group' => 'writer', 'order' => 4, 'description' => 'PLACEHOLDER: write 10 or more articles and get them approved.'],
+        'legendary-writer'   => ['label' => 'Legendary Writer',    'icon' => 'rank-legendary-writer.svg',    'group' => 'writer', 'order' => 5, 'description' => 'PLACEHOLDER: write 15 or more articles and get them approved.'],
+        'fan'                => ['label' => 'Fan',                 'icon' => 'rank-fan.svg',                 'group' => null,     'order' => 0, 'description' => 'PLACEHOLDER: a supporter of ScratchNews, granted by the team.'],
+        'moderator'          => ['label' => 'Moderator',           'icon' => 'rank-moderator.svg',           'group' => null,     'order' => 0, 'description' => 'PLACEHOLDER: helps keep ScratchNews running smoothly.'],
+        'head-moderator'     => ['label' => 'Head Moderator',      'icon' => 'rank-head-moderator.svg',      'group' => null,     'order' => 0, 'description' => 'PLACEHOLDER: a senior moderator with extra tools.'],
+        'founder'            => ['label' => 'Founder',             'icon' => 'rank-founder.svg',             'group' => null,     'order' => 0, 'description' => 'PLACEHOLDER: made ScratchNews.'],
+        'contest-writer'     => ['label' => "Writers' Contest Writer",    'icon' => 'rank-contest-writer.svg',    'group' => null, 'order' => 0, 'description' => "PLACEHOLDER: participating in the current Writers' Contest."],
+        'contest-scratcher'  => ['label' => "Writers' Contest Scratcher", 'icon' => 'rank-contest-scratcher.svg', 'group' => null, 'order' => 0, 'description' => "PLACEHOLDER: a Scratcher's account entered in the current Writers' Contest."],
+    ];
+}
+
+// Returns an ordered list of badge slugs (keys into getBadgeDefinitions()) for a user.
 // Accepts either a full user row (preferred, avoids an extra query for is_fan/is_moderator)
-// or just a user id.
+// or just a user id. Only the user's HIGHEST Writer tier is included (tiers don't stack).
+// Falls back to ['user'] when nothing else applies, so every user shows at least one badge.
 function getUserRankBadges($user): array {
     if (is_int($user)) {
         $user = getUserById($user);
         if (!$user) return [];
     }
-    $badges = [];
+    $slugs = [];
     if (!empty($user['is_admin'])) {
-        $badges[] = ['label' => 'Dev', 'class' => 'rank-dev'];
+        $slugs[] = 'founder';
     }
     $articleCount = getArticleCountByUser((int)$user['id']);
-    if ($articleCount >= 3) {
-        $badges[] = ['label' => 'Featured Writer', 'class' => 'rank-featured-writer'];
+    if ($articleCount >= 15) {
+        $slugs[] = 'legendary-writer';
+    } elseif ($articleCount >= 10) {
+        $slugs[] = 'master-writer';
+    } elseif ($articleCount >= 5) {
+        $slugs[] = 'featured-writer';
+    } elseif ($articleCount >= 3) {
+        $slugs[] = 'dedicated-writer';
     } elseif ($articleCount >= 1) {
-        $badges[] = ['label' => 'Writer', 'class' => 'rank-writer'];
+        $slugs[] = 'writer';
     }
     if (!empty($user['is_fan'])) {
-        $badges[] = ['label' => 'Fan', 'class' => 'rank-fan'];
+        $slugs[] = 'fan';
     }
     if (empty($user['is_admin']) && !empty($user['is_head_moderator'])) {
-        $badges[] = ['label' => 'Head Moderator', 'class' => 'rank-head-moderator'];
+        $slugs[] = 'head-moderator';
     } elseif (empty($user['is_admin']) && !empty($user['is_moderator'])) {
-        $badges[] = ['label' => 'Moderator', 'class' => 'rank-moderator'];
+        $slugs[] = 'moderator';
     }
-    return $badges;
+    if (!empty($user['is_contest_writer'])) {
+        $slugs[] = 'contest-writer';
+    }
+    if (!empty($user['is_contest_scratcher'])) {
+        $slugs[] = 'contest-scratcher';
+    }
+    if (empty($slugs)) {
+        $slugs[] = 'user';
+    }
+    return $slugs;
+}
+
+// Renders badges as clickable icons. Pass a full user row when you already have one
+// (comment lists, profile) to avoid an extra getUserById() lookup per call.
+// Each icon opens the shared badge-details modal (markup/JS lives once in
+// includes/footer.php) via a data-badges/data-groups JSON payload on the wrapper -
+// no per-click network request needed.
+function renderRankBadges($user): string {
+    $defs = getBadgeDefinitions();
+    $slugs = getUserRankBadges($user);
+    $userId = is_int($user) ? $user : (int)($user['id'] ?? 0);
+    $shareBadge = $userId > 0 ? getShareRankBadge(getUserShareClickCount($userId)) : null;
+    if (empty($slugs) && !$shareBadge) return '';
+
+    $badgesPayload = [];
+    $groupsNeeded = [];
+    foreach ($slugs as $slug) {
+        if (!isset($defs[$slug])) continue;
+        $d = $defs[$slug];
+        $badgesPayload[] = [
+            'slug' => $slug,
+            'label' => $d['label'],
+            'icon' => '/assets/badges/ranks/' . $d['icon'],
+            'description' => $d['description'],
+            'group' => $d['group'],
+        ];
+        if ($d['group']) $groupsNeeded[$d['group']] = true;
+    }
+    $groupsPayload = [];
+    foreach (array_keys($groupsNeeded) as $group) {
+        $tiers = [];
+        foreach ($defs as $slug => $d) {
+            if ($d['group'] === $group) {
+                $tiers[$d['order']] = ['slug' => $slug, 'label' => $d['label'], 'icon' => '/assets/badges/ranks/' . $d['icon']];
+            }
+        }
+        ksort($tiers);
+        $groupsPayload[$group] = array_values($tiers);
+    }
+
+    $html = '<span class="rank-badges" data-badges="' . e(json_encode($badgesPayload)) . '" data-groups="' . e(json_encode($groupsPayload)) . '">';
+    foreach ($badgesPayload as $b) {
+        $html .= '<button type="button" class="rank-badge-icon" data-slug="' . e($b['slug']) . '" title="' . e($b['label']) . '"><img src="' . e($b['icon']) . '" alt="' . e($b['label']) . '"></button>';
+    }
+    if ($shareBadge) {
+        $html .= '<span class="rank-badge rank-badge-share" title="' . e($shareBadge['label']) . ' - shared links clicked ' . e($shareBadge['min']) . '+ times"><img src="/assets/badges/' . e($shareBadge['icon']) . '" alt="' . e($shareBadge['label']) . '"></span>';
+    }
+    $html .= '</span>';
+    return $html;
 }
 
 // Renders badges as inline HTML spans. Pass a full user row when you already have one
@@ -3356,7 +3465,7 @@ function setUserCommentTimeout(int $userId, int $minutes): void {
 
 function getAllUsers() {
     $db = getDB();
-    $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, is_head_moderator, is_featured_user, created_at, ip_address FROM users ORDER BY created_at DESC");
+        $result = $db->query("SELECT id, username, email, is_admin, is_banned, email_verified, scratch_verified_at, phone_verified_at, is_fan, is_moderator, is_head_moderator, is_featured_user, is_contest_writer, is_contest_scratcher, created_at, ip_address FROM users ORDER BY created_at DESC");
     $rows = [];
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;

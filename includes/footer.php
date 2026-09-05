@@ -44,8 +44,106 @@
                 </select>
             </form>
         </div>
-    </div>
+        </div>
 </footer>
+<!-- v0.27: shared badge-details modal, opened by clicking any .rank-badge-icon anywhere on the site -->
+<div class="badge-modal-backdrop" id="badge-modal" hidden>
+    <div class="badge-modal-card">
+        <button type="button" class="badge-modal-close" aria-label="Close">&times;</button>
+        <div class="badge-modal-body">
+            <div class="badge-modal-thumbs" id="badge-modal-thumbs"></div>
+            <div class="badge-modal-main">
+                <img class="badge-modal-icon" id="badge-modal-icon" src="" alt="">
+                <h3 class="badge-modal-title" id="badge-modal-title"></h3>
+                <p class="badge-modal-desc" id="badge-modal-desc"></p>
+                <div class="badge-modal-progress" id="badge-modal-progress" hidden></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var modal = document.getElementById('badge-modal');
+    var thumbsEl = document.getElementById('badge-modal-thumbs');
+    var iconEl = document.getElementById('badge-modal-icon');
+    var titleEl = document.getElementById('badge-modal-title');
+    var descEl = document.getElementById('badge-modal-desc');
+    var progressEl = document.getElementById('badge-modal-progress');
+    var currentBadges = [];
+    var currentGroups = {};
+
+    function renderBadge(slug) {
+        var badge = currentBadges.find(function(b) { return b.slug === slug; });
+        if (!badge) return;
+        iconEl.src = badge.icon;
+        iconEl.alt = badge.label;
+        titleEl.textContent = badge.label;
+        descEl.textContent = badge.description;
+
+        thumbsEl.querySelectorAll('.badge-modal-thumb').forEach(function(t) {
+            t.classList.toggle('active', t.getAttribute('data-slug') === slug);
+        });
+
+        if (badge.group && currentGroups[badge.group]) {
+            var tiers = currentGroups[badge.group];
+            progressEl.innerHTML = '';
+            tiers.forEach(function(tier, i) {
+                var tierEl = document.createElement('div');
+                tierEl.className = 'badge-modal-progress-tier' + (tier.slug === slug ? ' current' : '');
+                var img = document.createElement('img');
+                img.src = tier.icon;
+                img.alt = tier.label;
+                tierEl.appendChild(img);
+                progressEl.appendChild(tierEl);
+                if (i < tiers.length - 1) {
+                    var line = document.createElement('div');
+                    line.className = 'badge-modal-progress-line';
+                    progressEl.appendChild(line);
+                }
+            });
+            progressEl.hidden = false;
+        } else {
+            progressEl.hidden = true;
+            progressEl.innerHTML = '';
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.rank-badge-icon');
+        if (!btn) return;
+        var wrapper = btn.closest('.rank-badges');
+        if (!wrapper) return;
+        try {
+            currentBadges = JSON.parse(wrapper.getAttribute('data-badges') || '[]');
+            currentGroups = JSON.parse(wrapper.getAttribute('data-groups') || '{}');
+        } catch (err) {
+            return;
+        }
+        thumbsEl.innerHTML = '';
+        currentBadges.forEach(function(b) {
+            var thumb = document.createElement('button');
+            thumb.type = 'button';
+            thumb.className = 'badge-modal-thumb';
+            thumb.setAttribute('data-slug', b.slug);
+            var img = document.createElement('img');
+            img.src = b.icon;
+            img.alt = b.label;
+            thumb.appendChild(img);
+            thumb.addEventListener('click', function() { renderBadge(b.slug); });
+            thumbsEl.appendChild(thumb);
+        });
+        renderBadge(btn.getAttribute('data-slug'));
+        modal.hidden = false;
+    });
+
+    modal.querySelector('.badge-modal-close').addEventListener('click', function() {
+        modal.hidden = true;
+    });
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.hidden = true;
+    });
+})();
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('time.local-date, time.local-datetime').forEach(function(el) {
