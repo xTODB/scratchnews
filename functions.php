@@ -1340,25 +1340,30 @@ function setUserContestScratcher(int $userId, bool $isContestScratcher): void {
 }
 
 // v0.27: Badge Redesign. All rank badges now render as clickable icons (see
-// assets/badges/ranks/) instead of colored text chips. Central registry below -
-// slug => definition. 'group'/'order' link the 5 Writer tiers together so the
+// assets/ranks/) instead of colored text chips. Central registry below -
+// slug => definition. 'icon' is a full path under /assets/. 'group'/'order' link
+// tiered badges together (the 5 Writer tiers, the 4 Share tiers) so the
 // click-through modal can draw a full tier-progression row. 'description' is
 // TODB's copy to write per-badge; PLACEHOLDER text below until he supplies real
 // copy - just swap the strings, nothing else needs to change.
 function getBadgeDefinitions(): array {
     return [
-        'user'               => ['label' => 'User',               'icon' => 'rank-user.svg',               'group' => null,     'order' => 0, 'description' => 'Oh, look who made a ScratchNews account! Everyone starts here.'],
-        'writer'             => ['label' => 'Writer',              'icon' => 'rank-writer.svg',              'group' => 'writer', 'order' => 1, 'description' => 'Write 1 article and get it approved. Damn this guy knows how to write!'],
-        'dedicated-writer'   => ['label' => 'Dedicated Writer',    'icon' => 'rank-dedicated-writer.svg',    'group' => 'writer', 'order' => 2, 'description' => 'Write 3 articles and get them approved. Okay looks like you actually like ScratchNews...'],
-        'featured-writer'    => ['label' => 'Featured Writer',     'icon' => 'rank-featured-writer.svg',     'group' => 'writer', 'order' => 3, 'description' => 'Write 5 articles and get them approved. Now that\'s some good work! You considered writing a book?'],
-        'master-writer'      => ['label' => 'Master Writer',       'icon' => 'rank-master-writer.svg',       'group' => 'writer', 'order' => 4, 'description' => 'Write 10 articles and get them approved. If you see this, you are one of 3 users in the entirety of ScratchNews to get this rank. Congrats.'],
-        'legendary-writer'   => ['label' => 'Legendary Writer',    'icon' => 'rank-legendary-writer.svg',    'group' => 'writer', 'order' => 5, 'description' => 'Write 15 or more articles and get them approved. ...Some people have insane dedication. You are one special Scratcher. You truly are one of the best writers.'],
-        'fan'                => ['label' => 'Fan',                 'icon' => 'rank-fan.svg',                 'group' => null,     'order' => 0, 'description' => 'You contributed or donated to ScratchNews? Well here\'s your rank!'],
-        'moderator'          => ['label' => 'Moderator',           'icon' => 'rank-moderator.svg',           'group' => null,     'order' => 0, 'description' => 'Moderators are people who made good moderator applications, and actually use their moderator powers for good. Fun fact: 1 in 10 ScratchNews users are moderators or higher. You\'re part of the ScratchNews team!'],
-        'head-moderator'     => ['label' => 'Head Moderator',      'icon' => 'rank-head-moderator.svg',      'group' => null,     'order' => 0, 'description' => 'Oh look, a head moderator. A head moderator is a moderator who has more experience. More powers and stuff! That includes responding to contact us messages, seeing the admin stats etc. Head Moderators are the foundation of this site.'],
-        'founder'            => ['label' => 'Founder',             'icon' => 'rank-founder.svg',             'group' => null,     'order' => 0, 'description' => 'Created ScratchNews. None other than TODB himself.'],
-        'contest-writer'     => ['label' => "Writers' Contest Writer",    'icon' => 'rank-contest-writer.svg',    'group' => null, 'order' => 0, 'description' => "Participate in the Writers' Contest."],
-        'contest-scratcher'  => ['label' => "Writers' Contest Scratcher", 'icon' => 'rank-contest-scratcher.svg', 'group' => null, 'order' => 0, 'description' => "Create a ScratchNews account while you're in the list of people to write to in the Writers' Contest. Hello hello!"],
+        'user'               => ['label' => 'User',               'icon' => '/assets/ranks/rank-user.svg',               'group' => null,    'order' => 0, 'description' => 'Oh, look who made a ScratchNews account! Everyone starts here.'],
+        'writer'             => ['label' => 'Writer',              'icon' => '/assets/ranks/rank-writer.svg',              'group' => 'writer', 'order' => 1, 'description' => 'Write 1 article and get it approved. Damn this guy knows how to write!'],
+        'dedicated-writer'   => ['label' => 'Dedicated Writer',    'icon' => '/assets/ranks/rank-dedicated-writer.svg',    'group' => 'writer', 'order' => 2, 'description' => 'Write 3 articles and get them approved. Okay looks like you actually like ScratchNews...'],
+        'featured-writer'    => ['label' => 'Featured Writer',     'icon' => '/assets/ranks/rank-featured-writer.svg',     'group' => 'writer', 'order' => 3, 'description' => 'Write 5 articles and get them approved. Now that\'s some good work! You considered writing a book?'],
+        'master-writer'      => ['label' => 'Master Writer',       'icon' => '/assets/ranks/rank-master-writer.svg',       'group' => 'writer', 'order' => 4, 'description' => 'Write 10 articles and get them approved. If you see this, you are one of 3 users in the entirety of ScratchNews to get this rank. Congrats.'],
+        'legendary-writer'   => ['label' => 'Legendary Writer',    'icon' => '/assets/ranks/rank-legendary-writer.svg',    'group' => 'writer', 'order' => 5, 'description' => 'Write 15 or more articles and get them approved. ...Some people have insane dedication. You are one special Scratcher. You truly are one of the best writers.'],
+        'fan'                => ['label' => 'Fan',                 'icon' => '/assets/ranks/rank-fan.svg',                 'group' => null,    'order' => 0, 'description' => 'You contributed or donated to ScratchNews? Well here\'s your rank!'],
+        'moderator'          => ['label' => 'Moderator',           'icon' => '/assets/ranks/rank-moderator.svg',           'group' => null,    'order' => 0, 'description' => 'Moderators are people who made good moderator applications, and actually use their moderator powers for good. Fun fact: 1 in 10 ScratchNews users are moderators or higher. You\'re part of the ScratchNews team!'],
+        'head-moderator'     => ['label' => 'Head Moderator',      'icon' => '/assets/ranks/rank-head-moderator.svg',      'group' => null,    'order' => 0, 'description' => 'Oh look, a head moderator. A head moderator is a moderator who has more experience. More powers and stuff! That includes responding to contact us messages, seeing the admin stats etc. Head Moderators are the foundation of this site.'],
+        'founder'            => ['label' => 'Founder',             'icon' => '/assets/ranks/rank-founder.svg',             'group' => null,    'order' => 0, 'description' => 'Created ScratchNews. None other than TODB himself.'],
+        'contest-writer'     => ['label' => "Writers' Contest Writer",    'icon' => '/assets/ranks/rank-contest-writer.svg',    'group' => null, 'order' => 0, 'description' => "Participate in the Writers' Contest."],
+        'contest-scratcher'  => ['label' => "Writers' Contest Scratcher", 'icon' => '/assets/ranks/rank-contest-scratcher.svg', 'group' => null, 'order' => 0, 'description' => "Create a ScratchNews account while you're in the list of people to write to in the Writers' Contest. Hello hello!"],
+        'sharer'             => ['label' => 'Sharer',              'icon' => '/assets/badges/sn-sharer.svg',   'group' => 'share', 'order' => 1, 'description' => "Get 1 of your shared article links clicked. People are actually reading what you send them!"],
+        'shower'             => ['label' => 'Shower',              'icon' => '/assets/badges/sn-shower.svg',   'group' => 'share', 'order' => 2, 'description' => "Get 5 of your shared article links clicked. Okay, you're showing ScratchNews to people now."],
+        'teller'             => ['label' => 'Teller',              'icon' => '/assets/badges/sn-teller.svg',   'group' => 'share', 'order' => 3, 'description' => "Get 10 of your shared article links clicked. You're telling everyone about this site, huh?"],
+        'spreader'           => ['label' => 'Spreader',            'icon' => '/assets/badges/sn-spreader.svg', 'group' => 'share', 'order' => 4, 'description' => "Get 25 or more of your shared article links clicked. You're basically a ScratchNews walking billboard at this point."],
     ];
 }
 
@@ -1416,8 +1421,13 @@ function renderRankBadges($user): string {
     $defs = getBadgeDefinitions();
     $slugs = getUserRankBadges($user);
     $userId = is_int($user) ? $user : (int)($user['id'] ?? 0);
-    $shareBadge = $userId > 0 ? getShareRankBadge(getUserShareClickCount($userId)) : null;
-    if (empty($slugs) && !$shareBadge) return '';
+    // Share tier (Sharer/Shower/Teller/Spreader) folds into the same badge list/modal
+    // as every rank badge below - it's just another 'group' in getBadgeDefinitions().
+    if ($userId > 0) {
+        $shareBadge = getShareRankBadge(getUserShareClickCount($userId));
+        if ($shareBadge) $slugs[] = $shareBadge['slug'];
+    }
+    if (empty($slugs)) return '';
 
     $badgesPayload = [];
     $groupsNeeded = [];
@@ -1427,7 +1437,7 @@ function renderRankBadges($user): string {
         $badgesPayload[] = [
             'slug' => $slug,
             'label' => $d['label'],
-            'icon' => '/assets/badges/ranks/' . $d['icon'],
+            'icon' => $d['icon'],
             'description' => $d['description'],
             'group' => $d['group'],
         ];
@@ -1438,7 +1448,7 @@ function renderRankBadges($user): string {
         $tiers = [];
         foreach ($defs as $slug => $d) {
             if ($d['group'] === $group) {
-                $tiers[$d['order']] = ['slug' => $slug, 'label' => $d['label'], 'icon' => '/assets/badges/ranks/' . $d['icon']];
+                $tiers[$d['order']] = ['slug' => $slug, 'label' => $d['label'], 'icon' => $d['icon']];
             }
         }
         ksort($tiers);
@@ -1448,9 +1458,6 @@ function renderRankBadges($user): string {
     $html = '<span class="rank-badges" data-badges="' . e(json_encode($badgesPayload)) . '" data-groups="' . e(json_encode($groupsPayload)) . '">';
     foreach ($badgesPayload as $b) {
         $html .= '<button type="button" class="rank-badge-icon" data-slug="' . e($b['slug']) . '" title="' . e($b['label']) . '"><img src="' . e($b['icon']) . '" alt="' . e($b['label']) . '"></button>';
-    }
-    if ($shareBadge) {
-        $html .= '<span class="rank-badge rank-badge-share" title="' . e($shareBadge['label']) . ' - shared links clicked ' . e($shareBadge['min']) . '+ times"><img src="/assets/badges/' . e($shareBadge['icon']) . '" alt="' . e($shareBadge['label']) . '"></span>';
     }
     $html .= '</span>';
     return $html;
@@ -1847,13 +1854,15 @@ function getUserShareClickCount(int $userId): int {
     return $count;
 }
 
-// Share rank tiers, highest first. Badge icon files live in assets/badges/.
+// Share rank tiers, highest first. Returns the matching slug into
+// getBadgeDefinitions() (group 'share') so renderRankBadges() can fold it into
+// the same click-through badge list/modal as every other rank badge.
 function getShareRankBadge(int $clicks): ?array {
     $tiers = [
-        ['min' => 25, 'label' => 'Spreader', 'icon' => 'sn-spreader.svg'],
-        ['min' => 10, 'label' => 'Teller', 'icon' => 'sn-teller.svg'],
-        ['min' => 5, 'label' => 'Shower', 'icon' => 'sn-shower.svg'],
-        ['min' => 1, 'label' => 'Sharer', 'icon' => 'sn-sharer.svg'],
+        ['min' => 25, 'slug' => 'spreader'],
+        ['min' => 10, 'slug' => 'teller'],
+        ['min' => 5,  'slug' => 'shower'],
+        ['min' => 1,  'slug' => 'sharer'],
     ];
     foreach ($tiers as $tier) {
         if ($clicks >= $tier['min']) return $tier;
