@@ -1,4 +1,10 @@
-<?php if (empty($_SESSION['reader_username'])): ?>
+<?php if (CONTEST_MODE): ?>
+<section class="contest-banner">
+    <a href="/writers-contest" class="contest-banner-link">
+        <img src="/assets/writers-contest-banner.svg" alt="Our first ever event - Writers' Contest! Learn more by clicking this banner." class="contest-banner-img">
+    </a>
+</section>
+<?php elseif (empty($_SESSION['reader_username'])): ?>
 <section class="welcome-banner">
     <div class="welcome-banner-text">
         <h1>Welcome to ScratchNews</h1>

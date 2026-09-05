@@ -7,6 +7,12 @@ define('MAINTENANCE_MESSAGE', 'guess what we\'re maintenaincing our siting');
 
 $maintenance_active = MAINTENANCE_MODE && (MAINTENANCE_UNTIL === null || time() < strtotime(MAINTENANCE_UNTIL));
 
+// === WRITERS' CONTEST MODE (git-tracked, no File Manager needed) ===
+// While true, the homepage welcome banner is replaced by the contest banner for
+// EVERYONE (logged in or not) - see includes/welcome-banner.php. Flip back to
+// false whenever the contest round ends.
+define('CONTEST_MODE', true);
+
 if ($maintenance_active) {
     http_response_code(503);
     header('Retry-After: 3600');
