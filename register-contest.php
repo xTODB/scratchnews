@@ -136,8 +136,8 @@ body.dark .verify-code { background:#444; }
                 <?php endforeach; ?>
             </select>
             <label for="phoneNumber">Phone number</label>
+            <p class="contest-note">If you ever lose your account (and <a href="https://scratch.mit.edu/users/YaFavDev/#comments-416288070">quite</a> a <a href="https://scratch.mit.edu/users/YaFavDev/#comments-416209385">dozen</a> do), we'll confirm your identity via phone number. You can also delete this data after creating the contest account via reaching out on <a href="https://scratchnews.freedev.app/contact">Contact Us.</a></p>
             <input type="tel" id="phoneNumber" name="phone_number" placeholder="+12345678900" value="<?= e($_POST['phone_number'] ?? '+') ?>" required>
-            <p class="contest-note">This is just a backup way for TODB to reach you if you ever lose this account - a couple past contest subjects have. It's not texted, called, or auto-verified, and only TODB can see it.</p>
             <div class="wizard-nav-row">
                 <button type="button" class="btn" data-next>Next</button>
             </div>
