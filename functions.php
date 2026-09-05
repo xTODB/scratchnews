@@ -1330,13 +1330,22 @@ function setUserContestWriter(int $userId, bool $isContestWriter): void {
     $stmt->close();
 }
 
-function setUserContestScratcher(int $userId, bool $isContestScratcher): void {
+// Writers' Contest: the fixed list of 15 Scratchers writers can choose to write
+// about this round (popular + animators + underrated/new). Edit this array directly
+// for future contest rounds - nothing else needs to change.
+const CONTEST_SCRATCHERS = [
+    'griffpatch', 'TimMcCool', '-Katana_Gaming-', 'Official_DarkFlame', 'Coltroc',
+    '1BellaPup', 'BenjaminWins11', 'TheMaskedEclipse', 'IncognitoOrange', 'Draiveri',
+    'Vryell', 'SkyCedar', 'Zolk2', 'TheEggyHippo', 'TheNotableMan',
+];
+
+// Admin-only (not Head Mods) view of every Contest account (Writer or Scratcher) -
+// so TODB can personally reach someone by phone number if they lose their account.
+// Phone numbers are collected, not SMS-verified (same as the existing suspicious-IP
+// signup flow) - this is a recovery contact channel, not an identity check.
+function getContestAccounts(): array {
     $db = getDB();
-    $val = $isContestScratcher ? 1 : 0;
-    $stmt = $db->prepare("UPDATE users SET is_contest_scratcher = ? WHERE id = ?");
-    $stmt->bind_param('ii', $val, $userId);
-    $stmt->execute();
-    $stmt->close();
+    return $db->query("SELECT id, username, scratch_username, phone_number, is_contest_writer, is_contest_scratcher, created_at FROM users WHERE is_contest_writer = 1 OR is_contest_scratcher = 1 ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
 }
 
 // v0.27: Badge Redesign. All rank badges now render as clickable icons (see

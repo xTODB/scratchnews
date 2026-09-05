@@ -381,6 +381,26 @@ $scratchLinkedUsers = getScratchLinkedUsers();
     <p style="color:#888; font-size:0.9rem;">No pending phone verifications.</p>
     <?php endif; ?>
 
+    <h3 style="margin-top:2rem;">Contest Accounts</h3>
+    <p style="color:#888; font-size:0.9rem; margin-top:-0.5rem;">Writers' Contest Writer/Scratcher accounts. Phone numbers here are just a backup contact if someone loses their account - not texted or auto-verified, and not shown to Head Mods.</p>
+    <?php $contestAccounts = getContestAccounts(); ?>
+    <?php if ($contestAccounts): ?>
+    <table style="width:auto; margin-top:1rem;">
+        <tr><th>Username</th><th>Scratch Account</th><th>Phone Number</th><th>Role</th><th>Registered</th></tr>
+        <?php foreach ($contestAccounts as $ca): ?>
+            <tr>
+                <td><a href="/@<?= e($ca['username']) ?>">@<?= e($ca['username']) ?></a></td>
+                <td><?= $ca['scratch_username'] ? '@' . e($ca['scratch_username']) : '—' ?></td>
+                <td><?= $ca['phone_number'] ? e($ca['phone_number']) : '—' ?></td>
+                <td><?= $ca['is_contest_writer'] ? 'Writer' : '' ?><?= ($ca['is_contest_writer'] && $ca['is_contest_scratcher']) ? ' + ' : '' ?><?= $ca['is_contest_scratcher'] ? 'Scratcher' : '' ?></td>
+                <td><?= utcTimeTag($ca['created_at']) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php else: ?>
+    <p style="color:#888; font-size:0.9rem;">No Contest accounts yet.</p>
+    <?php endif; ?>
+
     <h3 style="margin-top:2rem;">Verified Scratch Usernames</h3>
     <p style="color:#888; font-size:0.9rem; margin-top:-0.5rem;">Unlinking clears the account's Scratch username so verify-scratch.php will stop rejecting it as "already linked" — lets the user (or someone else) verify that Scratch username again. Does not delete or ban the ScratchNews account itself.</p>
     <?php if ($scratchLinkedUsers): ?>
