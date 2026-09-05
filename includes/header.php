@@ -191,6 +191,7 @@ body.dark .app-menu-title { border-bottom-color: #333; }
 .app-menu-item {
     display: flex; align-items: center; justify-content: space-between;
     gap: 0.5rem;
+    margin-left: 0; /* header nav a sets margin-left:1rem globally - undo it here so the hover highlight sits flush against the dropdown edges */
     padding: 0.55rem 1rem;
     color: inherit; text-decoration: none;
     font-size: 1rem;
