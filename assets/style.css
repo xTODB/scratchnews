@@ -1459,7 +1459,7 @@ body.dark .article-header { background: #0a0b0d; }
     line-height: 1.8;
     letter-spacing: 0.01em;
 }
-.contest-banner-link { display: block; }
+.contest-banner-link { display: block; max-width: 480px; margin: 0 auto; }
 .contest-banner-img { width: 100%; height: auto; display: block; border-radius: 8px; }
 .welcome-banner {
     display: flex; align-items: stretch;
