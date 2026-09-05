@@ -31,7 +31,7 @@ body.dark .contest-scratcher-chip { border-color:#444; }
 
     <h3>The rules</h3>
     <ul>
-        <li>You can write up to <strong>2 contest entries</strong>, each about a <strong>different</strong> Scratcher from the list below.</li>
+        <li>You can write up to <strong>5 contest entries</strong>, each about a <strong>different</strong> Scratcher from the list below.</li>
         <li>Entries get a small "this article is about @username" banner linking to that Scratcher's own ScratchNews profile.</li>
         <li>For that link to actually work, the Scratcher being written about needs to make a <strong>Contest account</strong> - verified as really being them, not something a writer can do on their behalf.</li>
         <li>No following or mentioning them anywhere required - just write something they (and everyone else) would want to read.</li>
