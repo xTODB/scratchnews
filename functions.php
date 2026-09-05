@@ -1456,24 +1456,6 @@ function renderRankBadges($user): string {
     return $html;
 }
 
-// Renders badges as inline HTML spans. Pass a full user row when you already have one
-// (comment lists, profile) to avoid an extra getUserById() lookup per call.
-function renderRankBadges($user): string {
-    $badges = getUserRankBadges($user);
-    $userId = is_int($user) ? $user : (int)($user['id'] ?? 0);
-    $shareBadge = $userId > 0 ? getShareRankBadge(getUserShareClickCount($userId)) : null;
-    if (empty($badges) && !$shareBadge) return '';
-    $html = '<span class="rank-badges">';
-    foreach ($badges as $b) {
-        $html .= '<span class="rank-badge ' . e($b['class']) . '">' . e($b['label']) . '</span>';
-    }
-    if ($shareBadge) {
-        $html .= '<span class="rank-badge rank-badge-share" title="' . e($shareBadge['label']) . ' - shared links clicked ' . e($shareBadge['min']) . '+ times"><img src="/assets/badges/' . e($shareBadge['icon']) . '" alt="' . e($shareBadge['label']) . '"></span>';
-    }
-    $html .= '</span>';
-    return $html;
-}
-
 // Renders the article byline author name, linked to their profile when the article is
 // attributed to an existing user account. Falls back to plain text for guest bylines
 // (no user_id) or if the attributed account was since deleted.
