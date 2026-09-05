@@ -16,6 +16,11 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Sep5] 0.27 - The grandiose update!! 🎉</p><br><ul>
+        <li>Writers' Contest: pick a Scratcher when submitting an article, they get mentioned (and notified!) once it's approved, plus a Contest Writer badge on your first approved entry</li>
+        <li>App Menu: new 3x3 icon in the header opens a quick-access menu to Explore, Groups, Profiles, Writers' Contest, Forums, About, Settings, and your profile</li>
+        <li>ScratchNews Forums are here! BBCode-based topics and replies in Announcements, Ask ScratchNews, and Suggestions - quote posts, get moderated, the whole deal</li>
+    </ul>
     <p>[Sep3] 0.26.1 - Trust &amp; safety update!</p><br><ul>
         <li>Banned users now see WHY they were banned, right in the sitewide banner, instead of just "you're banned"</li>
         <li>Contact Us for banned/logged-out users, so they can actually reach the team instead of being stuck</li>
