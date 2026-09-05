@@ -3659,7 +3659,7 @@ function getTrendingHeroArticles(int $limit = 5): array {
     $stmt = $db->prepare(
         "SELECT a.* FROM articles a
          JOIN users u ON u.id = a.user_id
-         WHERE a.status = 'published' AND u.is_featured_user = 1 AND $likeExpr >= 3
+         WHERE a.status = 'published' AND u.is_featured_user = 1 AND $likeExpr >= 5
          ORDER BY $trendExpr DESC, a.created_at DESC
          LIMIT ?"
     );
@@ -6345,4 +6345,361 @@ function adminDeleteChatComment(string $source, int $commentId): void {
     } elseif ($source === 'group') {
         adminDeleteGroupComment($commentId);
     }
+}
+// ===================== ScratchNews Forums (0.27) =====================
+// BBCode + categories/subforums/topics/posts. Moderation reuses the
+// existing is_admin/is_moderator flags (Head Mod already implies
+// is_moderator=1, see setUserHeadModerator()) - no new rank needed.
+
+function forumCanModerate(): bool {
+    return !empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator']);
+}
+
+// Escapes first (htmlspecialchars), then converts a small, fixed set of
+// BBCode tags into HTML on the already-escaped string. Because escaping runs
+// before tag conversion, any literal HTML/script a user typed is inert by
+// the time we ever emit raw tags ourselves - the regexes only ever match on
+// literal "[...]" bracket text, which htmlspecialchars doesn't touch.
+function renderBBCode(string $raw): string {
+    $html = e($raw);
+
+    $html = preg_replace('/\[b\](.*?)\[\/b\]/is', '<strong>$1</strong>', $html);
+    $html = preg_replace('/\[i\](.*?)\[\/i\]/is', '<em>$1</em>', $html);
+    $html = preg_replace('/\[u\](.*?)\[\/u\]/is', '<u>$1</u>', $html);
+
+    $html = preg_replace('/\[quote=(.*?)\](.*?)\[\/quote\]/is', '<div class="bbcode-quote"><div class="bbcode-quote-by">$1 wrote:</div>$2</div>', $html);
+    $html = preg_replace('/\[quote\](.*?)\[\/quote\]/is', '<div class="bbcode-quote">$1</div>', $html);
+
+    // Links/images: the captured URL is still htmlspecialchars-escaped (e.g. a
+    // literal "&" already reads "&amp;"), which is the CORRECT form for an
+    // href/src attribute. We decode just to sanity-check the scheme, then
+    // output the still-escaped original - never the decoded value.
+    $html = preg_replace_callback('/\[url=(.*?)\](.*?)\[\/url\]/is', function ($m) {
+        if (!preg_match('~^https?://~i', html_entity_decode($m[1], ENT_QUOTES))) return $m[0];
+        return '<a href="' . $m[1] . '" target="_blank" rel="nofollow noopener ugc">' . $m[2] . '</a>';
+    }, $html);
+    $html = preg_replace_callback('/\[url\](.*?)\[\/url\]/is', function ($m) {
+        if (!preg_match('~^https?://~i', html_entity_decode($m[1], ENT_QUOTES))) return $m[0];
+        return '<a href="' . $m[1] . '" target="_blank" rel="nofollow noopener ugc">' . $m[1] . '</a>';
+    }, $html);
+    // Images reuse the site's existing upload-image.php (same endpoint
+    // submit.php's cover-image field uses), so [img] only ever wraps a URL
+    // that came from there or a plain http(s) link - never inline data.
+    $html = preg_replace_callback('/\[img\](.*?)\[\/img\]/is', function ($m) {
+        $decoded = html_entity_decode($m[1], ENT_QUOTES);
+        if (!preg_match('~^(https?://|/)~i', $decoded)) return $m[0];
+        return '<img src="' . $m[1] . '" alt="" class="bbcode-img" loading="lazy">';
+    }, $html);
+
+    return nl2br($html);
+}
+
+function slugifyForumName(string $name): string {
+    $slug = strtolower(trim($name));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = trim($slug, '-');
+    return $slug !== '' ? $slug : 'forum';
+}
+
+function generateUniqueForumSlug(string $name): string {
+    $db = getDB();
+    $base = slugifyForumName($name);
+    $slug = $base;
+    $i = 2;
+    while (true) {
+        $stmt = $db->prepare("SELECT 1 FROM forum_subforums WHERE slug = ?");
+        $stmt->bind_param('s', $slug);
+        $stmt->execute();
+        $exists = $stmt->get_result()->fetch_row() !== null;
+        $stmt->close();
+        if (!$exists) return $slug;
+        $slug = $base . '-' . $i;
+        $i++;
+    }
+}
+
+// Full index: every category with its subforums, each subforum annotated
+// with live topic/post counts and last-post info (no denormalized counters
+// to keep in sync - this site's forum volume doesn't need that yet).
+function getForumCategoriesWithSubforums(): array {
+    $db = getDB();
+    $categories = $db->query("SELECT * FROM forum_categories ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
+    $subforums = $db->query(
+        "SELECT s.*,
+                (SELECT COUNT(*) FROM forum_topics t WHERE t.subforum_id = s.id) AS topic_count,
+                (SELECT COUNT(*) FROM forum_posts p JOIN forum_topics t ON p.topic_id = t.id WHERE t.subforum_id = s.id) AS post_count,
+                lp.id AS last_post_id, lp.created_at AS last_post_at, lp.topic_id AS last_post_topic_id,
+                lt.title AS last_post_topic_title, lu.username AS last_post_username
+         FROM forum_subforums s
+         LEFT JOIN forum_posts lp ON lp.id = (
+             SELECT p2.id FROM forum_posts p2 JOIN forum_topics t2 ON p2.topic_id = t2.id
+             WHERE t2.subforum_id = s.id ORDER BY p2.created_at DESC LIMIT 1
+         )
+         LEFT JOIN forum_topics lt ON lt.id = lp.topic_id
+         LEFT JOIN users lu ON lu.id = lp.author_id
+         ORDER BY s.sort_order ASC, s.id ASC"
+    )->fetch_all(MYSQLI_ASSOC);
+
+    foreach ($categories as &$cat) {
+        $cat['subforums'] = array_values(array_filter($subforums, fn($s) => (int)$s['category_id'] === (int)$cat['id']));
+    }
+    unset($cat);
+    return $categories;
+}
+
+function getSubforumBySlug(string $slug): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM forum_subforums WHERE slug = ?");
+    $stmt->bind_param('s', $slug);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function getSubforumById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM forum_subforums WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+// Sticky topics first, then most-recently-active. $page is 1-based.
+function getForumTopics(int $subforumId, int $page = 1, int $perPage = 20): array {
+    $db = getDB();
+    $offset = max(0, ($page - 1) * $perPage);
+
+    $countStmt = $db->prepare("SELECT COUNT(*) AS c FROM forum_topics WHERE subforum_id = ?");
+    $countStmt->bind_param('i', $subforumId);
+    $countStmt->execute();
+    $total = (int)$countStmt->get_result()->fetch_assoc()['c'];
+    $countStmt->close();
+
+    $stmt = $db->prepare(
+        "SELECT t.*, u.username AS author_username,
+                (SELECT COUNT(*) FROM forum_posts p WHERE p.topic_id = t.id) AS post_count,
+                lp.created_at AS last_post_at, lu.username AS last_post_username
+         FROM forum_topics t
+         JOIN users u ON u.id = t.author_id
+         LEFT JOIN forum_posts lp ON lp.id = (SELECT p2.id FROM forum_posts p2 WHERE p2.topic_id = t.id ORDER BY p2.created_at DESC LIMIT 1)
+         LEFT JOIN users lu ON lu.id = lp.author_id
+         WHERE t.subforum_id = ?
+         ORDER BY t.is_sticky DESC, lp.created_at DESC, t.created_at DESC
+         LIMIT ? OFFSET ?"
+    );
+    $stmt->bind_param('iii', $subforumId, $perPage, $offset);
+    $stmt->execute();
+    $topics = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    return ['topics' => $topics, 'total' => $total, 'page' => $page, 'perPage' => $perPage];
+}
+
+function getForumTopicById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT t.*, u.username AS author_username, s.name AS subforum_name, s.slug AS subforum_slug
+         FROM forum_topics t
+         JOIN users u ON u.id = t.author_id
+         JOIN forum_subforums s ON s.id = t.subforum_id
+         WHERE t.id = ?"
+    );
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function createForumTopic(int $subforumId, int $authorId, string $title, string $content): int {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO forum_topics (subforum_id, author_id, title) VALUES (?, ?, ?)");
+    $stmt->bind_param('iis', $subforumId, $authorId, $title);
+    $stmt->execute();
+    $topicId = $stmt->insert_id;
+    $stmt->close();
+
+    addForumPost($topicId, $authorId, $content);
+    return $topicId;
+}
+
+function getForumPosts(int $topicId, int $page = 1, int $perPage = 20): array {
+    $db = getDB();
+    $offset = max(0, ($page - 1) * $perPage);
+
+    $countStmt = $db->prepare("SELECT COUNT(*) AS c FROM forum_posts WHERE topic_id = ?");
+    $countStmt->bind_param('i', $topicId);
+    $countStmt->execute();
+    $total = (int)$countStmt->get_result()->fetch_assoc()['c'];
+    $countStmt->close();
+
+    $stmt = $db->prepare(
+        "SELECT p.*, u.username AS author_username, u.avatar_url AS author_avatar
+         FROM forum_posts p JOIN users u ON u.id = p.author_id
+         WHERE p.topic_id = ? ORDER BY p.created_at ASC LIMIT ? OFFSET ?"
+    );
+    $stmt->bind_param('iii', $topicId, $perPage, $offset);
+    $stmt->execute();
+    $posts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    return ['posts' => $posts, 'total' => $total, 'page' => $page, 'perPage' => $perPage];
+}
+
+function getForumPostById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT p.*, u.username AS author_username FROM forum_posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+function addForumPost(int $topicId, int $authorId, string $content): int {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO forum_posts (topic_id, author_id, content) VALUES (?, ?, ?)");
+    $stmt->bind_param('iis', $topicId, $authorId, $content);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    return $id;
+}
+
+function incrementForumTopicViews(int $topicId): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_topics SET views = views + 1 WHERE id = ?");
+    $stmt->bind_param('i', $topicId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function setForumTopicSticky(int $topicId, bool $sticky): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_topics SET is_sticky = ? WHERE id = ?");
+    $val = $sticky ? 1 : 0;
+    $stmt->bind_param('ii', $val, $topicId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function setForumTopicLocked(int $topicId, bool $locked): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_topics SET is_locked = ? WHERE id = ?");
+    $val = $locked ? 1 : 0;
+    $stmt->bind_param('ii', $val, $topicId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function moveForumTopic(int $topicId, int $newSubforumId): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_topics SET subforum_id = ? WHERE id = ?");
+    $stmt->bind_param('ii', $newSubforumId, $topicId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Cascades to forum_posts via the FK.
+function deleteForumTopic(int $topicId): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM forum_topics WHERE id = ?");
+    $stmt->bind_param('i', $topicId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Deleting a topic's first/only post doesn't make sense on its own - the
+// topic page (forum-topic.php) checks for that case and calls
+// deleteForumTopic() instead of this, so this is only ever called for a
+// reply, not the post that started the thread.
+function deleteForumPost(int $postId): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM forum_posts WHERE id = ?");
+    $stmt->bind_param('i', $postId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function isFirstForumPost(int $topicId, int $postId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM forum_posts WHERE topic_id = ? ORDER BY created_at ASC LIMIT 1");
+    $stmt->bind_param('i', $topicId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row && (int)$row['id'] === $postId;
+}
+
+// --- Admin: manage categories + subforums (structure only - "make/manage
+// forum categories and sub-categories", TODB's own ask; kept admin-only like
+// the rest of admin/, distinct from the Moderator-level topic/post actions
+// above) ---
+
+function getAllForumCategories(): array {
+    $db = getDB();
+    return $db->query("SELECT * FROM forum_categories ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
+}
+
+function getAllForumSubforums(): array {
+    $db = getDB();
+    return $db->query("SELECT * FROM forum_subforums ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
+}
+
+function createForumCategory(string $name, int $sortOrder): int {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO forum_categories (name, sort_order) VALUES (?, ?)");
+    $stmt->bind_param('si', $name, $sortOrder);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    return $id;
+}
+
+function updateForumCategory(int $id, string $name, int $sortOrder): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_categories SET name = ?, sort_order = ? WHERE id = ?");
+    $stmt->bind_param('sii', $name, $sortOrder, $id);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Cascades to forum_subforums (and from there, topics/posts) via FKs.
+function deleteForumCategory(int $id): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM forum_categories WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function createForumSubforum(int $categoryId, string $name, string $description, int $sortOrder): int {
+    $db = getDB();
+    $slug = generateUniqueForumSlug($name);
+    $stmt = $db->prepare("INSERT INTO forum_subforums (category_id, name, slug, description, sort_order) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param('isssi', $categoryId, $name, $slug, $description, $sortOrder);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    return $id;
+}
+
+function updateForumSubforum(int $id, int $categoryId, string $name, string $description, int $sortOrder): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_subforums SET category_id = ?, name = ?, description = ?, sort_order = ? WHERE id = ?");
+    $stmt->bind_param('issii', $categoryId, $name, $description, $sortOrder, $id);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Cascades to forum_topics (and from there, posts) via FKs.
+function deleteForumSubforum(int $id): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM forum_subforums WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $stmt->close();
 }
