@@ -12,6 +12,7 @@ DirectoryIndex index.php
 RewriteRule ^login/?$ signin.php [L,QSA]
 RewriteRule ^logout/?$ signout.php [L,QSA]
 RewriteRule ^register/?$ register.php [L,QSA]
+RewriteRule ^register/contest/?$ register-contest.php [L,QSA]
 RewriteRule ^signin/?$ signin.php [L,QSA]
 RewriteRule ^signout/?$ signout.php [L,QSA]
 RewriteRule ^delete-account/?$ delete_account.php [L,QSA]
