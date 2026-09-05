@@ -23,6 +23,14 @@ RewriteRule ^search$ search.php [L]
 RewriteRule ^profiles/?$ profiles.php [L,QSA]
 RewriteRule ^explore/?$ explore.php [L,QSA]
 
+# ScratchNews Forums (0.27)
+RewriteRule ^forums/?$ forums.php [L,QSA]
+RewriteRule ^forum-action/?$ forum-action.php [L,QSA]
+RewriteRule ^forums/([a-z0-9-]+)/new/?$ forum-new-topic.php?slug=$1 [L,QSA]
+RewriteRule ^forums/([a-z0-9-]+)/([0-9]+)(?:-[a-z0-9-]*)?/?$ forum-topic.php?slug=$1&id=$2 [L,QSA]
+RewriteRule ^forums/([a-z0-9-]+)/?$ forum.php?slug=$1 [L,QSA]
+RewriteRule ^admin/forums/?$ admin/forums.php [L,QSA]
+
 # Clean URLs: strip .php extension (top-level pages only, for now).
 # Explicit rules, not a dynamic -f check — InfinityFree's setup makes
 # both DOCUMENT_ROOT and REQUEST_FILENAME unreliable for filesystem
