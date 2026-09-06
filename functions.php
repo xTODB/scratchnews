@@ -6637,6 +6637,14 @@ function deleteForumPost(int $postId): void {
     $stmt->close();
 }
 
+function editForumPost(int $postId, string $content): void {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE forum_posts SET content = ?, edited_at = NOW() WHERE id = ?");
+    $stmt->bind_param('si', $content, $postId);
+    $stmt->execute();
+    $stmt->close();
+}
+
 function isFirstForumPost(int $topicId, int $postId): bool {
     $db = getDB();
     $stmt = $db->prepare("SELECT id FROM forum_posts WHERE topic_id = ? ORDER BY created_at ASC LIMIT 1");
