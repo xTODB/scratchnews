@@ -1960,6 +1960,18 @@ function setAutocolorLinksPreference(int $userId, bool $enabled): void {
     $stmt->close();
 }
 
+// Forum post signature: short BBCode blurb appended under a user's forum posts.
+// Stored on users.forum_signature, capped at 300 chars (kept short on purpose -
+// a signature is a byline, not a second post).
+function setForumSignature(int $userId, string $signature): void {
+    $db = getDB();
+    $signature = trim(mb_substr($signature, 0, 300));
+    $stmt = $db->prepare("UPDATE users SET forum_signature = ? WHERE id = ?");
+    $stmt->bind_param('si', $signature, $userId);
+    $stmt->execute();
+    $stmt->close();
+}
+
 // Gates group_member_joined / group_member_promoted / group_new_comment notifications
 // only (the three types fanned out by notifyGroupMembers()) - does not affect
 // group_invite, which is a direct one-to-one notification, not group activity.
@@ -6538,7 +6550,7 @@ function getForumPosts(int $topicId, int $page = 1, int $perPage = 20): array {
     $countStmt->close();
 
     $stmt = $db->prepare(
-        "SELECT p.*, u.username AS author_username, u.avatar_url AS author_avatar
+        "SELECT p.*, u.username AS author_username, u.avatar_url AS author_avatar, u.forum_signature AS author_signature
          FROM forum_posts p JOIN users u ON u.id = p.author_id
          WHERE p.topic_id = ? ORDER BY p.created_at ASC LIMIT ? OFFSET ?"
     );
