@@ -54,6 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setGroupActivityNotifsPreference($user['id'], $enabled);
         $user['group_activity_notifs'] = $enabled ? 1 : 0;
         $message = 'Group activity notification preference saved.';
+    } elseif ($action === 'update_forum_signature') {
+        $signature = trim($_POST['forum_signature'] ?? '');
+        setForumSignature($user['id'], $signature);
+        $user['forum_signature'] = mb_substr($signature, 0, 300);
+        $message = 'Forum signature saved.';
     } elseif ($action === 'toggle_autocolor_links') {
         $enabled = !empty($_POST['autocolor_links']);
         setAutocolorLinksPreference($user['id'], $enabled);
@@ -284,6 +289,18 @@ body.dark .theme-swatch.selected .theme-swatch-preview { border-color: #fff; }
                         <div class="settings-sub">Manage your profile customization from your profile page.</div>
                     </div>
                     <a href="/@<?= e($user['username']) ?>" class="btn secondary">Profile</a>
+                </div>
+                <div class="settings-row" style="display:block;">
+                    <div>
+                        <div class="settings-label">Forum Signature</div>
+                        <div class="settings-sub">Shown under every post you make in the Forums. BBCode allowed (bold/italic/underline/quote/link), 300 characters max.</div>
+                    </div>
+                    <form method="post" style="margin-top:0.6rem;">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="update_forum_signature">
+                        <textarea name="forum_signature" maxlength="300" rows="3" style="width:100%; resize:vertical;"><?= e($user['forum_signature'] ?? '') ?></textarea>
+                        <button type="submit" class="btn" style="margin-top:0.5rem;">Save</button>
+                    </form>
                 </div>
 
             <?php elseif ($activeTab === 'security'): ?>
