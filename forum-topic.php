@@ -60,6 +60,7 @@ $allSubforums = $canModerate ? getAllForumSubforums() : [];
 .forum-post-body { flex: 1; min-width: 0; }
 .forum-post-meta { font-size: 0.8rem; color: #888; display: flex; justify-content: space-between; }
 .forum-post-content { margin-top: 0.5rem; overflow-wrap: break-word; }
+.forum-post-signature { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px dashed rgba(128,128,128,0.35); font-size: 0.82rem; opacity: 0.8; overflow-wrap: break-word; }
 .forum-post-actions { margin-top: 0.6rem; display: flex; gap: 0.6rem; }
 .forum-post-actions a, .forum-post-actions button { font-size: 0.8rem; }
 .forum-pagination { display: flex; gap: 0.6rem; justify-content: center; margin-top: 1.2rem; }
@@ -130,6 +131,9 @@ $allSubforums = $canModerate ? getAllForumSubforums() : [];
                     <span><?= date('M j, Y g:i A', strtotime($p['created_at'])) ?><?= $p['edited_at'] ? ' (edited)' : '' ?></span>
                 </div>
                 <div class="forum-post-content"><?= renderBBCode($p['content']) ?></div>
+                <?php if (!empty($p['author_signature'])): ?>
+                    <div class="forum-post-signature"><?= renderBBCode($p['author_signature']) ?></div>
+                <?php endif; ?>
                 <div class="forum-post-actions">
                     <?php if ($loggedIn): ?>
                         <a href="?quote=<?= (int)$p['id'] ?>#reply-form">Quote</a>
