@@ -109,6 +109,10 @@ if (!$article) {
 }
 
 [$displayTitle, $displayContent] = $article ? translatedArticleFields($article) : ['', ''];
+if ($article) {
+    $displayContent = renderScratchblocksMarkup($displayContent);
+}
+$hasScratchblocks = strpos($displayContent, 'class="blocks"') !== false;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -469,5 +473,11 @@ document.addEventListener('click', function(e) {
     });
 })();
 </script>
+<?php if ($hasScratchblocks): ?>
+<script src="https://cdn.jsdelivr.net/npm/scratchblocks@3"></script>
+<script>
+scratchblocks.renderMatching('pre.blocks', { style: 'scratch3' });
+</script>
+<?php endif; ?>
 </body>
 </html>

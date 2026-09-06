@@ -96,6 +96,50 @@ function sanitizeArticleHtml(string $html): string {
     return $html;
 }
 
+// Scratchblocks support (0.27.1): writers wrap Scratch pseudo-code in
+// [scratchblocks]...[/scratchblocks] directly in the Quill editor (same convention
+// as the Scratch Wiki/Forums). Deliberately NOT converted to <pre> at save time -
+// the raw bracket text stays in the DB (sanitizeArticleHtml never touches it, since
+// it's plain text, not a tag) so the renderer/library version can change later with
+// no migration - same reasoning as forums' renderBBCode(). Rendering to <pre
+// class="blocks"> only happens at display time, in article.php, right before the
+// scratchblocks.js library (loaded client-side) picks it up via renderMatching().
+function renderScratchblocksMarkup(string $html): string {
+    return preg_replace_callback('/\[scratchblocks\](.*?)\[\/scratchblocks\]/is', function ($m) {
+        $code = $m[1];
+        // Quill stores separate lines as <br> or as sibling <p>s depending on
+        // Shift+Enter vs Enter - both need to become a real newline, since
+        // scratchblocks' parser splits script lines on "\n".
+        $code = preg_replace('/<br\s*\/?>/i', "\n", $code);
+        $code = preg_replace('/<\/p>\s*<p[^>]*>/i', "\n", $code);
+        $code = strip_tags($code); // scratch code should be plain - drop any stray formatting
+        $code = html_entity_decode($code, ENT_QUOTES, 'UTF-8'); // restore literal < > & etc.
+        $code = trim($code, "\n");
+        return '<pre class="blocks">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</pre>';
+    }, $html);
+}
+
+// Machine translation (translateHtmlContent(), below) walks article content as plain
+// text nodes and would otherwise send scratchblocks code straight through MyMemory,
+// mangling the pseudo-code syntax. Swap each [scratchblocks]...[/scratchblocks]
+// segment for an inert placeholder token before translation, then restore the
+// original afterwards - translateHtmlContent() calls both halves of this pair itself.
+function extractScratchblocksSegments(string $html): array {
+    $segments = [];
+    $protected = preg_replace_callback('/\[scratchblocks\](.*?)\[\/scratchblocks\]/is', function ($m) use (&$segments) {
+        $token = '{{SB_' . count($segments) . '}}';
+        $segments[] = $m[0];
+        return $token;
+    }, $html);
+    return [$protected, $segments];
+}
+function restoreScratchblocksSegments(string $html, array $segments): string {
+    foreach ($segments as $i => $original) {
+        $html = str_replace('{{SB_' . $i . '}}', $original, $html);
+    }
+    return $html;
+}
+
 // Word count used for the v0.25 250-word minimum on reader submissions -
 // counts plain text only, HTML markup stripped first so tags don't inflate it.
 function countContentWords(string $html): int {
@@ -2205,6 +2249,7 @@ function translateTextNodesBatched(array $nodes, string $targetLang, ?float $dea
 // long as the source content (and therefore the hash) hasn't changed.
 function translateHtmlContent(string $html, string $targetLang, array $progress = []): array {
     if (trim($html) === '') return ['html' => $html, 'progress' => [], 'complete' => true];
+    [$html, $sbSegments] = extractScratchblocksSegments($html);
     libxml_use_internal_errors(true);
     $dom = new DOMDocument('1.0', 'UTF-8');
     $dom->loadHTML('<?xml encoding="utf-8"?><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
@@ -2235,6 +2280,7 @@ function translateHtmlContent(string $html, string $targetLang, array $progress 
     foreach ($root->childNodes as $child) {
         $out .= $dom->saveHTML($child);
     }
+    $out = restoreScratchblocksSegments($out, $sbSegments);
     return ['html' => $out, 'progress' => $progress, 'complete' => $complete];
 }
 

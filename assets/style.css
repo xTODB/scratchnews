@@ -225,6 +225,7 @@ html {
 }
 .content ul, .content ol { padding-left: 1.5em; }
 .content blockquote { border-left: 4px solid #ffab19; margin: 1em 0; padding-left: 1em; color: #555; }
+.content pre.blocks { overflow-x: auto; max-width: 100%; margin: 1em 0; white-space: pre; font-family: monospace; }
 .ql-editor { min-height: 220px; font-size: 1rem; }
 .likes-section { margin: 1.5rem 0; }
 .comments-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee; }

@@ -260,6 +260,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
             </div>
 
             <label for="content">Content <span id="wordCountLabel" style="font-weight:normal;font-size:0.85em;">0 / 250 words</span></label>
+            <small style="display:block;margin:-0.25rem 0 0.5rem;opacity:0.75;">Tip: wrap Scratch pseudo-code in <code>[scratchblocks]...[/scratchblocks]</code> to render it as blocks.</small>
 <div id="editorWrap">
 <div id="toolbar">
     <button class="ql-bold" title="Bold (Ctrl+B)"><b>B</b></button>
