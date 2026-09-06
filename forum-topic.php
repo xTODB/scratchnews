@@ -19,8 +19,10 @@ $posts = $result['posts'];
 $totalPages = max(1, (int)ceil($result['total'] / $result['perPage']));
 
 $loggedIn = !empty($_SESSION['reader_username']);
+$myId = (int)($_SESSION['reader_id'] ?? 0);
 $canModerate = forumCanModerate();
 $error = $_GET['error'] ?? '';
+$editPostId = (int)($_GET['edit'] ?? 0);
 
 // Quote-prefill: ?quote=123 loads that post's raw content and wraps it in
 // [quote=author]...[/quote] for the reply box below.
@@ -130,23 +132,41 @@ $allSubforums = $canModerate ? getAllForumSubforums() : [];
                 <div class="forum-post-meta">
                     <span><?= date('M j, Y g:i A', strtotime($p['created_at'])) ?><?= $p['edited_at'] ? ' (edited)' : '' ?></span>
                 </div>
-                <div class="forum-post-content"><?= renderBBCode($p['content']) ?></div>
-                <?php if (!empty($p['author_signature'])): ?>
-                    <div class="forum-post-signature"><?= renderBBCode($p['author_signature']) ?></div>
+                <?php $canEditThis = $myId > 0 && $myId === (int)$p['author_id'] && (!$topic['is_locked'] || $canModerate); ?>
+                <?php if ($editPostId === (int)$p['id'] && $canEditThis): ?>
+                    <form method="post" action="/forum-action" class="forum-edit-form">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                        <input type="hidden" name="action" value="edit_post">
+                        <textarea name="content" id="edit-content-<?= (int)$p['id'] ?>" class="bbcode-textarea" rows="4" style="width:100%;"><?= e($p['content']) ?></textarea>
+                        <?php renderBBCodeToolbar('edit-content-' . (int)$p['id']); ?>
+                        <div style="margin-top:0.5rem; display:flex; gap:0.6rem;">
+                            <button type="submit" class="btn inline">Save</button>
+                            <a href="?page=<?= $page ?>#post-<?= (int)$p['id'] ?>" class="btn inline secondary">Cancel</a>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div class="forum-post-content"><?= renderBBCode($p['content']) ?></div>
+                    <?php if (!empty($p['author_signature'])): ?>
+                        <div class="forum-post-signature"><?= renderBBCode($p['author_signature']) ?></div>
+                    <?php endif; ?>
+                    <div class="forum-post-actions">
+                        <?php if ($loggedIn): ?>
+                            <a href="?quote=<?= (int)$p['id'] ?>#reply-form">Quote</a>
+                        <?php endif; ?>
+                        <?php if ($canEditThis): ?>
+                            <a href="?page=<?= $page ?>&edit=<?= (int)$p['id'] ?>#post-<?= (int)$p['id'] ?>">Edit</a>
+                        <?php endif; ?>
+                        <?php if ($canModerate && !$isFirst): ?>
+                            <form method="post" action="/forum-action" onsubmit="return confirm('Delete this post?');" style="display:inline;">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                                <input type="hidden" name="action" value="delete_post">
+                                <button type="submit" class="btn inline danger">Delete</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
-                <div class="forum-post-actions">
-                    <?php if ($loggedIn): ?>
-                        <a href="?quote=<?= (int)$p['id'] ?>#reply-form">Quote</a>
-                    <?php endif; ?>
-                    <?php if ($canModerate && !$isFirst): ?>
-                        <form method="post" action="/forum-action" onsubmit="return confirm('Delete this post?');" style="display:inline;">
-                            <?= csrfField() ?>
-                            <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
-                            <input type="hidden" name="action" value="delete_post">
-                            <button type="submit" class="btn inline danger">Delete</button>
-                        </form>
-                    <?php endif; ?>
-                </div>
             </div>
         </div>
     <?php endforeach; ?>
