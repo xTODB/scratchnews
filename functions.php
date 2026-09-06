@@ -616,7 +616,8 @@ function buildAdminStatsExportText(): string {
     $days = 30;
     $db = getDB();
 
-    $daily = $db->query("SELECT visit_date, COUNT(*) AS unique_visitors FROM daily_unique_visitors GROUP BY visit_date ORDER BY visit_date ASC LIMIT 30")->fetch_all(MYSQLI_ASSOC);
+    $daily = $db->query("SELECT visit_date, COUNT(*) AS unique_visitors FROM daily_unique_visitors GROUP BY visit_date ORDER BY visit_date DESC LIMIT 30")->fetch_all(MYSQLI_ASSOC);
+    $daily = array_reverse($daily);
     $totalUniqueIps = (int)($db->query("SELECT COUNT(DISTINCT ip_address) AS c FROM daily_unique_visitors")->fetch_assoc()['c'] ?? 0);
     $totalSignups = (int)($db->query("SELECT COUNT(DISTINCT ip) AS c FROM signup_attempts WHERE successful = 1")->fetch_assoc()['c'] ?? 0);
     $conversionRate = $totalUniqueIps > 0 ? round(($totalSignups / $totalUniqueIps) * 100, 2) : 0;
