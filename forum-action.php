@@ -48,6 +48,28 @@ if ($action === 'reply') {
     forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topicId . '?page=' . $lastPage . '#post-' . $postId);
 }
 
+if ($action === 'edit_post') {
+    $postId = (int)($_POST['post_id'] ?? 0);
+    $post = getForumPostById($postId);
+    if (!$post) forumRedirect('/forums');
+    $topic = getForumTopicById((int)$post['topic_id']);
+    if (!$topic) forumRedirect('/forums');
+    // Author-only, mirroring delete_post's ownership-style guard below - being
+    // able to moderate a topic doesn't mean you can rewrite someone else's post.
+    if ((int)$post['author_id'] !== $myId) {
+        http_response_code(403);
+        die('You can only edit your own posts.');
+    }
+    if ($topic['is_locked'] && !$canModerate) {
+        forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topic['id'] . '#post-' . $postId);
+    }
+    $content = trim($_POST['content'] ?? '');
+    if ($content !== '') {
+        editForumPost($postId, $content);
+    }
+    forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topic['id'] . '#post-' . $postId);
+}
+
 // Everything below requires moderation power.
 if (!$canModerate) {
     http_response_code(403);
