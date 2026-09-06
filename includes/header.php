@@ -197,6 +197,13 @@ body.dark .app-menu-title { border-bottom-color: #333; }
     font-size: 1rem;
 }
 .app-menu-item:hover { background: rgba(255,170,51,0.12); }
+/* header a:visited in style.css forces #fff for the top-level nav (correct there,
+   since that bar always keeps a colored background); it also matches these
+   dropdown links once a user has clicked them, which reads as invisible white-
+   on-white in light mode (fine by luck in dark mode, which is why it looked
+   light-mode-only). Same fix already applied to .admin-nav-menu/.user-nav-menu
+   in style.css - this dropdown was just missed when it was built. */
+.app-menu-item:visited { color: inherit; }
 .app-menu-item.primary { font-size: 1.15rem; font-weight: 600; }
 .app-menu-item.secondary { font-size: 0.95rem; }
 .app-menu-item.disabled { color: #999; cursor: default; }
