@@ -16,6 +16,13 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Sep7] 0.27.1 - Small update!</p><br><ul>
+        <li>Forum signatures - add a custom BBCode signature that shows under your posts, from Settings</li>
+        <li>Edit your forum posts after posting them</li>
+        <li>Scratchblocks support in articles - wrap Scratch pseudo-code in [scratchblocks]...[/scratchblocks] and it renders as real Scratch blocks</li>
+        <li>Preview button when writing an article - see exactly how it'll look before you publish</li>
+        <li>Cleaned up the Explore page - removed the Featured row up top</li>
+    </ul>
     <p>[Sep5] 0.27 - The grandiose update!! 🎉</p><br><ul>
         <li>Writers' Contest: pick a Scratcher when submitting an article, they get mentioned (and notified!) once it's approved, plus a Contest Writer badge on your first approved entry</li>
         <li>App Menu: new 3x3 icon in the header opens a quick-access menu to Explore, Groups, Profiles, Writers' Contest, Forums, About, Settings, and your profile</li>
