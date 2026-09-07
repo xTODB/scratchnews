@@ -102,6 +102,7 @@ RewriteRule ^admin/users/?$ admin/users.php [L,QSA]
 RewriteRule ^admin/visits/?$ admin/visits.php [L,QSA]
 RewriteRule ^admin/autosave/?$ autosave.php [L,QSA]
 RewriteRule ^submit-autosave/?$ submit-autosave.php [L,QSA]
+RewriteRule ^preview-article/?$ preview-article.php [L,QSA]
 
 <FilesMatch "\.(css|js|php)$">
     Header set Cache-Control "no-cache, must-revalidate"
