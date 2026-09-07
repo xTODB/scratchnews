@@ -105,7 +105,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
         <label for="cover_image">Cover Image (optional)</label>
         <?php if (!empty($article['image_url'])): ?>
             <div class="cover-preview">
-                <img src="<?= e($article['image_url']) ?>" alt="" style="max-width:200px;display:block;margin-bottom:8px;">
+                <img id="coverPreviewThumb" class="has-image" src="<?= e($article['image_url']) ?>" alt="" style="max-width:200px;display:block;margin-bottom:8px;">
                 <label><input type="checkbox" name="remove_image" value="1"> Remove image</label>
             </div>
         <?php endif; ?>
@@ -152,9 +152,21 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
 <textarea id="content" name="content" style="display:none;"></textarea>
         <button class="btn" type="submit" name="status" value="published">Publish</button>
         <button class="btn secondary" type="submit" name="status" value="draft">Save as Draft</button>
+        <button class="btn secondary" type="button" id="previewBtn">Preview</button>
         <a href="/admin/" class="btn secondary">Cancel</a>
     </form>
 </main>
+
+<div id="previewModalOverlay" class="preview-modal-overlay" style="display:none;">
+    <div class="preview-modal-box">
+        <button type="button" class="preview-modal-close" id="previewModalClose">&times;</button>
+        <div class="article-header">
+            <img id="previewCoverImg" class="article-header-img article-cover-image" style="display:none;" alt="">
+            <h1 class="article-header-title" id="previewTitle"></h1>
+        </div>
+        <div class="content" id="previewContent"></div>
+    </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script>
 var quill = new Quill('#editor-container', {
@@ -316,6 +328,45 @@ if (autosaveEnabled && autosaveApplies) {
 
 document.querySelector('form').addEventListener('submit', function() {
     document.querySelector('#content').value = quill.root.innerHTML;
+});
+
+document.getElementById('previewBtn').addEventListener('click', function() {
+    var formData = new FormData();
+    formData.append('title', document.getElementById('title').value.trim());
+    formData.append('content', quill.root.innerHTML);
+    var coverThumb = document.getElementById('coverPreviewThumb');
+    var removeImage = document.querySelector('input[name="remove_image"]');
+    var imageOk = coverThumb && coverThumb.classList.contains('has-image') && !(removeImage && removeImage.checked);
+    formData.append('image_url', imageOk ? coverThumb.src : '');
+    fetch('/preview-article', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) return;
+            document.getElementById('previewTitle').textContent = data.title;
+            document.getElementById('previewContent').innerHTML = data.content_html;
+            var img = document.getElementById('previewCoverImg');
+            if (data.image_url) {
+                img.src = data.image_url;
+                img.style.display = '';
+            } else {
+                img.style.display = 'none';
+            }
+            document.getElementById('previewModalOverlay').style.display = 'flex';
+            if (data.has_scratchblocks && !window.scratchblocks) {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/scratchblocks@3';
+                s.onload = function() { window.scratchblocks.renderMatching('#previewContent pre.blocks', { style: 'scratch3' }); };
+                document.body.appendChild(s);
+            } else if (data.has_scratchblocks) {
+                window.scratchblocks.renderMatching('#previewContent pre.blocks', { style: 'scratch3' });
+            }
+        });
+});
+document.getElementById('previewModalClose').addEventListener('click', function() {
+    document.getElementById('previewModalOverlay').style.display = 'none';
+});
+document.getElementById('previewModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
 });
 </script>
 </body>
