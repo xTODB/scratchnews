@@ -15,11 +15,6 @@ $newSinceCount = getNewSinceCount('sn_seen_articles', 'articles', "status = 'pub
 $newSinceCookie = 'sn_seen_articles';
 $newSinceLabel = $newSinceCount === 1 ? 'new article' : 'new articles';
 
-// Featured row only shows on the default, unfiltered view - once someone's
-// filtering/sorting they're looking for something specific, not browsing.
-$showFeatured = $activeSlug === 'all' && $sort === 'metrics' && $authorFilter === '' && $dateFrom === '' && $dateTo === '';
-$featuredList = $showFeatured ? getFeaturedArticles(5) : [];
-
 function exploreTabLink(string $cat, string $sort, string $author, string $from, string $to): string {
     $params = ['category' => $cat];
     if ($sort !== 'metrics') $params['sort'] = $sort;
@@ -79,24 +74,6 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
             </div>
         </div>
         </div>
-
-    <?php if (!empty($featuredList)): ?>
-    <section class="row-section">
-        <h3 class="row-title">Featured</h3>
-        <div class="row-scroll">
-            <?php foreach ($featuredList as $a): ?>
-                <a href="/article/<?= (int)$a['id'] ?>" class="row-card">
-                    <?php if (!empty($a['image_url'])): ?>
-                        <img src="<?= e($a['image_url']) ?>" alt="" class="row-card-img">
-                    <?php else: ?>
-                        <div class="row-card-img row-card-img-placeholder"></div>
-                    <?php endif; ?>
-                    <div class="row-card-title"><?= e(translatedTitle($a)) ?></div>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </section>
-    <?php endif; ?>
 
     <?php if (empty($articles)): ?>
         <p>No articles match these filters.</p>
