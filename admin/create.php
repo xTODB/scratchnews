@@ -153,9 +153,21 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
 
         <button class="btn" type="submit" name="status" value="published">Publish Article</button>
         <button class="btn secondary" type="submit" name="status" value="draft">Save as Draft</button>
+        <button class="btn secondary" type="button" id="previewBtn">Preview</button>
         <a href="/login/" class="btn secondary">Cancel</a>
     </form>
 </main>
+
+<div id="previewModalOverlay" class="preview-modal-overlay" style="display:none;">
+    <div class="preview-modal-box">
+        <button type="button" class="preview-modal-close" id="previewModalClose">&times;</button>
+        <div class="article-header">
+            <img id="previewCoverImg" class="article-header-img article-cover-image" style="display:none;" alt="">
+            <h1 class="article-header-title" id="previewTitle"></h1>
+        </div>
+        <div class="content" id="previewContent"></div>
+    </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script>
 var quill = new Quill('#editor-container', {
@@ -168,6 +180,35 @@ function updateWordCount() {
 }
 quill.on('text-change', updateWordCount);
 updateWordCount();
+
+document.getElementById('previewBtn').addEventListener('click', function() {
+    var formData = new FormData();
+    formData.append('title', document.getElementById('title').value.trim());
+    formData.append('content', quill.root.innerHTML);
+    fetch('/preview-article', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) return;
+            document.getElementById('previewTitle').textContent = data.title;
+            document.getElementById('previewContent').innerHTML = data.content_html;
+            document.getElementById('previewCoverImg').style.display = 'none';
+            document.getElementById('previewModalOverlay').style.display = 'flex';
+            if (data.has_scratchblocks && !window.scratchblocks) {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/scratchblocks@3';
+                s.onload = function() { window.scratchblocks.renderMatching('#previewContent pre.blocks', { style: 'scratch3' }); };
+                document.body.appendChild(s);
+            } else if (data.has_scratchblocks) {
+                window.scratchblocks.renderMatching('#previewContent pre.blocks', { style: 'scratch3' });
+            }
+        });
+});
+document.getElementById('previewModalClose').addEventListener('click', function() {
+    document.getElementById('previewModalOverlay').style.display = 'none';
+});
+document.getElementById('previewModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
 quill.getModule('toolbar').addHandler('image', function() {
     var input = document.createElement('input');
     input.type = 'file';
