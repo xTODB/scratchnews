@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://scratchnews.freedev.app/sitemap
+Sitemap: https://scratchnews.freedev.app/sitemap.php
