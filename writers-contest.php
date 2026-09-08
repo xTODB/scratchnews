@@ -34,7 +34,7 @@ body.dark .contest-scratcher-chip { border-color:#444; }
         <li>You can write up to <strong>5 contest entries</strong>, each about a <strong>different</strong> Scratcher from the list below.</li>
         <li>Entries get a small "this article is about @username" banner linking to that Scratcher's own ScratchNews profile.</li>
         <li>For that link to actually work, the Scratcher being written about needs to make a <strong>Contest account</strong>: verified as really being them, not something a writer can do on their behalf.</li>
-        <li>In the article about your chosen Scratcher, you can talk about their history, influence or evolution. A good example of how an article about a Scratcher could look like can be seen <a href="https://scratchnews.freedev.app/article/27">here.</a></li>
+        <li>In the article about your chosen Scratcher, you can talk about their history, influence or evolution. A good example of how an article about a Scratcher could look like can be seen <a href="https://scratchnews.net/article/27">here.</a></li>
         <li>Do not say rude or disrespectful things about the Scratcher in your article.</li>
     </ul>
 
