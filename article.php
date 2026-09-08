@@ -119,7 +119,7 @@ $hasScratchblocks = strpos($displayContent, 'class="blocks"') !== false;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <?php include __DIR__ . '/includes/favicon.php'; ?>
 <title><?= $article ? e($displayTitle) . ' - ' . e(SITE_NAME) : 'Article not found' ?></title>
 <?php if ($article): ?>
 <meta name="description" content="<?= e(mb_strimwidth($article['summary'], 0, 160, '...')) ?>">

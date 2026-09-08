@@ -126,10 +126,7 @@ function renderProfilesRow(array $users): void {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
-    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <?php include __DIR__ . '/includes/favicon.php'; ?>
 <title><?= e(SITE_NAME) ?></title>
 <meta name="description" content="ScratchNews is a community-run news site covering updates, features, and stories from the Scratch programming community.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
