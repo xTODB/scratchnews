@@ -325,6 +325,26 @@ function getRecentVisits(int $limit = 200, ?string $includeIp = null, ?string $e
     return $rows;
 }
 
+// Plain-text export of the raw Visitor Log (admin/visits.php) - same include/exclude
+// IP filters as that page, same 200-row rolling window as the `visits` table itself.
+// Admin-only, not Head Mod (raw IPs) - matches admin/visits.php's own gate.
+function buildVisitsExportText(?string $includeIp = null, ?string $excludeIp = null): string {
+    $visits = getRecentVisits(200, $includeIp, $excludeIp);
+
+    $out = "ScratchNews Visitor Log Export\n";
+    $out .= "Generated: " . gmdate('Y-m-d H:i') . " UTC\n";
+    if ($includeIp) $out .= "Filter: only IP $includeIp\n";
+    if ($excludeIp) $out .= "Filter: excluding IP $excludeIp\n";
+    $out .= "Showing up to the most recent 200 visits (rolling window - the `visits` table only ever keeps the latest 200 site-wide)\n";
+    $out .= "==========================================\n\n";
+
+    foreach ($visits as $v) {
+        $out .= $v['visited_at'] . " UTC | " . $v['ip_address'] . " | " . $v['page'] . " | " . $v['user_agent'] . "\n";
+    }
+
+    return $out;
+}
+
 // ---- Time on Site ----
 define('HEARTBEAT_INTERVAL_SECONDS', 15);
 

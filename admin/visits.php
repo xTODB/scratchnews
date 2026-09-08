@@ -34,6 +34,7 @@ $visits = getRecentVisits(200, $includeIp ?: null, $excludeIp ?: null);
         <a href="/admin/visits" class="btn secondary" style="margin-top:0;">Clear</a>
         <?php endif; ?>
     </form>
+    <p><a href="/admin/visits/export<?= ($includeIp || $excludeIp) ? '?' . http_build_query(array_filter(['include_ip' => $includeIp, 'exclude_ip' => $excludeIp])) : '' ?>" class="btn secondary inline">Export as .txt</a></p>
     <table>
         <tr><th>Time</th><th>IP Address</th><th>Page</th><th>User Agent</th></tr>
         <?php foreach ($visits as $v): ?>
