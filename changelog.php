@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Sep8] SCRATCHNEWS HAS MOVED TO scratchnews.net!!!</p>
     <p>[Sep7] 0.27.1 - Small update!</p><br><ul>
         <li>Forum signatures - add a custom BBCode signature that shows under your posts, from Settings</li>
         <li>Edit your forum posts after posting them</li>
