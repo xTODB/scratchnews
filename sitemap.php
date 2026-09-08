@@ -7,11 +7,11 @@ $articles = $db->query("SELECT id, updated_at FROM articles WHERE status = 'publ
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-echo '  <url><loc>https://scratchnews.freedev.app/</loc></url>' . "\n";
+echo '  <url><loc>https://scratchnews.net/</loc></url>' . "\n";
 foreach ($articles as $a) {
     $lastmod = date('c', strtotime($a['updated_at']));
     echo '  <url>';
-    echo '<loc>https://scratchnews.freedev.app/article/' . (int)$a['id'] . '</loc>';
+    echo '<loc>https://scratchnews.net/article/' . (int)$a['id'] . '</loc>';
     echo '<lastmod>' . e($lastmod) . '</lastmod>';
     echo '</url>' . "\n";
 }
