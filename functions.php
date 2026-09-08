@@ -1,6 +1,15 @@
 <?php
+// === CANONICAL HOST REDIRECT: freedev.app -> scratchnews.net ===
+// 301, preserves path + query string. Runs before anything else so it
+// applies to every route, including clean-URL rewrites.
+if (isset($_SERVER['HTTP_HOST']) && stripos($_SERVER['HTTP_HOST'], 'freedev.app') !== false) {
+    $newUrl = 'https://scratchnews.net' . $_SERVER['REQUEST_URI'];
+    header('Location: ' . $newUrl, true, 301);
+    exit;
+}
+
 // === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
-date_default_timezone_set('Etc/GMT-3'); // GMT+3
+date_default_timezone_set('Etc/GMT-3'); // GMT+3 // GMT+3
 define('MAINTENANCE_MODE', false);
 define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
 define('MAINTENANCE_MESSAGE', 'guess what we\'re maintenaincing our siting');
