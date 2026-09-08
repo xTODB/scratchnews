@@ -27,7 +27,7 @@ startSession();
     <p>When first writing an article, remember that the idea is what will get it approved and what will get your article many likes, comments and shares. ScratchNews has only around 25 articles, but there's so much more we 
 haven't talked about!</p>
     <strong>The history of Scratchers, tutorials, events, projects, studios, or even the community itself: ScratchNews has lots of potential for articles, and you can become a writer yourself.</strong>
-    <em>Get an idea, go on <a href="https://scratchnews.freedev.app/submit">the submission article page</a> and write out the basics: title, summary, and maybe even a nice thumbnail image. <strong>The world is waiting for your article and you have all the tools to write it!</strong></em>
+    <em>Get an idea, go on <a href="https://scratchnews.net/submit">the submission article page</a> and write out the basics: title, summary, and maybe even a nice thumbnail image. <strong>The world is waiting for your article and you have all the tools to write it!</strong></em>
     <h3>2: Do Not Use AI.</h3>
     <p>
         Do not use AI in any of your writing, the images, the thumbnails, or anything else in the article. Doing so will cause your article to be unpublished and in some cases, deleted.
