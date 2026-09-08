@@ -159,7 +159,7 @@ function encryptWebPushPayload(string $payload, string $p256dhB64, string $authB
 function sendWebPush(array $subscription, string $title, string $body, string $url): int {
     $vapidPublic = getApiSetting('vapid_public_key', '');
     $vapidPrivate = getApiSetting('vapid_private_key', '');
-    $vapidSubject = getApiSetting('vapid_subject', 'mailto:admin@' . parse_url(getApiSetting('site_url', 'https://scratchnews.freedev.app'), PHP_URL_HOST));
+    $vapidSubject = getApiSetting('vapid_subject', 'mailto:admin@' . parse_url(getApiSetting('site_url', 'https://scratchnews.net'), PHP_URL_HOST));
     if ($vapidPublic === '' || $vapidPrivate === '') {
         return 0; // VAPID keys not generated yet - see admin/setup-push.php
     }
