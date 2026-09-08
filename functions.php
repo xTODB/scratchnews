@@ -1,15 +1,6 @@
 <?php
-// === CANONICAL HOST REDIRECT: freedev.app -> scratchnews.net ===
-// 301, preserves path + query string. Runs before anything else so it
-// applies to every route, including clean-URL rewrites.
-if (isset($_SERVER['HTTP_HOST']) && stripos($_SERVER['HTTP_HOST'], 'freedev.app') !== false) {
-    $newUrl = 'https://scratchnews.net' . $_SERVER['REQUEST_URI'];
-    header('Location: ' . $newUrl, true, 301);
-    exit;
-}
-
 // === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
-date_default_timezone_set('Etc/GMT-3'); // GMT+3 // GMT+3
+date_default_timezone_set('Etc/GMT-3'); // GMT+3
 define('MAINTENANCE_MODE', false);
 define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
 define('MAINTENANCE_MESSAGE', 'guess what we\'re maintenaincing our siting');
@@ -1832,7 +1823,7 @@ function startSession(): void {
 // they first load any page (no account required). If they later log in, an
 // unclaimed SID gets linked to their account. Shared links append the SID plus
 // a 7th binary flag (1 = shared while logged in, 0 = shared as a guest), e.g.
-// scratchnews.freedev.app/article/27?sid=W6_fnw0, so clicks can be attributed
+// scratchnews.net/article/27?sid=W6_fnw0, so clicks can be attributed
 // back to whoever shared the link. ----
 
 const SHARE_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -3163,7 +3154,7 @@ function sendSubmissionDecisionEmail($toEmail, $toUsername, $articleTitle, $appr
         $subject = "Your ScratchNews submission was approved!";
         $body = "<p>Hi " . htmlspecialchars($toUsername) . ",</p>"
             . "<p>Great news — your submission \"" . htmlspecialchars($articleTitle) . "\" has been approved and is now live on ScratchNews.</p>"
-            . "<p><a href=\"https://scratchnews.freedev.app/\">Check it out</a></p>";
+            . "<p><a href=\"https://scratchnews.net/\">Check it out</a></p>";
     } else {
         $subject = "Update on your ScratchNews submission";
         $body = "<p>Hi " . htmlspecialchars($toUsername) . ",</p>"
