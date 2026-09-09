@@ -286,7 +286,7 @@ function logVisit(string $page): void {
     $stmt->bind_param('sss', $ip, $page, $ua);
     $stmt->execute();
     $stmt->close();
-    $db->query("DELETE FROM visits WHERE id NOT IN (SELECT id FROM (SELECT id FROM visits ORDER BY id DESC LIMIT 200) AS keep)");
+    $db->query("DELETE FROM visits WHERE visited_at < DATE_SUB(NOW(), INTERVAL 3 DAY)");
 
     $stmt = $db->prepare("INSERT IGNORE INTO daily_unique_visitors (visit_date, ip_address) VALUES (CURDATE(), ?)");
     $stmt->bind_param('s', $ip);
@@ -326,16 +326,18 @@ function getRecentVisits(int $limit = 200, ?string $includeIp = null, ?string $e
 }
 
 // Plain-text export of the raw Visitor Log (admin/visits.php) - same include/exclude
-// IP filters as that page, same 200-row rolling window as the `visits` table itself.
+// IP filters as that page. The `visits` table now keeps a rolling 3-day window
+// (see logVisit()) instead of a fixed row count, so a busy day survives until
+// the next morning; this export shows up to the most recent 2000 of those rows.
 // Admin-only, not Head Mod (raw IPs) - matches admin/visits.php's own gate.
 function buildVisitsExportText(?string $includeIp = null, ?string $excludeIp = null): string {
-    $visits = getRecentVisits(200, $includeIp, $excludeIp);
+    $visits = getRecentVisits(2000, $includeIp, $excludeIp);
 
     $out = "ScratchNews Visitor Log Export\n";
     $out .= "Generated: " . gmdate('Y-m-d H:i') . " UTC\n";
     if ($includeIp) $out .= "Filter: only IP $includeIp\n";
     if ($excludeIp) $out .= "Filter: excluding IP $excludeIp\n";
-    $out .= "Showing up to the most recent 200 visits (rolling window - the `visits` table only ever keeps the latest 200 site-wide)\n";
+    $out .= "Showing up to the most recent 2000 visits from the last 3 days (the `visits` table keeps a rolling 3-day window, not a fixed row count)\n";
     $out .= "==========================================\n\n";
 
     foreach ($visits as $v) {
