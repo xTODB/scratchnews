@@ -147,7 +147,7 @@ body.dark #autosaveBtn.just-saved { color: #7fdb8f; }
         <button type="button" id="toggleToolbarPos" title="Move formatting bar to bottom">⇕</button>
     </span>
 </div>
-<div id="editor-container"><?= $_POST['content'] ?? '' ?></div>
+<div id="editor-container"><?= isset($_POST['content']) ? sanitizeArticleHtml($_POST['content']) : '' ?></div>
 </div>
 <textarea id="content" name="content" style="display:none;"></textarea>
 
