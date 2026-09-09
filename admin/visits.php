@@ -4,7 +4,7 @@ require_once __DIR__ . '/auth.php';
 $includeIp = trim($_GET['include_ip'] ?? '');
 $excludeIp = trim($_GET['exclude_ip'] ?? '');
 
-$visits = getRecentVisits(200, $includeIp ?: null, $excludeIp ?: null);
+$visits = getRecentVisits(2000, $includeIp ?: null, $excludeIp ?: null);
 ?>
 <!DOCTYPE html>
 <html lang="en">
