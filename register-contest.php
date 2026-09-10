@@ -20,8 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $honeypot = trim($_POST['website'] ?? '');
-    $contestScratcher = trim($_POST['contest_scratcher'] ?? '');
-    $phoneNumber = trim($_POST['phone_number'] ?? '');
+        $contestScratcher = trim($_POST['contest_scratcher'] ?? '');
+    // Strip spaces/dashes/parens Google's phone-number autofill likes to insert
+    // (e.g. "+1 234 567 8900" or "+1 (234) 567-8900") before validating/storing,
+    // so the saved format always matches the +12345678900 the regex expects.
+    $phoneNumber = preg_replace('/[\s\-\(\)]/', '', trim($_POST['phone_number'] ?? ''));
     $verifiedUsername = $_SESSION['contest_verified_username'] ?? null;
 
     if ($honeypot !== '') {
