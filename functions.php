@@ -1959,6 +1959,45 @@ function getUserShareClickCount(int $userId): int {
     return $count;
 }
 
+// Every recorded share-link click (most recent first), joined to the SID's
+// owning account (if that SID has ever been claimed by a logged-in visitor)
+// and the article it pointed at. Powers the admin Share Clicks page - lets
+// TODB see exactly who clicked a given shared link and who shared it.
+function getShareClicksDetail(int $limit = 500, ?string $sid = null, ?string $ownerUsername = null): array {
+    $db = getDB();
+    $sql = "SELECT sc.id, sc.article_id, a.title AS article_title, sc.sid, sc.from_account, sc.created_at,
+                   si.user_id AS owner_id, u.username AS owner_username
+            FROM share_clicks sc
+            JOIN share_ids si ON sc.sid = si.sid
+            LEFT JOIN users u ON si.user_id = u.id
+            LEFT JOIN articles a ON sc.article_id = a.id
+            WHERE 1=1";
+    $params = [];
+    $types = '';
+
+    if ($sid !== null && $sid !== '') {
+        $sql .= " AND sc.sid = ?";
+        $params[] = $sid;
+        $types .= 's';
+    }
+    if ($ownerUsername !== null && $ownerUsername !== '') {
+        $sql .= " AND u.username = ?";
+        $params[] = $ownerUsername;
+        $types .= 's';
+    }
+
+    $sql .= " ORDER BY sc.created_at DESC LIMIT ?";
+    $params[] = $limit;
+    $types .= 'i';
+
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
 // Share rank tiers, highest first. Returns the matching slug into
 // getBadgeDefinitions() (group 'share') so renderRankBadges() can fold it into
 // the same click-through badge list/modal as every other rank badge.
