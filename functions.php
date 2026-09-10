@@ -1992,10 +1992,32 @@ function getShareClicksDetail(int $limit = 500, ?string $sid = null, ?string $ow
 
     $stmt = $db->prepare($sql);
     $stmt->bind_param($types, ...$params);
-    $stmt->execute();
+        $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     return $rows;
+}
+
+// Plain-text export of getShareClicksDetail(), mirroring buildVisitsExportText()'s
+// format so TODB can paste/share it the same way.
+function buildShareClicksExportText(?string $sid = null, ?string $ownerUsername = null): string {
+    $clicks = getShareClicksDetail(2000, $sid, $ownerUsername);
+
+    $out = "ScratchNews Share Clicks Export\n";
+    $out .= "Generated: " . gmdate('Y-m-d H:i') . " UTC\n";
+    if ($sid) $out .= "Filter: only Share ID $sid\n";
+    if ($ownerUsername) $out .= "Filter: only shared by @$ownerUsername\n";
+    $out .= "Showing up to the most recent 2000 share-link clicks\n";
+    $out .= "==========================================\n\n";
+
+    foreach ($clicks as $c) {
+        $article = $c['article_id'] ? ('#' . $c['article_id'] . ' ' . $c['article_title']) : '(unknown article)';
+        $owner = $c['owner_username'] ? '@' . $c['owner_username'] : 'unclaimed/guest SID';
+        $via = $c['from_account'] ? 'logged in' : 'guest';
+        $out .= $c['created_at'] . " UTC | " . $article . " | SID " . $c['sid'] . " (shared while " . $via . ") | shared by " . $owner . "\n";
+    }
+
+    return $out;
 }
 
 // Share rank tiers, highest first. Returns the matching slug into
