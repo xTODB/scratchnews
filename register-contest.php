@@ -201,7 +201,9 @@ body.dark .verify-code { background:#444; }
         if (!/^[A-Za-z0-9_]{3,20}$/.test(username.value)) { alert('Username must be 3-20 characters (letters, numbers, underscores only).'); return false; }
         if (password.value.length < 6) { alert('Password must be at least 6 characters.'); return false; }
         if (!scratcher.value) { alert('Please select which Scratcher this account is for.'); return false; }
-        if (!/^\+[1-9]\d{6,14}$/.test(phone.value)) { alert('Please enter a valid phone number including country code.'); return false; }
+        var normalizedPhone = phone.value.replace(/[\s\-\(\)]/g, '');
+        if (!/^\+[1-9]\d{6,14}$/.test(normalizedPhone)) { alert('Please enter a valid phone number including country code.'); return false; }
+        phone.value = normalizedPhone;
         return true;
     }
 
