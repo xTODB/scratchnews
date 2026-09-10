@@ -33,7 +33,8 @@ $clicks = getShareClicksDetail(500, $sidFilter ?: null, $ownerFilter ?: null);
         <?php if ($sidFilter || $ownerFilter): ?>
         <a href="/admin/share-clicks" class="btn secondary" style="margin-top:0;">Clear</a>
         <?php endif; ?>
-    </form>
+        </form>
+        <p><a href="/admin/share-clicks/export<?= ($sidFilter || $ownerFilter) ? '?' . http_build_query(array_filter(['sid' => $sidFilter, 'owner' => $ownerFilter])) : '' ?>" class="btn secondary inline">Export as .txt</a></p>
     <table>
         <tr><th>Time</th><th>Article</th><th>Share ID</th><th>Shared while</th><th>Shared by</th></tr>
         <?php foreach ($clicks as $c): ?>
