@@ -1928,6 +1928,15 @@ function recordShareClick(int $articleId, string $rawSid): void {
     if (!preg_match('/^([A-Za-z0-9_-]{6})([01])$/', $rawSid, $m)) return;
     [, $sid, $fromAccount] = $m;
 
+    // The share URL is only ever written into the page as JS text (for clipboard
+    // copy), never a real <a href> - but it's still URL-shaped text sitting in
+    // the raw page source, and some crawler/link-checker is scraping it and
+    // re-fetching it. Because currentShareSuffix() always embeds the CURRENT
+    // visitor's own SID, that bot ends up "clicking" its own share link on every
+    // single article it crawls. A real click always comes from someone whose own
+    // SID cookie differs from the SID they're crediting - skip it otherwise.
+    if (($_COOKIE['sn_sid'] ?? '') === $sid) return;
+
     $dedupeKey = $articleId . ':' . $sid;
     if (!empty($_SESSION['clicked_shares'][$dedupeKey])) return;
     $_SESSION['clicked_shares'][$dedupeKey] = true;
