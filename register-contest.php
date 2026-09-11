@@ -40,14 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Password must be at least 6 characters.';
     } elseif (!in_array($contestScratcher, CONTEST_SCRATCHERS, true)) {
         $error = 'Please select which Scratcher this Contest account is for.';
-    } elseif (!preg_match('/^\+[1-9]\d{6,14}$/', $phoneNumber)) {
-        $error = 'Please enter a valid phone number including country code (e.g. +12345678900). This is just a backup contact for TODB if you ever lose this account - it is not texted or auto-verified.';
-    } elseif (isPhoneNumberLinked($phoneNumber)) {
+    } elseif ($phoneNumber !== '' && !preg_match('/^\+[1-9]\d{6,14}$/', $phoneNumber)) {
+        $error = 'Please enter a valid phone number including country code (e.g. +12345678900), or leave it blank.';
+    } elseif ($phoneNumber !== '' && isPhoneNumberLinked($phoneNumber)) {
         $error = 'That phone number is already linked to another ScratchNews account.';
     } elseif ($verifiedUsername === null || strcasecmp($verifiedUsername, $contestScratcher) !== 0) {
         $error = 'Please complete Comment Auth as @' . $contestScratcher . ' before finishing your account.';
     } else {
-        $result = createUser($username, null, $password, $verifiedUsername, $phoneNumber);
+        $result = createUser($username, null, $password, $verifiedUsername, $phoneNumber !== '' ? $phoneNumber : null);
         if ($result === 'duplicate') {
             $error = 'That username, linked Scratch account, or phone number is already taken.';
             logSignupAttempt($ip, false);
@@ -138,9 +138,9 @@ body.dark .verify-code { background:#444; }
                 <option value="<?= e($s) ?>" <?= (($_POST['contest_scratcher'] ?? '') === $s) ? 'selected' : '' ?>><?= e($s) ?></option>
                 <?php endforeach; ?>
             </select>
-            <label for="phoneNumber">Phone number</label>
-            <p class="contest-note">If you ever lose your account (and <a href="https://scratch.mit.edu/users/YaFavDev/#comments-416288070">quite</a> a <a href="https://scratch.mit.edu/users/YaFavDev/#comments-416209385">dozen</a> do), we'll confirm your identity via phone number. You can also delete this data after creating the contest account via reaching out on <a href="/contact">Contact Us.</a></p>
-            <input type="tel" id="phoneNumber" name="phone_number" placeholder="+12345678900" value="<?= e($_POST['phone_number'] ?? '+') ?>" required>
+            <label for="phoneNumber">Phone number (optional)</label>
+            <p class="contest-note">If you ever lose your account (and <a href="https://scratch.mit.edu/users/YaFavDev/#comments-416288070">quite</a> a <a href="https://scratch.mit.edu/users/YaFavDev/#comments-416209385">dozen</a> do), a phone number helps us confirm your identity - but it's optional. You can also delete this data after creating the contest account via reaching out on <a href="/contact">Contact Us.</a></p>
+            <input type="tel" id="phoneNumber" name="phone_number" placeholder="+12345678900" value="<?= e($_POST['phone_number'] ?? '') ?>">
             <div class="wizard-nav-row">
                 <button type="button" class="btn" data-next>Next</button>
             </div>
@@ -202,7 +202,7 @@ body.dark .verify-code { background:#444; }
         if (password.value.length < 6) { alert('Password must be at least 6 characters.'); return false; }
         if (!scratcher.value) { alert('Please select which Scratcher this account is for.'); return false; }
         var normalizedPhone = phone.value.replace(/[\s\-\(\)]/g, '');
-        if (!/^\+[1-9]\d{6,14}$/.test(normalizedPhone)) { alert('Please enter a valid phone number including country code.'); return false; }
+        if (normalizedPhone !== '' && !/^\+[1-9]\d{6,14}$/.test(normalizedPhone)) { alert('Please enter a valid phone number including country code, or leave it blank.'); return false; }
         phone.value = normalizedPhone;
         return true;
     }
