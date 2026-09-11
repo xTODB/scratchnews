@@ -1942,6 +1942,21 @@ function recordShareClick(int $articleId, string $rawSid): void {
     $_SESSION['clicked_shares'][$dedupeKey] = true;
 
     $db = getDB();
+    $stmt = $db->prepare("SELECT created_at FROM share_ids WHERE sid = ?");
+    $stmt->bind_param('s', $sid);
+    $stmt->execute();
+    $sidRow = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$sidRow) return;
+
+    // A real share needs time to reach someone else. A SID "clicked" within a
+    // minute of its own creation - even with no matching cookie (see above) -
+    // is the crawler self-discovery pattern, not a genuine referral.
+    if (strtotime($sidRow['created_at']) >= time() - 60) return;
+    if (!empty($_SESSION['clicked_shares'][$dedupeKey])) return;
+    $_SESSION['clicked_shares'][$dedupeKey] = true;
+
+    $db = getDB();
     $stmt = $db->prepare("SELECT 1 FROM share_ids WHERE sid = ?");
     $stmt->bind_param('s', $sid);
     $stmt->execute();
