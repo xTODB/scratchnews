@@ -17,7 +17,7 @@ startSession();
 <main>
     <h2>Welcome to the ScratchNews API!</h2>
     <p>A small, read-only API for building things on top of ScratchNews: Discord bots, dashboards, whatever you want.
-        Access is API-key based and allows 30 requests a minute by default. If you want more, reach out on <a href="https://discord.gg/Z6GBswx5Q">Discord</a> and tell me why do you want an API key.</p>
+        Access is API-key based and allows 30 requests a minute by default. If you want more, reach out on Contact Us and tell me what will you use the Scratch API for.</p>
 
     <h3 style="margin-top:2rem;">GET /api/articles.php</h3>
     <p>Returns published articles, paginated. Optional query params: <code>page</code>, <code>per_page</code> (max 50), <code>category</code> (a category slug).</p>
