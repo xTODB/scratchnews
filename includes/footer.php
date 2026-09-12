@@ -29,6 +29,23 @@
             </div>
         </div>
     </div>
+    <?php if (!empty($_SESSION['is_admin']) && in_array($__navPage ?? '', ['index.php', 'explore.php'], true)): ?>
+    <!-- v0.27.2: admin-only debug switch for comparing SVG vs Material Symbols
+         card-toolbar icons - remove once a final call is made. -->
+    <button type="button" id="iconStyleToggle" class="icon-style-toggle-btn">Icons: SVG</button>
+    <script>
+    (function() {
+        var btn = document.getElementById('iconStyleToggle');
+        function label() { return document.body.classList.contains('icons-material') ? 'Icons: Material' : 'Icons: SVG'; }
+        btn.textContent = label();
+        btn.addEventListener('click', function() {
+            var isMaterial = document.body.classList.toggle('icons-material');
+            localStorage.setItem('sn_icon_style', isMaterial ? 'material' : 'svg');
+            btn.textContent = label();
+        });
+    })();
+    </script>
+    <?php endif; ?>
     <div class="footer-bottom">
         <div class="footer-copyright">&copy; <?= e(SITE_NAME) ?> v<?= e(SITE_VERSION) ?></div>
         <div class="footer-language">
