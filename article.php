@@ -191,6 +191,7 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
                             <input type="hidden" name="action" value="like">
                             <button class="icon-btn <?= $liked ? 'active' : '' ?>" type="submit" <?= (empty($_SESSION['reader_id']) || $isBanned) ? 'disabled' : '' ?> title="<?= $liked ? 'Unlike' : 'Like' ?>">
                                 <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" alt="Like" class="icon-svg">
+                                <span class="material-symbols-outlined icon-material" translate="no">thumb_up</span>
                                 <span class="icon-count"><?= formatCount($likeCount) ?></span>
                             </button>
                         </form>
@@ -199,6 +200,7 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
                             <input type="hidden" name="action" value="dislike">
                             <button class="icon-btn <?= $disliked ? 'active' : '' ?>" type="submit" <?= (empty($_SESSION['reader_id']) || $isBanned) ? 'disabled' : '' ?> title="<?= $disliked ? 'Remove dislike' : 'Dislike' ?>">
                                 <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" alt="Dislike" class="icon-svg">
+                                <span class="material-symbols-outlined icon-material" translate="no">thumb_down</span>
                                 <span class="icon-count"><?= formatCount($dislikeCount) ?></span>
                             </button>
             </form>
@@ -207,19 +209,23 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
                             <input type="hidden" name="action" value="toggle_save">
                             <button class="icon-btn save-btn <?= $isSaved ? 'active' : '' ?>" type="submit" <?= empty($_SESSION['reader_id']) ? 'disabled' : '' ?> title="<?= $isSaved ? 'Remove from Saved' : 'Save for later' ?>">
                                 <img src="/assets/icons/save.svg" alt="Save" class="icon-svg">
+                                <span class="material-symbols-outlined icon-material" translate="no">bookmark</span>
                             </button>
                         </form>
                         <a href="#comments" class="icon-btn" title="Jump to comments" style="text-decoration:none;">
                             <img src="/assets/icons/comment.svg" alt="Comments" class="icon-svg">
+                            <span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span>
                             <span class="icon-count"><?= formatCount(count($comments)) ?></span>
                         </a>
                         <span class="icon-btn" title="Views">
                             <img src="/assets/icons/views.svg" alt="Views" class="icon-svg">
+                            <span class="material-symbols-outlined icon-material" translate="no">visibility</span>
                             <span class="icon-count"><?= formatCount((int)$article['views']) ?></span>
                         </span>
                         <div class="share-wrap">
                             <button type="button" class="icon-btn" id="shareBtn" title="Share">
                                 <img src="/assets/icons/share.svg" alt="Share" class="icon-svg">
+                                <span class="material-symbols-outlined icon-material" translate="no">share</span>
                             </button>
                             <?php if (!empty($_SESSION['reader_id'])):
                                 $__shareClicks = getUserShareClickCount((int)$_SESSION['reader_id']);
