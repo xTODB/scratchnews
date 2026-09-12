@@ -132,10 +132,12 @@ function renderProfilesRow(array $users): void {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <link rel="stylesheet" href="/assets/style.css?v=28">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
+<script>if(localStorage.getItem('sn_icon_style')==='material'){document.body.classList.add('icons-material');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php include __DIR__ . '/includes/welcome-banner.php'; ?>
 <?php if (!empty($_SESSION['impersonator_admin_username'])): ?>
