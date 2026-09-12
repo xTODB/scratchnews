@@ -69,14 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main>
     <h2>Log In</h2>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
-    <div style="display:flex;justify-content:center;margin-bottom:1rem;">
-        <div id="g_id_onload"
-             data-client_id="<?= e(GOOGLE_CLIENT_ID) ?>"
-             data-callback="handleGoogleCredential"
-             data-auto_prompt="false"></div>
-        <div class="g_id_signin" data-type="standard" data-size="large" data-width="300"></div>
-    </div>
-    <p style="text-align:center;color:#888;font-size:0.85rem;margin:0.75rem 0;">— or log in with a username and password —</p>
     <form method="post">
         <input type="hidden" name="redirect" value="<?= e($redirect) ?>">
         <label for="username">Username</label>
@@ -97,22 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
     <p style="margin-top:1rem;">Don't have an account? <a href="/register">Sign up</a></p>
 </main>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-function handleGoogleCredential(response) {
-    fetch('/google-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'credential=' + encodeURIComponent(response.credential) + '&redirect=' + encodeURIComponent(<?= json_encode($redirect) ?>)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.redirect) { window.location.href = data.redirect; }
-        else if (data.newSignup) { window.location.href = '/register'; }
-        else { alert(data.error || 'Google sign-in failed.'); }
-    })
-    .catch(function() { alert('Google sign-in failed. Please try again.'); });
-}
 document.getElementById('wordListToggle').addEventListener('click', function(e) {
     e.preventDefault();
     document.getElementById('wordListForm').style.display = 'block';
