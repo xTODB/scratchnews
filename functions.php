@@ -1237,9 +1237,13 @@ function findScratchCommentAuthor(string $ownerUsername, string $projectId, stri
 }
 
 // Builds the exact text a user must comment on their OWN Scratch profile to verify via
-// Comment Auth, with their chosen ScratchNews username filled in.
+// Comment Auth, with their chosen ScratchNews username filled in. Deliberately avoids
+// the literal site name and any "follow me"/self-promo phrasing - Scratch's automated
+// comment filter mutes accounts for posting the site's name, so the old wording
+// (which spelled it out twice) made verification itself trigger a mute. The username
+// alone still gives this enough uniqueness to match reliably.
 function buildCommentAuthText(string $scratchNewsUsername): string {
-    return "I've made my ScratchNews profile ($scratchNewsUsername)! I'd suggest you'd follow me there. If you're curious about what ScratchNews is, learn more here: https://scratch.mit.edu/projects/1368284445/";
+    return "Account verification - ref ($scratchNewsUsername). More info: https://scratch.mit.edu/projects/1368284445/";
 }
 
 // Comment Auth: scans $scratchUsername's OWN profile comments (unofficial site-api,
