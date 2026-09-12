@@ -5010,13 +5010,35 @@ function renderNotificationText(array $n): string {
 // `moderation_words` table, managed from /admin/moderation-words.
 // Regex patterns stay hardcoded (too technical for a simple word-list UI).
 
-const MODERATION_CATEGORIES = ['profanity', 'sexual', 'violence_selfharm'];
+const MODERATION_CATEGORIES = ['profanity', 'sexual', 'violence_selfharm', 'personal_info'];
 
 const MODERATION_PATTERNS = [
     '/\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i',          // email addresses
-    '/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/',                     // phone numbers
+    '/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/',                     // phone numbers (NANP-style)
+    '/(?:\+|00)\d{1,3}[-.\s]?\(?\d{1,4}\)?(?:[-.\s]?\d{2,4}){2,4}\b/', // phone numbers, international w/ country code
     '/\b(free\s?robux|free\s?nitro|steam\s?gift)\b/i',        // common scam bait
 ];
+
+// Domains/services that constitute someone sharing a personal social-media or
+// messaging account - Scratch's own Community Guidelines specifically call out
+// "usernames or links to any social media accounts" as personal info, distinct
+// from the profanity/sexual/violence word lists below. Checked against the RAW
+// text before stripUrlsForModeration() runs, since masking links out first
+// would hide exactly what this needs to catch. scratch.mit.edu and this site's
+// own domain are deliberately not in this list - those aren't personal accounts.
+const MODERATION_SOCIAL_DOMAINS = [
+    'instagram.com', 'tiktok.com', 'twitter.com', 'x.com', 'snapchat.com',
+    'discord.gg', 'discord.com/invite', 't.me/', 'telegram.me', 'wa.me',
+    'kik.me', 'threads.net', 'facebook.com', 'reddit.com/u/', 'reddit.com/user/',
+];
+
+function textContainsSocialLink(string $text): bool {
+    $normalized = strtolower($text);
+    foreach (MODERATION_SOCIAL_DOMAINS as $domain) {
+        if (str_contains($normalized, $domain)) return true;
+    }
+    return false;
+}
 
 const MODERATION_LOCK_TIERS = [
     1 => 3600,        // 1 hour
@@ -5086,9 +5108,14 @@ function moderateText(string $text): array {
         }
     }
 
+    $flaggedCategories = [];
+
+    if (textContainsSocialLink($text)) {
+        $flaggedCategories[] = 'personal_info_or_spam';
+    }
+
     $scanText = stripUrlsForModeration($text);
     $normalized = strtolower($scanText);
-    $flaggedCategories = [];
 
     foreach ($wordsByCategory as $category => $words) {
         foreach ($words as $word) {
