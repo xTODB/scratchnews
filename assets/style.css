@@ -1255,12 +1255,18 @@ body.icons-material .three-dot-menu .icon-svg-sm { display: none; }
 body.icons-material .card-toolbar .icon-material,
 body.icons-material .three-dot-menu .icon-material { display: inline-block; }
 .icon-style-toggle-btn {
-    position: fixed; bottom: 1rem; right: 1rem; z-index: 50;
+    position: fixed; bottom: 1rem; right: 1rem; z-index: 600;
     padding: 0.5rem 0.9rem; border-radius: 999px; border: none;
     background: #1e2125; color: #f0f0f0; font-weight: 600; font-size: 0.8rem;
     cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
 .icon-style-toggle-btn:hover { background: #2a2d31; }
+/* On phones the site's own bottom nav bar (header.php, .header-icon-nav) is
+   fixed at bottom:0 with z-index:500 and reserves ~58px of body padding -
+   sit above that bar instead of underneath it. */
+@media (max-width: 700px) {
+    .icon-style-toggle-btn { bottom: calc(58px + env(safe-area-inset-bottom) + 0.75rem); }
+}
 
 /* hero-side-card / explore-card-medium toolbars are shorter (image is smaller) */
 .hero-side-card .card-toolbar,
