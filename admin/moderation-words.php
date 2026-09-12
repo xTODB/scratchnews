@@ -24,6 +24,7 @@ $categoryLabels = [
     'profanity' => 'Profanity & Slurs',
     'sexual' => 'Sexual Content',
     'violence_selfharm' => 'Violence & Self-Harm',
+    'personal_info' => 'Personal Info & Social Links',
 ];
 ?>
 <!DOCTYPE html>
@@ -84,7 +85,7 @@ $categoryLabels = [
         </div>
     <?php endforeach; ?>
 
-    <p style="opacity:0.7;font-size:0.85rem;">Email/phone/scam-link detection is handled separately by fixed patterns and isn't editable here.</p>
+    <p style="opacity:0.7;font-size:0.85rem;">Email/phone/scam-link/social-media-link detection is handled separately by fixed patterns and isn't editable here.</p>
 
     <div class="mod-category">
         <h3>Reset a User's Timeout</h3>
