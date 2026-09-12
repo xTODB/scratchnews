@@ -409,7 +409,7 @@ body.dark .auth-method-header { background:#2a2a2a; }
     function updateCommentAuthText() {
         if (!commentAuthText) return;
         var snUsername = document.getElementById('username').value.trim() || '[your ScratchNews username]';
-        commentAuthText.textContent = "I've made my ScratchNews profile (" + snUsername + ")! I'd suggest you'd follow me there. If you're curious about what ScratchNews is, learn more here: https://scratch.mit.edu/projects/1368284445/";
+        commentAuthText.textContent = "Account verification - ref (" + snUsername + "). More info: https://scratch.mit.edu/projects/1368284445/";
     }
     if (commentAuthText) {
         updateCommentAuthText();
