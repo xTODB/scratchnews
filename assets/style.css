@@ -1254,6 +1254,14 @@ body.icons-material .card-toolbar .icon-svg-sm,
 body.icons-material .three-dot-menu .icon-svg-sm { display: none; }
 body.icons-material .card-toolbar .icon-material,
 body.icons-material .three-dot-menu .icon-material { display: inline-block; }
+/* v0.27.3: same toggle, extended to the article-page engage-bar
+   (like/dislike/save/comment/views/share) - only .engage-bar uses
+   .icon-btn/.icon-svg site-wide, so scoping to it is equivalent to scoping
+   to .icon-btn but reads clearer. */
+.engage-bar .icon-material { display: none; font-size: 22px; }
+.icon-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+body.icons-material .engage-bar .icon-svg { display: none; }
+body.icons-material .engage-bar .icon-material { display: inline-block; }
 .icon-style-toggle-btn {
     position: fixed; bottom: 1rem; right: 1rem; z-index: 600;
     padding: 0.5rem 0.9rem; border-radius: 999px; border: none;
