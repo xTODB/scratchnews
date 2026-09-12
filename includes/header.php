@@ -13,19 +13,24 @@
 <div class="header-icon-nav">
     <a href="/" class="header-icon-link <?= $__navPage === 'index.php' ? 'active' : '' ?>" title="Home">
         <span class="header-icon-mask icon-home"></span>
+        <span class="material-symbols-outlined icon-material" translate="no">home</span>
     </a>
     <a href="/explore" class="header-icon-link <?= $__navPage === 'explore.php' ? 'active' : '' ?>" title="Explore">
         <span class="header-icon-mask icon-explore"></span>
+        <span class="material-symbols-outlined icon-material" translate="no">explore</span>
     </a>
     <a href="/groups" class="header-icon-link <?= in_array($__navPage, ['groups.php', 'group.php', 'create-group.php', 'profiles.php'], true) ? 'active' : '' ?>" title="Groups">
         <span class="header-icon-mask icon-groups"></span>
+        <span class="material-symbols-outlined icon-material" translate="no">group</span>
     </a>
     <?php if (!empty($_SESSION['reader_username'])): ?>
     <a href="/submit" class="header-icon-link <?= $__navPage === 'submit.php' ? 'active' : '' ?>" title="Submit Article">
         <span class="header-icon-mask icon-submit"></span>
+        <span class="material-symbols-outlined icon-material" translate="no">edit_square</span>
     </a>
     <a href="/messages" class="header-icon-link header-icon-messages <?= $__navPage === 'messages.php' ? 'active' : '' ?>" title="Messages">
         <span class="header-icon-mask icon-message"></span>
+        <span class="material-symbols-outlined icon-material" translate="no">mail</span>
         <?php if ($__unreadCount > 0): ?>
             <span class="nav-messages-badge"><?= $__unreadCount > 99 ? '99+' : $__unreadCount ?></span>
         <?php endif; ?>
@@ -33,12 +38,14 @@
     <?php endif; ?>
     <a href="/search" class="header-icon-link <?= $__navPage === 'search.php' ? 'active' : '' ?>" title="Search">
         <span class="header-icon-mask icon-search"></span>
+        <span class="material-symbols-outlined icon-material" translate="no">search</span>
     </a>
 </div>
 <nav>
     <div class="app-menu-nav">
         <button class="app-menu-toggle" onclick="document.getElementById('appMenu').classList.toggle('open')" title="Menu">
             <span class="header-icon-mask icon-appmenu"></span>
+            <span class="material-symbols-outlined icon-material" translate="no">apps</span>
         </button>
         <div id="appMenu" class="app-menu-dropdown">
             <div class="app-menu-title">Menu</div>
@@ -83,15 +90,15 @@
                     </div>
                 </div>
                 <div class="user-nav-menu-divider"></div>
-                <a href="/my-articles"><span class="header-icon-mask icon-articles"></span> My Articles</a>
+                <a href="/my-articles"><span class="header-icon-mask icon-articles"></span><span class="material-symbols-outlined icon-material" translate="no">article</span> My Articles</a>
                 <?php if (!empty($_SESSION['is_admin'])): ?>
-                <a href="/admin/"><span class="header-icon-mask icon-moderator"></span> Admin</a>
+                <a href="/admin/"><span class="header-icon-mask icon-moderator"></span><span class="material-symbols-outlined icon-material" translate="no">admin_panel_settings</span> Admin</a>
                 <?php elseif (!empty($_SESSION['is_moderator'])): ?>
-                <a href="/moderator"><span class="header-icon-mask icon-moderator"></span> Moderator</a>
+                <a href="/moderator"><span class="header-icon-mask icon-moderator"></span><span class="material-symbols-outlined icon-material" translate="no">admin_panel_settings</span> Moderator</a>
                 <?php endif; ?>
-                <a href="/settings"><span class="header-icon-mask icon-settings"></span> Settings</a>
-                <a href="https://ko-fi.com/scratchnews"><span class="header-icon-mask icon-donate"></span> Donate</a>
-                <a href="/logout"><span class="header-icon-mask icon-logout"></span> Log Out</a>
+                <a href="/settings"><span class="header-icon-mask icon-settings"></span><span class="material-symbols-outlined icon-material" translate="no">settings</span> Settings</a>
+                <a href="https://ko-fi.com/scratchnews"><span class="header-icon-mask icon-donate"></span><span class="material-symbols-outlined icon-material" translate="no">favorite</span> Donate</a>
+                <a href="/logout"><span class="header-icon-mask icon-logout"></span><span class="material-symbols-outlined icon-material" translate="no">logout</span> Log Out</a>
             </div>
         </div>
     <?php else: ?>
@@ -255,7 +262,26 @@ body.dark .user-nav-menu-divider { background: #333; }
     .header-icon-mask { width: 26px; height: 26px; }
     body { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
 }
+
+/* v0.27.3: Material Symbols toggle, extended to the site nav bar. header.php
+   is included on every page, so the font link + the icons-material toggle
+   rules for the nav live here rather than being repeated per-page. Base
+   .material-symbols-outlined class itself is defined once in style.css. */
+.icon-material { display: none; }
+.header-icon-link .icon-material,
+.app-menu-toggle .icon-material { font-size: 24px; color: #ffb957; }
+.header-icon-link:hover .icon-material,
+.header-icon-link.active .icon-material { color: var(--brand-bright, #ffaa33); }
+.user-nav-menu a .icon-material { font-size: 20px; vertical-align: -5px; margin-right: 0.5rem; }
+.user-nav-menu a:hover .icon-material { color: var(--brand-bright, #ffaa33); }
+@media (max-width: 700px) {
+    .header-icon-link .icon-material { font-size: 22px; }
+}
+body.icons-material .header-icon-mask { display: none; }
+body.icons-material .icon-material { display: inline-block; }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script>if(localStorage.getItem('sn_icon_style')==='material'){document.body.classList.add('icons-material');}</script>
 <script>
 document.addEventListener('click', function (e) {
     var menu = document.getElementById('appMenu');
