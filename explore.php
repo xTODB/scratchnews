@@ -31,10 +31,12 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php include __DIR__ . '/includes/favicon.php'; ?>
 <title>Explore - <?= e(SITE_NAME) ?></title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <link rel="stylesheet" href="/assets/style.css?v=28">
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
+<script>if(localStorage.getItem('sn_icon_style')==='material'){document.body.classList.add('icons-material');}</script>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php include __DIR__ . '/includes/banner-poll-slot.php'; ?>
 <?php include __DIR__ . '/includes/new-since-badge.php'; ?>
