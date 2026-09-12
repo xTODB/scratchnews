@@ -1229,6 +1229,39 @@ body.dark .extra-card:hover .extra-card-title { color: var(--brand-bright); }
 .card-toolbar-count { min-width: 1ch; }
 .card-toolbar-btn.copied { color: var(--brand-bright); }
 
+/* v0.27.2: Material Symbols icon set, toggled in via body.icons-material for
+   side-by-side comparison against the hand-drawn SVGs above - see the
+   admin-only switch in footer.php. Kept scoped to .card-toolbar /
+   .three-dot-menu only so nothing else using .icon-svg-sm elsewhere is
+   touched. Color comes for free from currentColor (matches whatever
+   .card-toolbar-btn / .active already set for the SVGs). */
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal; font-style: normal;
+    display: inline-block; line-height: 1;
+    white-space: nowrap; word-wrap: normal; direction: ltr;
+    -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+.card-toolbar .icon-material,
+.three-dot-menu .icon-material { display: none; }
+.card-toolbar-btn .icon-material { font-size: 16px; margin-right: 0; }
+.hero-side-card .card-toolbar .icon-material,
+.explore-card-medium .card-toolbar .icon-material { font-size: 14px; }
+.three-dot-menu .card-toolbar-btn .icon-material { font-size: 16px; margin-right: 3px; }
+.card-toolbar-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
+body.icons-material .card-toolbar .icon-svg-sm,
+body.icons-material .three-dot-menu .icon-svg-sm { display: none; }
+body.icons-material .card-toolbar .icon-material,
+body.icons-material .three-dot-menu .icon-material { display: inline-block; }
+.icon-style-toggle-btn {
+    position: fixed; bottom: 1rem; right: 1rem; z-index: 50;
+    padding: 0.5rem 0.9rem; border-radius: 999px; border: none;
+    background: #1e2125; color: #f0f0f0; font-weight: 600; font-size: 0.8rem;
+    cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+.icon-style-toggle-btn:hover { background: #2a2d31; }
+
 /* hero-side-card / explore-card-medium toolbars are shorter (image is smaller) */
 .hero-side-card .card-toolbar,
 .explore-card-medium .card-toolbar { height: 30px; }
