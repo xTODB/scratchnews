@@ -29,7 +29,7 @@
             </div>
         </div>
     </div>
-    <?php if (!empty($_SESSION['is_admin']) && in_array($__navPage ?? '', ['index.php', 'explore.php'], true)): ?>
+    <?php if (!empty($_SESSION['is_admin'])): ?>
     <!-- v0.27.2: admin-only debug switch for comparing SVG vs Material Symbols
          card-toolbar icons - remove once a final call is made. -->
     <button type="button" id="iconStyleToggle" class="icon-style-toggle-btn">Icons: SVG</button>
