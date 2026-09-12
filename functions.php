@@ -4081,22 +4081,27 @@ function renderCardToolbar(array $article, int $likeCount, bool $liked, int $dis
     <div class="card-toolbar" data-article-id="<?= $articleId ?>" data-csrf="<?= e(csrfToken()) ?>">
         <button type="button" class="card-toolbar-btn <?= $liked ? 'active' : '' ?>" data-action="like" title="Like" <?= $disabled ? 'disabled' : '' ?>>
             <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" class="icon-svg-sm" alt="">
+            <span class="material-symbols-outlined icon-material" translate="no">thumb_up</span>
             <span class="card-toolbar-count"><?= formatCount($likeCount) ?></span>
         </button>
         <button type="button" class="card-toolbar-btn <?= $disliked ? 'active' : '' ?>" data-action="dislike" title="Dislike" <?= $disabled ? 'disabled' : '' ?>>
             <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" class="icon-svg-sm" alt="">
+            <span class="material-symbols-outlined icon-material" translate="no">thumb_down</span>
             <span class="card-toolbar-count"><?= formatCount($dislikeCount) ?></span>
         </button>
         <button type="button" class="card-toolbar-btn" data-action="share" title="Copy link">
             <img src="/assets/icons/share.svg" class="icon-svg-sm" alt="">
+            <span class="material-symbols-outlined icon-material" translate="no">share</span>
         </button>
         <button type="button" class="card-toolbar-btn" data-action="comment" title="Comments">
             <img src="/assets/icons/comment.svg" class="icon-svg-sm" alt="">
+            <span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span>
             <span class="card-toolbar-count"><?= formatCount($commentCount) ?></span>
         </button>
         <?php if ($profileUrl !== ''): ?>
         <button type="button" class="card-toolbar-btn" data-action="profile" data-href="<?= e($profileUrl) ?>" title="Writer's profile">
             <img src="/assets/icons/nav-submit.svg" class="icon-svg-sm" alt="">
+            <span class="material-symbols-outlined icon-material" translate="no">person</span>
         </button>
         <?php endif; ?>
     </div>
@@ -4126,20 +4131,20 @@ function renderThreeDotMenu(array $article, int $likeCount, bool $liked, int $di
         </button>
         <div class="three-dot-menu" data-article-id="<?= $articleId ?>" data-csrf="<?= e(csrfToken()) ?>">
             <button type="button" class="card-toolbar-btn <?= $liked ? 'active' : '' ?>" data-action="like" <?= $disabled ? 'disabled' : '' ?>>
-                <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" class="icon-svg-sm" alt="">Like<span class="card-toolbar-count">(<?= formatCount($likeCount) ?>)</span>
+                <img src="/assets/icons/<?= $liked ? 'like' : 'unlike' ?>.svg" class="icon-svg-sm" alt=""><span class="material-symbols-outlined icon-material" translate="no">thumb_up</span>Like<span class="card-toolbar-count">(<?= formatCount($likeCount) ?>)</span>
             </button>
             <button type="button" class="card-toolbar-btn <?= $disliked ? 'active' : '' ?>" data-action="dislike" <?= $disabled ? 'disabled' : '' ?>>
-                <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" class="icon-svg-sm" alt="">Dislike<span class="card-toolbar-count">(<?= formatCount($dislikeCount) ?>)</span>
+                <img src="/assets/icons/<?= $disliked ? 'dislike' : 'undislike' ?>.svg" class="icon-svg-sm" alt=""><span class="material-symbols-outlined icon-material" translate="no">thumb_down</span>Dislike<span class="card-toolbar-count">(<?= formatCount($dislikeCount) ?>)</span>
             </button>
             <button type="button" class="card-toolbar-btn" data-action="share">
-                <img src="/assets/icons/share.svg" class="icon-svg-sm" alt="">Share
+                <img src="/assets/icons/share.svg" class="icon-svg-sm" alt=""><span class="material-symbols-outlined icon-material" translate="no">share</span>Share
             </button>
             <button type="button" class="card-toolbar-btn" data-action="comment">
-                <img src="/assets/icons/comment.svg" class="icon-svg-sm" alt="">Comments
+                <img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span>Comments
             </button>
             <?php if ($profileUrl !== ''): ?>
             <button type="button" class="card-toolbar-btn" data-action="profile" data-href="<?= e($profileUrl) ?>">
-                <img src="/assets/icons/nav-submit.svg" class="icon-svg-sm" alt="">Writer's profile
+                <img src="/assets/icons/nav-submit.svg" class="icon-svg-sm" alt=""><span class="material-symbols-outlined icon-material" translate="no">person</span>Writer's profile
             </button>
             <?php endif; ?>
         </div>
