@@ -169,7 +169,7 @@ if ($myRole) {
                 <input type="file" name="image" accept="image/*">
             <?php endif; ?>
             <button class="btn btn-comment" type="submit">
-                <img src="/assets/icons/comment.svg" alt="" class="icon-svg-sm btn-icon">
+                <span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span>
                 Comment
             </button>
         </form>
@@ -225,10 +225,10 @@ if ($myRole) {
                                 <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                             </div>
                             <div class="search-result-stats">
-                                <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
-                                <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
-                                <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
-                                <span><img src="/assets/icons/views.svg" class="icon-svg-sm" alt=""><?= formatCount((int)($ga['views'] ?? 0)) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">thumb_up</span><?= formatCount($likeCount) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">thumb_down</span><?= formatCount($dislikeCount) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span><?= formatCount($commentCount) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">visibility</span><?= formatCount((int)($ga['views'] ?? 0)) ?></span>
                             </div>
                         </div>
                     </a>
