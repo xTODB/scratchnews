@@ -2576,7 +2576,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
 
     if ($canReply) {
         $formId = 'reply-form-' . (int)$comment['id'];
-        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><img src="/assets/icons/reply.svg" class="icon-svg-sm" alt=""> Reply</button>';
+        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><span class="material-symbols-outlined icon-material" translate="no">reply</span> Reply</button>';
         $html .= '<form method="post" class="reply-form" id="' . $formId . '">';
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="comment">';
@@ -2591,7 +2591,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="admin_delete">';
         $html .= '<input type="hidden" name="comment_id" value="' . (int)$comment['id'] . '">';
-        $html .= '<button type="submit" class="reply-toggle" title="Delete"><img src="/assets/icons/comment_delete.svg" class="icon-svg-sm" alt=""> Delete</button>';
+        $html .= '<button type="submit" class="reply-toggle" title="Delete"><span class="material-symbols-outlined icon-material" translate="no">delete</span> Delete</button>';
         $html .= '</form>';
     }
 
@@ -2600,7 +2600,7 @@ function renderCommentThread(array $comment, bool $canReply, int $depth = 0, boo
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="report">';
         $html .= '<input type="hidden" name="comment_id" value="' . (int)$comment['id'] . '">';
-        $html .= '<button type="submit" class="reply-toggle" title="Report"><img src="/assets/icons/report.svg" class="icon-svg-sm" alt=""> Report</button>';
+        $html .= '<button type="submit" class="reply-toggle" title="Report"><span class="material-symbols-outlined icon-material" translate="no">flag</span> Report</button>';
         $html .= '</form>';
     }
 
@@ -4728,13 +4728,13 @@ function renderProfileCommentThread(array $comment, bool $canReply, int $profile
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="admin_delete">';
         $html .= '<input type="hidden" name="comment_id" value="' . (int)$comment['id'] . '">';
-        $html .= '<button type="submit" class="reply-toggle" title="Delete"><img src="/assets/icons/comment_delete.svg" class="icon-svg-sm" alt=""> Delete</button>';
+        $html .= '<button type="submit" class="reply-toggle" title="Delete"><span class="material-symbols-outlined icon-material" translate="no">delete</span> Delete</button>';
         $html .= '</form>';
     }
 
     if ($canReply) {
         $formId = 'pc-reply-form-' . (int)$comment['id'];
-        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><img src="/assets/icons/reply.svg" class="icon-svg-sm" alt=""> Reply</button>';
+        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><span class="material-symbols-outlined icon-material" translate="no">reply</span> Reply</button>';
         $html .= '<form method="post" action="/profile-comment" class="reply-form" id="' . $formId . '">';
         $html .= csrfField();
         $html .= '<input type="hidden" name="profile_user_id" value="' . (int)$profileUserId . '">';
@@ -6216,7 +6216,7 @@ function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?stri
 
     if ($canReply) {
         $formId = 'group-reply-form-' . (int)$comment['id'];
-        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><img src="/assets/icons/reply.svg" class="icon-svg-sm" alt=""> Reply</button>';
+        $html .= '<button type="button" class="reply-toggle" title="Reply" onclick="document.getElementById(\'' . $formId . '\').classList.toggle(\'open\')"><span class="material-symbols-outlined icon-material" translate="no">reply</span> Reply</button>';
         $html .= '<form method="post" action="/group-action" class="reply-form" id="' . $formId . '">';
         $html .= csrfField();
         $html .= '<input type="hidden" name="action" value="post_comment">';
@@ -6233,7 +6233,7 @@ function renderGroupCommentThread(array $comment, int $groupId, int $myId, ?stri
         $html .= '<input type="hidden" name="action" value="delete_comment">';
         $html .= '<input type="hidden" name="group_id" value="' . $groupId . '">';
         $html .= '<input type="hidden" name="comment_id" value="' . (int)$comment['id'] . '">';
-        $html .= '<button type="submit" class="reply-toggle" title="Delete"><img src="/assets/icons/comment_delete.svg" class="icon-svg-sm" alt=""> Delete</button>';
+        $html .= '<button type="submit" class="reply-toggle" title="Delete"><span class="material-symbols-outlined icon-material" translate="no">delete</span> Delete</button>';
         $html .= '</form>';
     }
 
