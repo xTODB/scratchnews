@@ -1229,8 +1229,12 @@ body.dark .extra-card:hover .extra-card-title { color: var(--brand-bright); }
 /* v0.27.2/v0.27.3: Material Symbols is the permanent icon set for the
    card-toolbar/three-dot-menu and the article engage-bar (was toggle-compared
    against the old hand-drawn SVGs, TODB decided to keep Material - toggle
-   removed v88). Color comes for free from currentColor (matches whatever
-   .card-toolbar-btn / .active / .icon-btn.active already set). */
+   removed v88). card-toolbar/three-dot-menu color comes for free from
+   currentColor (matches whatever .card-toolbar-btn / .active already set).
+   The engage-bar sits on .article-header's dark background where .icon-btn
+   text is forced to #eee for legibility - so its icons get an explicit color
+   below instead, matching the three-dot-menu's own brand/brand-bright scheme
+   rather than inheriting that white (v89, TODB's ask). */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
     font-weight: normal; font-style: normal;
@@ -1244,8 +1248,8 @@ body.dark .extra-card:hover .extra-card-title { color: var(--brand-bright); }
 .explore-card-medium .card-toolbar .icon-material { font-size: 14px; }
 .three-dot-menu .card-toolbar-btn .icon-material { font-size: 16px; margin-right: 3px; }
 .card-toolbar-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
-.engage-bar .icon-material { font-size: 22px; }
-.icon-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.engage-bar .icon-material { font-size: 22px; color: var(--brand); }
+.icon-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; color: var(--brand-bright); }
 
 /* hero-side-card / explore-card-medium toolbars are shorter (image is smaller) */
 .hero-side-card .card-toolbar,
