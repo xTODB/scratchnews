@@ -157,10 +157,10 @@ body.dark .search-type-card.active { background: rgba(255,170,51,0.22); }
                             <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                         </div>
                         <div class="search-result-stats">
-                            <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
-                            <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
-                            <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
-                            <span><img src="/assets/icons/views.svg" class="icon-svg-sm" alt=""><?= formatCount((int)($a['views'] ?? 0)) ?></span>
+                            <span><span class="material-symbols-outlined icon-material" translate="no">thumb_up</span><?= formatCount($likeCount) ?></span>
+                            <span><span class="material-symbols-outlined icon-material" translate="no">thumb_down</span><?= formatCount($dislikeCount) ?></span>
+                            <span><span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span><?= formatCount($commentCount) ?></span>
+                            <span><span class="material-symbols-outlined icon-material" translate="no">visibility</span><?= formatCount((int)($a['views'] ?? 0)) ?></span>
                             <?= renderThreeDotMenu($a, $likeCount, hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), $dislikeCount, hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0)) ?>
                         </div>
                     </div>
