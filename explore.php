@@ -36,7 +36,7 @@ function exploreTabLink(string $cat, string $sort, string $author, string $from,
 </head>
 <body <?php include __DIR__ . '/includes/theme-body.php'; ?>>
 <script>if(document.body.hasAttribute('data-theme-auto')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script>
-<script>if(localStorage.getItem('sn_icon_style')==='material'){document.body.classList.add('icons-material');}</script>
+
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php include __DIR__ . '/includes/banner-poll-slot.php'; ?>
 <?php include __DIR__ . '/includes/new-since-badge.php'; ?>
