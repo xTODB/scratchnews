@@ -12,24 +12,19 @@
 ?>
 <div class="header-icon-nav">
     <a href="/" class="header-icon-link <?= $__navPage === 'index.php' ? 'active' : '' ?>" title="Home">
-        <span class="header-icon-mask icon-home"></span>
         <span class="material-symbols-outlined icon-material" translate="no">home</span>
     </a>
     <a href="/explore" class="header-icon-link <?= $__navPage === 'explore.php' ? 'active' : '' ?>" title="Explore">
-        <span class="header-icon-mask icon-explore"></span>
         <span class="material-symbols-outlined icon-material" translate="no">explore</span>
     </a>
     <a href="/groups" class="header-icon-link <?= in_array($__navPage, ['groups.php', 'group.php', 'create-group.php', 'profiles.php'], true) ? 'active' : '' ?>" title="Groups">
-        <span class="header-icon-mask icon-groups"></span>
         <span class="material-symbols-outlined icon-material" translate="no">group</span>
     </a>
     <?php if (!empty($_SESSION['reader_username'])): ?>
     <a href="/submit" class="header-icon-link <?= $__navPage === 'submit.php' ? 'active' : '' ?>" title="Submit Article">
-        <span class="header-icon-mask icon-submit"></span>
         <span class="material-symbols-outlined icon-material" translate="no">edit_square</span>
     </a>
     <a href="/messages" class="header-icon-link header-icon-messages <?= $__navPage === 'messages.php' ? 'active' : '' ?>" title="Messages">
-        <span class="header-icon-mask icon-message"></span>
         <span class="material-symbols-outlined icon-material" translate="no">mail</span>
         <?php if ($__unreadCount > 0): ?>
             <span class="nav-messages-badge"><?= $__unreadCount > 99 ? '99+' : $__unreadCount ?></span>
@@ -37,14 +32,12 @@
     </a>
     <?php endif; ?>
     <a href="/search" class="header-icon-link <?= $__navPage === 'search.php' ? 'active' : '' ?>" title="Search">
-        <span class="header-icon-mask icon-search"></span>
         <span class="material-symbols-outlined icon-material" translate="no">search</span>
     </a>
 </div>
 <nav>
     <div class="app-menu-nav">
         <button class="app-menu-toggle" onclick="document.getElementById('appMenu').classList.toggle('open')" title="Menu">
-            <span class="header-icon-mask icon-appmenu"></span>
             <span class="material-symbols-outlined icon-material" translate="no">apps</span>
         </button>
         <div id="appMenu" class="app-menu-dropdown">
@@ -90,15 +83,15 @@
                     </div>
                 </div>
                 <div class="user-nav-menu-divider"></div>
-                <a href="/my-articles"><span class="header-icon-mask icon-articles"></span><span class="material-symbols-outlined icon-material" translate="no">article</span> My Articles</a>
+                <a href="/my-articles"><span class="material-symbols-outlined icon-material" translate="no">article</span> My Articles</a>
                 <?php if (!empty($_SESSION['is_admin'])): ?>
-                <a href="/admin/"><span class="header-icon-mask icon-moderator"></span><span class="material-symbols-outlined icon-material" translate="no">admin_panel_settings</span> Admin</a>
+                <a href="/admin/"><span class="material-symbols-outlined icon-material" translate="no">admin_panel_settings</span> Admin</a>
                 <?php elseif (!empty($_SESSION['is_moderator'])): ?>
-                <a href="/moderator"><span class="header-icon-mask icon-moderator"></span><span class="material-symbols-outlined icon-material" translate="no">admin_panel_settings</span> Moderator</a>
+                <a href="/moderator"><span class="material-symbols-outlined icon-material" translate="no">admin_panel_settings</span> Moderator</a>
                 <?php endif; ?>
-                <a href="/settings"><span class="header-icon-mask icon-settings"></span><span class="material-symbols-outlined icon-material" translate="no">settings</span> Settings</a>
-                <a href="https://ko-fi.com/scratchnews"><span class="header-icon-mask icon-donate"></span><span class="material-symbols-outlined icon-material" translate="no">favorite</span> Donate</a>
-                <a href="/logout"><span class="header-icon-mask icon-logout"></span><span class="material-symbols-outlined icon-material" translate="no">logout</span> Log Out</a>
+                <a href="/settings"><span class="material-symbols-outlined icon-material" translate="no">settings</span> Settings</a>
+                <a href="https://ko-fi.com/scratchnews"><span class="material-symbols-outlined icon-material" translate="no">favorite</span> Donate</a>
+                <a href="/logout"><span class="material-symbols-outlined icon-material" translate="no">logout</span> Log Out</a>
             </div>
         </div>
     <?php else: ?>
@@ -133,34 +126,6 @@
     border-radius: 999px; min-width: 20px; text-align: center;
 }
 
-/* --- Outline icon system: single SVG shape recolored via CSS mask, so the
-   same file can sit at "ink" color normally and flip to brand orange on
-   hover/active without needing separate colored SVG variants. --- */
-.header-icon-mask {
-    display: inline-block;
-    width: 30px; height: 30px;
-    background-color: #14181c;
-    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-    -webkit-mask-position: center; mask-position: center;
-    -webkit-mask-size: contain; mask-size: contain;
-    transition: background-color 0.15s ease;
-    background-color: #ffb957
-}
-.header-icon-link:hover .header-icon-mask,
-.header-icon-link.active .header-icon-mask { background-color: var(--brand-bright, #ffaa33); }
-.icon-home { -webkit-mask-image: url(/assets/icons/nav-home.svg); mask-image: url(/assets/icons/nav-home.svg); }
-.icon-explore { -webkit-mask-image: url(/assets/icons/nav-explore.svg); mask-image: url(/assets/icons/nav-explore.svg); }
-.icon-groups { -webkit-mask-image: url(/assets/icons/nav-groups.svg); mask-image: url(/assets/icons/nav-groups.svg); }
-.icon-submit { -webkit-mask-image: url(/assets/icons/nav-submit.svg); mask-image: url(/assets/icons/nav-submit.svg); }
-.icon-message { -webkit-mask-image: url(/assets/icons/nav-message.svg); mask-image: url(/assets/icons/nav-message.svg); }
-.icon-search { -webkit-mask-image: url(/assets/icons/nav-search.svg); mask-image: url(/assets/icons/nav-search.svg); }
-.icon-articles { -webkit-mask-image: url(/assets/icons/nav-articles.svg); mask-image: url(/assets/icons/nav-articles.svg); }
-.icon-settings { -webkit-mask-image: url(/assets/icons/nav-settings.svg); mask-image: url(/assets/icons/nav-settings.svg); }
-.icon-moderator { -webkit-mask-image: url(/assets/icons/nav-moderator.svg); mask-image: url(/assets/icons/nav-moderator.svg); }
-.icon-donate { -webkit-mask-image: url(/assets/icons/nav-donate.svg); mask-image: url(/assets/icons/nav-donate.svg); }
-.icon-logout { -webkit-mask-image: url(/assets/icons/nav-logout.svg); mask-image: url(/assets/icons/nav-logout.svg); }
-.icon-appmenu { -webkit-mask-image: url(/assets/icons/nav-menu.svg); mask-image: url(/assets/icons/nav-menu.svg); }
-
 /* --- App Menu (3x3 grid dropdown) --- */
 .app-menu-nav { position: relative; margin-right: 0.6rem; }
 .app-menu-toggle {
@@ -172,7 +137,6 @@
     transition: background 0.15s ease;
 }
 .app-menu-toggle:hover { background: rgba(0,0,0,0.26); }
-.app-menu-toggle .header-icon-mask { width: 20px; height: 20px; }
 .app-menu-dropdown {
     display: none;
     position: absolute; top: calc(100% + 10px); right: 0;
@@ -220,16 +184,6 @@ body.dark .app-menu-title { border-bottom-color: #333; }
 .app-menu-divider { height: 1px; background: #eee; margin: 0.4rem 0.9rem; }
 body.dark .app-menu-divider { background: #333; }
 
-/* Dropdown-menu icon rows: 20px, sit on currentColor so they auto-match the
-   link's text color in both light and dark theme without a separate override. */
-.user-nav-menu a .header-icon-mask {
-    width: 20px; height: 20px;
-    background-color: currentColor;
-    vertical-align: -5px;
-    margin-right: 0.5rem;
-}
-.user-nav-menu a:hover .header-icon-mask { background-color: var(--brand-bright, #ffaa33); }
-
 .user-nav-menu-profile {
     display: flex; align-items: center; gap: 0.7rem;
     padding: 0.8rem 1rem;
@@ -259,15 +213,14 @@ body.dark .user-nav-menu-divider { background: #333; }
         z-index: 500;
     }
     .header-icon-link { width: 42px; height: 42px; border-radius: 8px; }
-    .header-icon-mask { width: 26px; height: 26px; }
     body { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
 }
 
-/* v0.27.3: Material Symbols toggle, extended to the site nav bar. header.php
-   is included on every page, so the font link + the icons-material toggle
-   rules for the nav live here rather than being repeated per-page. Base
-   .material-symbols-outlined class itself is defined once in style.css. */
-.icon-material { display: none; }
+/* v0.27.3: Material Symbols is the permanent nav icon set (was toggle-compared
+   in v0.27.2/v0.27.3, TODB decided to keep it - toggle removed v88). header.php
+   is included on every page, so the font link + these rules live here rather
+   than being repeated per-page. Base .material-symbols-outlined class itself
+   is defined once in style.css. */
 .header-icon-link .icon-material,
 .app-menu-toggle .icon-material { font-size: 24px; color: #ffb957; }
 .header-icon-link:hover .icon-material,
@@ -277,11 +230,8 @@ body.dark .user-nav-menu-divider { background: #333; }
 @media (max-width: 700px) {
     .header-icon-link .icon-material { font-size: 22px; }
 }
-body.icons-material .header-icon-mask { display: none; }
-body.icons-material .icon-material { display: inline-block; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-<script>if(localStorage.getItem('sn_icon_style')==='material'){document.body.classList.add('icons-material');}</script>
 <script>
 document.addEventListener('click', function (e) {
     var menu = document.getElementById('appMenu');
