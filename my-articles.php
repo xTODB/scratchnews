@@ -119,9 +119,9 @@ if ($view === 'drafts') {
                                 <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                             </div>
                             <div class="search-result-stats">
-                                <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= $likeCount ?></span>
-                                <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= $dislikeCount ?></span>
-                                <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= $commentCount ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">thumb_up</span><?= $likeCount ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">thumb_down</span><?= $dislikeCount ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span><?= $commentCount ?></span>
                             </div>
                         </div>
                     </a>
