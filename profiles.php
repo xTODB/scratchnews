@@ -72,7 +72,7 @@ $newSinceLabel = $newSinceCount === 1 ? 'new profile' : 'new profiles';
                         <input type="hidden" name="profile_user_id" value="<?= (int)$u['id'] ?>">
                         <input type="text" name="content" maxlength="1000" placeholder="Comment...">
                         <button type="submit" title="Post comment">
-                            <img src="/assets/icons/comment.svg" alt="" class="icon-svg-sm">
+                            <span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span>
                         </button>
                     </form>
                     <?php endif; ?>
