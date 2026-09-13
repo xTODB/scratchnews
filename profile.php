@@ -210,9 +210,9 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
                                 <?php if ($desc !== ''): ?><div class="search-result-desc"><?= e($desc) ?></div><?php endif; ?>
                             </div>
                             <div class="search-result-stats">
-                                <span><img src="/assets/icons/unlike.svg" class="icon-svg-sm" alt=""><?= formatCount($likeCount) ?></span>
-                                <span><img src="/assets/icons/undislike.svg" class="icon-svg-sm" alt=""><?= formatCount($dislikeCount) ?></span>
-                                <span><img src="/assets/icons/comment.svg" class="icon-svg-sm" alt=""><?= formatCount($commentCount) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">thumb_up</span><?= formatCount($likeCount) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">thumb_down</span><?= formatCount($dislikeCount) ?></span>
+                                <span><span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span><?= formatCount($commentCount) ?></span>
                                 <?= renderThreeDotMenu($a, $likeCount, hasUserLiked($a['id'], $_SESSION['reader_id'] ?? 0), $dislikeCount, hasUserDisliked($a['id'], $_SESSION['reader_id'] ?? 0)) ?>
                             </div>
                         </div>
@@ -249,7 +249,7 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
             <?= csrfField() ?>
             <input type="hidden" name="profile_user_id" value="<?= (int)$user['id'] ?>">
             <textarea name="content" rows="2" maxlength="1000" placeholder="Write something..." required></textarea>
-            <button type="submit" class="btn btn-comment"><img src="/assets/icons/comment.svg" alt="" class="icon-svg-sm btn-icon"> Comment</button>
+            <button type="submit" class="btn btn-comment"><span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span> Comment</button>
         </form>
         <?php endif; ?>
         <?php if (empty($profileComments)): ?>
