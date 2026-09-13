@@ -327,7 +327,7 @@ body.dark .alert.info { background: #1f2f4a; color: #8ab4f8; }
             <input type="hidden" name="action" value="comment">
             <textarea name="content" placeholder="Add a comment..." required></textarea>
             <button class="btn btn-comment" type="submit">
-                <img src="/assets/icons/comment.svg" alt="" class="icon-svg-sm btn-icon">
+                <span class="material-symbols-outlined icon-material" translate="no">chat_bubble</span>
                 Comment
             </button>
         </form>
