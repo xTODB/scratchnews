@@ -379,7 +379,6 @@ body.dark .share-option:hover { background: #26292e; }
 .reply-toggle { margin-right: 0.6rem; }
 .report-form { margin-left: 0.6rem; }
 .btn-comment { display: inline-flex; align-items: center; gap: 0.4rem; width: auto; padding: 0 1.1rem; }
-.btn-icon { width: 17px; height: 17px; filter: brightness(0) invert(1); }
 .hero {
     display: flex;
     gap: 1.2rem;
@@ -683,7 +682,6 @@ body.dark .share-option:hover { background: #26292e; }
     background: rgba(255,255,255,0.15);
     cursor: pointer;
 }
-.profile-card-comment-form .icon-svg-sm { filter: brightness(0) invert(1); margin: 0; }
 body.dark .profile-card { background: #1e2125; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
 body.dark .profile-card-username { color: #f0f0f0; }
 
@@ -1250,6 +1248,23 @@ body.dark .extra-card:hover .extra-card-title { color: var(--brand-bright); }
 .card-toolbar-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
 .engage-bar .icon-material { font-size: 22px; color: var(--brand); }
 .icon-btn.active .icon-material { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; color: var(--brand-bright); }
+
+/* v89: extending Material Symbols to every other place these same icons show
+   up as plain hand-drawn SVGs - the static like/dislike/comment/views counts
+   on explore/group/my-articles/profile/search result rows, the Comment
+   submit-button icon, and the comment-thread reply/delete/report action
+   icons. Color comes for free from currentColor everywhere here too:
+   .search-result-stats already sets color:#555/#ccc(dark) on the muted count
+   text, so these get an explicit var(--brand) instead to read as icons rather
+   than plain gray; .reply-toggle already sets color:var(--brand); .btn/
+   .btn-comment already sets color:#fff (button sits on a colored background);
+   .profile-card-comment-form button sits on a dark profile-card and inherits
+   white the same way its neighboring input placeholder text does. */
+.search-result-stats .icon-material,
+.reply-toggle .icon-material { font-size: 15px; vertical-align: -2px; margin-right: 3px; }
+.search-result-stats .icon-material { color: var(--brand); }
+.btn-comment .icon-material { font-size: 16px; }
+.profile-card-comment-form .icon-material { font-size: 16px; color: #fff; }
 
 /* hero-side-card / explore-card-medium toolbars are shorter (image is smaller) */
 .hero-side-card .card-toolbar,
