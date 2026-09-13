@@ -29,23 +29,6 @@
             </div>
         </div>
     </div>
-    <?php if (!empty($_SESSION['is_admin'])): ?>
-    <!-- v0.27.2: admin-only debug switch for comparing SVG vs Material Symbols
-         card-toolbar icons - remove once a final call is made. -->
-    <button type="button" id="iconStyleToggle" class="icon-style-toggle-btn">Icons: SVG</button>
-    <script>
-    (function() {
-        var btn = document.getElementById('iconStyleToggle');
-        function label() { return document.body.classList.contains('icons-material') ? 'Icons: Material' : 'Icons: SVG'; }
-        btn.textContent = label();
-        btn.addEventListener('click', function() {
-            var isMaterial = document.body.classList.toggle('icons-material');
-            localStorage.setItem('sn_icon_style', isMaterial ? 'material' : 'svg');
-            btn.textContent = label();
-        });
-    })();
-    </script>
-    <?php endif; ?>
     <div class="footer-bottom">
         <div class="footer-copyright">&copy; <?= e(SITE_NAME) ?> v<?= e(SITE_VERSION) ?></div>
         <div class="footer-language">
@@ -255,8 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
             var count = parseInt((countEl.textContent || '0').replace(/,/g, ''), 10) || 0;
             btn.classList.toggle('active');
             countEl.textContent = (count + (wasActive ? -1 : 1)).toLocaleString();
-            var img = btn.querySelector('img');
-            if (img) img.src = '/assets/icons/' + (action === 'like' ? (wasActive ? 'unlike' : 'like') : (wasActive ? 'undislike' : 'dislike')) + '.svg';
 
             // Liking clears any existing dislike server-side and vice versa - mirror that here.
             if (!wasActive) {
@@ -267,8 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     var otherCountEl = otherBtn.querySelector('.card-toolbar-count');
                     var otherCount = parseInt((otherCountEl.textContent || '0').replace(/,/g, ''), 10) || 0;
                     otherCountEl.textContent = Math.max(0, otherCount - 1).toLocaleString();
-                    var otherImg = otherBtn.querySelector('img');
-                    if (otherImg) otherImg.src = '/assets/icons/' + (otherAction === 'like' ? 'unlike' : 'undislike') + '.svg';
                 }
             }
         }
