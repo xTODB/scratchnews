@@ -10,10 +10,9 @@ if (isset($_SERVER['HTTP_HOST']) && stripos($_SERVER['HTTP_HOST'], 'freedev.app'
 
 // === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
 date_default_timezone_set('Etc/GMT-3'); // GMT+3
-define('MAINTENANCE_MODE', false);
+define('MAINTENANCE_MODE', true);
 define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
-define('MAINTENANCE_MESSAGE', 'guess what we\'re maintenaincing our siting');
-
+define('MAINTENANCE_MESSAGE', 'There was a social attack on the site and multiple people accused me (the developer) of some stuff. Don\'t worry, when this situation fades ScratchNews will be back in full swing!');
 $maintenance_active = MAINTENANCE_MODE && (MAINTENANCE_UNTIL === null || time() < strtotime(MAINTENANCE_UNTIL));
 
 // === WRITERS' CONTEST MODE (git-tracked, no File Manager needed) ===
