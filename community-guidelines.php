@@ -28,6 +28,8 @@ startSession();
     <h3><b>2.2: No self-promotion</b></h3>
     <p>Promote <i>yourself,</i> not what you made. If everyone were to self-promote, this website might as well be the Show And Tell forum 2.0.</p><br>
     <p><b>And that's all!</b> Have fun on ScratchNews!</p>
+    <h3><b>3 - Users and how ScratchNews is used</b></h3>
+    <h3><b>3.1 - No impersonation or pretending to be someone you're not.</b></h3>
 </main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
