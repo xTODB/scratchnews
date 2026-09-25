@@ -14,8 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requestId = (int)($_POST['request_id'] ?? 0);
     $reviewerId = (int)($_SESSION['reader_id'] ?? 0);
     if ($action === 'approve') {
-        approveGroupRequest($requestId, $reviewerId);
-        $message = 'Request approved.';
+        $result = approveGroupRequest($requestId, $reviewerId);
+        $message = $result['ok'] ? 'Request approved.' : $result['reason'];
     } elseif ($action === 'reject') {
         rejectGroupRequest($requestId, $reviewerId);
         $message = 'Request rejected.';
