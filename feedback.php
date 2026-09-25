@@ -8,13 +8,17 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $message = trim($_POST['message'] ?? '');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     if ($message === '') {
         $error = 'Please enter some feedback before submitting.';
+    } elseif (isFormRateLimited('feedback', $ip)) {
+        $error = "You're submitting too quickly - please wait a bit before sending more feedback.";
     } else {
         try {
             $imageUrl = !empty($_FILES['image']['tmp_name']) ? saveUploadedImage($_FILES['image'], 'feedback') : null;
             $userId = !empty($_SESSION['reader_id']) ? (int)$_SESSION['reader_id'] : null;
             submitFeedback($userId, $message, $imageUrl);
+            recordFormSubmission('feedback', $ip);
             $success = true;
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
