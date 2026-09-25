@@ -1124,6 +1124,39 @@ function removeSuspiciousIp(int $id): void {
     $stmt->close();
 }
 
+// ---- Public form rate limiting (contact.php / feedback.php - added after the
+// Sep 2026 spam floods, where one anonymous IP posted ~50x in a row on each
+// form with nothing to stop it). Per-IP, per-form, sliding window - independent
+// of the suspicious_ips flagging above, which is for the phone-verification
+// fallback, not form spam. $form is a short fixed tag ('contact' / 'feedback'),
+// not user input.
+const FORM_RATE_LIMIT_MAX = 5;         // max submissions per window
+const FORM_RATE_LIMIT_WINDOW_MIN = 60; // window length, minutes
+
+function isFormRateLimited(string $form, string $ip): bool {
+    $db = getDB();
+    $window = FORM_RATE_LIMIT_WINDOW_MIN;
+    $stmt = $db->prepare("SELECT COUNT(*) AS cnt FROM form_submissions WHERE form = ? AND ip_address = ? AND submitted_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)");
+    $stmt->bind_param('ssi', $form, $ip, $window);
+    $stmt->execute();
+    $cnt = (int)($stmt->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $stmt->close();
+    return $cnt >= FORM_RATE_LIMIT_MAX;
+}
+
+// Call only after a submission has actually been accepted/recorded (i.e. after
+// submitContactMessage()/submitFeedback() succeed) - not on validation failures,
+// so a genuine typo-and-retry doesn't eat into the same IP's budget.
+function recordFormSubmission(string $form, string $ip): void {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO form_submissions (form, ip_address) VALUES (?, ?)");
+    $stmt->bind_param('ss', $form, $ip);
+    $stmt->execute();
+    $stmt->close();
+    // Table only needs to hold one window's worth of rows - keep it trimmed.
+    $db->query("DELETE FROM form_submissions WHERE submitted_at < DATE_SUB(NOW(), INTERVAL " . FORM_RATE_LIMIT_WINDOW_MIN . " MINUTE)");
+}
+
 // ---- Country calling code detection (prefills the phone verification field) ----
 const COUNTRY_CALLING_CODES = [
     'US'=>'1','CA'=>'1','GB'=>'44','IE'=>'353','FR'=>'33','DE'=>'49','ES'=>'34','PT'=>'351','IT'=>'39',
@@ -5678,9 +5711,17 @@ function getGroupRequestById(int $id): ?array {
     return $row ?: null;
 }
 
-function approveGroupRequest(int $requestId, int $reviewerId): bool {
+// Returns ['ok' => bool, 'reason' => string] - 'reason' is only set on failure,
+// so admin/group-requests.php can tell the reviewer why nothing happened instead
+// of always saying "Request approved." A mod/dev can't approve their own
+// create/edit/delete request - closes the gap where a mod could request their
+// own group's deletion and then approve it themselves with no second reviewer.
+function approveGroupRequest(int $requestId, int $reviewerId): array {
     $req = getGroupRequestById($requestId);
-    if (!$req || $req['status'] !== 'pending') return false;
+    if (!$req || $req['status'] !== 'pending') return ['ok' => false, 'reason' => 'Request not found or already reviewed.'];
+    if ((int)$req['requested_by'] === $reviewerId) {
+        return ['ok' => false, 'reason' => "You can't approve your own request - ask another moderator or the dev to review it."];
+    }
     $db = getDB();
 
     if ($req['request_type'] === 'create') {
@@ -5714,7 +5755,7 @@ function approveGroupRequest(int $requestId, int $reviewerId): bool {
     $stmt->bind_param('ii', $reviewerId, $requestId);
     $stmt->execute();
     $stmt->close();
-    return true;
+    return ['ok' => true];
 }
 
 function rejectGroupRequest(int $requestId, int $reviewerId): bool {
