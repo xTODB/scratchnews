@@ -8,11 +8,15 @@ $threadUrl = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $message = trim($_POST['message'] ?? '');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     if ($message === '') {
         $error = 'Please enter a message before submitting.';
+    } elseif (isFormRateLimited('contact', $ip)) {
+        $error = "You're submitting too quickly - please wait a bit before sending another message.";
     } else {
         $userId = !empty($_SESSION['reader_id']) ? (int)$_SESSION['reader_id'] : null;
         $result = submitContactMessage($userId, $message);
+        recordFormSubmission('contact', $ip);
         $threadUrl = $userId
             ? '/contact-thread.php?id=' . $result['id']
             : '/contact-thread.php?id=' . $result['id'] . '&token=' . $result['token'];
