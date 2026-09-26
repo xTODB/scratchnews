@@ -6858,24 +6858,26 @@ function deleteForumSubforum(int $id): void {
     $stmt->close();
 }
 
-// ---- Follow Forum (v0.28) - follow a subforum (not individual topics) to
-// get notified whenever anyone posts a new topic or reply in it. ----
+// ---- Follow Topic (v0.28, rebuilt) - follow an individual topic to get
+// notified whenever anyone replies to it. Replaces the earlier subforum-level
+// Follow Forum (forum_subforum_follows), which followed an entire board
+// instead of one thread and has been dropped. ----
 
-function isFollowingSubforum(int $userId, int $subforumId): bool {
+function isFollowingTopic(int $userId, int $topicId): bool {
     $db = getDB();
-    $stmt = $db->prepare("SELECT id FROM forum_subforum_follows WHERE user_id = ? AND subforum_id = ?");
-    $stmt->bind_param('ii', $userId, $subforumId);
+    $stmt = $db->prepare("SELECT id FROM forum_topic_follows WHERE user_id = ? AND topic_id = ?");
+    $stmt->bind_param('ii', $userId, $topicId);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     return $row !== null;
 }
 
-function followSubforum(int $userId, int $subforumId): void {
+function followTopic(int $userId, int $topicId): void {
     $db = getDB();
     try {
-        $stmt = $db->prepare("INSERT INTO forum_subforum_follows (user_id, subforum_id) VALUES (?, ?)");
-        $stmt->bind_param('ii', $userId, $subforumId);
+        $stmt = $db->prepare("INSERT INTO forum_topic_follows (user_id, topic_id) VALUES (?, ?)");
+        $stmt->bind_param('ii', $userId, $topicId);
         $stmt->execute();
         $stmt->close();
     } catch (mysqli_sql_exception $e) {
@@ -6883,21 +6885,21 @@ function followSubforum(int $userId, int $subforumId): void {
     }
 }
 
-function unfollowSubforum(int $userId, int $subforumId): void {
+function unfollowTopic(int $userId, int $topicId): void {
     $db = getDB();
-    $stmt = $db->prepare("DELETE FROM forum_subforum_follows WHERE user_id = ? AND subforum_id = ?");
-    $stmt->bind_param('ii', $userId, $subforumId);
+    $stmt = $db->prepare("DELETE FROM forum_topic_follows WHERE user_id = ? AND topic_id = ?");
+    $stmt->bind_param('ii', $userId, $topicId);
     $stmt->execute();
     $stmt->close();
 }
 
-// Notifies everyone following $subforumId except $actorId (the poster
-// themselves). Used for both a new topic and a new reply - same
-// notification type, distinguished by $message/$link.
-function notifySubforumFollowers(int $subforumId, ?int $actorId, ?string $link, ?string $message): void {
+// Notifies everyone following $topicId except $actorId (the poster
+// themselves). Only called on a new reply - a brand-new topic has no
+// followers yet by definition.
+function notifyTopicFollowers(int $topicId, ?int $actorId, ?string $link, ?string $message): void {
     $db = getDB();
-    $stmt = $db->prepare("SELECT user_id FROM forum_subforum_follows WHERE subforum_id = ?");
-    $stmt->bind_param('i', $subforumId);
+    $stmt = $db->prepare("SELECT user_id FROM forum_topic_follows WHERE topic_id = ?");
+    $stmt->bind_param('i', $topicId);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();

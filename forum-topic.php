@@ -25,6 +25,7 @@ $totalPages = max(1, (int)ceil($result['total'] / $result['perPage']));
 $loggedIn = !empty($_SESSION['reader_username']);
 $myId = (int)($_SESSION['reader_id'] ?? 0);
 $canModerate = forumCanModerate();
+$isFollowing = $myId ? isFollowingTopic($myId, $topicId) : false;
 $error = $_GET['error'] ?? '';
 $editPostId = (int)($_GET['edit'] ?? 0);
 
@@ -78,11 +79,21 @@ $allSubforums = $canModerate ? getAllForumSubforums() : [];
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="home-main">
     <div class="forum-breadcrumb"><a href="/forums/<?= e($topic['subforum_slug']) ?>">&larr; <?= e($topic['subforum_name']) ?></a></div>
-    <h2>
-        <?php if ($topic['is_sticky']): ?><span class="forum-topic-tag sticky">Sticky</span><?php endif; ?>
-        <?php if ($topic['is_locked']): ?><span class="forum-topic-tag locked">Locked</span><?php endif; ?>
-        <?= e($topic['title']) ?>
-    </h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <h2 style="margin:0;">
+            <?php if ($topic['is_sticky']): ?><span class="forum-topic-tag sticky">Sticky</span><?php endif; ?>
+            <?php if ($topic['is_locked']): ?><span class="forum-topic-tag locked">Locked</span><?php endif; ?>
+            <?= e($topic['title']) ?>
+        </h2>
+        <?php if ($loggedIn): ?>
+            <form method="post" action="/forum-action" style="display:inline;">
+                <?= csrfField() ?>
+                <input type="hidden" name="action" value="toggle_follow">
+                <input type="hidden" name="topic_id" value="<?= (int)$topic['id'] ?>">
+                <button type="submit" class="btn inline secondary"><?= $isFollowing ? 'Unfollow Topic' : 'Follow Topic' ?></button>
+            </form>
+        <?php endif; ?>
+    </div>
 
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
 

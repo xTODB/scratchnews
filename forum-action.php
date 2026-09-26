@@ -28,7 +28,6 @@ if ($action === 'new_topic') {
         forumRedirect('/forums/' . $subforum['slug'] . '/new?error=' . urlencode('Title and message are both required.'));
     }
     $topicId = createForumTopic($subforumId, $myId, $title, $content);
-    notifySubforumFollowers($subforumId, $myId, '/forums/' . $subforum['slug'] . '/' . $topicId, 'New topic: ' . $title);
     forumRedirect('/forums/' . $subforum['slug'] . '/' . $topicId);
 }
 
@@ -45,7 +44,7 @@ if ($action === 'reply') {
         forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topicId . '?error=' . urlencode('Reply cannot be empty.'));
     }
     $postId = addForumPost($topicId, $myId, $content);
-    notifySubforumFollowers((int)$topic['subforum_id'], $myId, '/forums/' . $topic['subforum_slug'] . '/' . $topicId . '#post-' . $postId, 'New reply in: ' . $topic['title']);
+    notifyTopicFollowers($topicId, $myId, '/forums/' . $topic['subforum_slug'] . '/' . $topicId . '#post-' . $postId, 'New reply in: ' . $topic['title']);
     // Land on the last page, where the new reply now lives.
     $result = getForumPosts($topicId, 1, 20);
     $lastPage = max(1, (int)ceil($result['total'] / 20));
@@ -53,15 +52,16 @@ if ($action === 'reply') {
 }
 
 if ($action === 'toggle_follow') {
-    $subforumId = (int)($_POST['subforum_id'] ?? 0);
-    $subforum = getSubforumById($subforumId);
-    if (!$subforum || !canViewSubforum($subforum)) forumRedirect('/forums');
-    if (isFollowingSubforum($myId, $subforumId)) {
-        unfollowSubforum($myId, $subforumId);
+    $topicId = (int)($_POST['topic_id'] ?? 0);
+    $topic = getForumTopicById($topicId);
+    if (!$topic) forumRedirect('/forums');
+    if (!empty($topic['subforum_mod_only']) && !$canModerate) forumRedirect('/forums');
+    if (isFollowingTopic($myId, $topicId)) {
+        unfollowTopic($myId, $topicId);
     } else {
-        followSubforum($myId, $subforumId);
+        followTopic($myId, $topicId);
     }
-    forumRedirect('/forums/' . $subforum['slug']);
+    forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topicId);
 }
 
 if ($action === 'edit_post') {
