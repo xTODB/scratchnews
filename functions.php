@@ -19,7 +19,7 @@ $maintenance_active = MAINTENANCE_MODE && (MAINTENANCE_UNTIL === null || time() 
 // While true, the homepage welcome banner is replaced by the contest banner for
 // EVERYONE (logged in or not) - see includes/welcome-banner.php. Flip back to
 // false whenever the contest round ends.
-define('CONTEST_MODE', true);
+define('CONTEST_MODE', false);
 
 if ($maintenance_active) {
     http_response_code(503);
