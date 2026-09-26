@@ -4943,6 +4943,9 @@ const NOTIFICATION_ICONS = [
     'group_member_joined'    => '/assets/icons/group_activity.svg',
     'group_member_promoted'  => '/assets/icons/group_activity.svg',
     'group_new_comment'      => '/assets/icons/group_activity.svg',
+    // v0.28 Follow Forum - reuses reply.svg, same as the other "someone
+    // posted" notification types above.
+    'forum_new_post'         => '/assets/icons/reply.svg',
 ];
 
 function createNotification(int $userId, string $type, ?int $actorId = null, ?string $link = null, ?string $message = null): void {
@@ -6484,6 +6487,12 @@ function forumCanModerate(): bool {
     return !empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator']);
 }
 
+// v0.28 Mod-only forum: a subforum flagged mod_only is invisible to (and
+// unpostable/unviewable by) anyone who can't moderate the forums.
+function canViewSubforum(array $subforum): bool {
+    return empty($subforum['mod_only']) || forumCanModerate();
+}
+
 // Escapes first (htmlspecialchars), then converts a small, fixed set of
 // BBCode tags into HTML on the already-escaped string. Because escaping runs
 // before tag conversion, any literal HTML/script a user typed is inert by
@@ -6550,7 +6559,9 @@ function generateUniqueForumSlug(string $name): string {
 // Full index: every category with its subforums, each subforum annotated
 // with live topic/post counts and last-post info (no denormalized counters
 // to keep in sync - this site's forum volume doesn't need that yet).
-function getForumCategoriesWithSubforums(): array {
+// $includeModOnly - pass forumCanModerate() from the caller; non-moderators
+// never see mod-only subforums in the listing at all (v0.28).
+function getForumCategoriesWithSubforums(bool $includeModOnly = false): array {
     $db = getDB();
     $categories = $db->query("SELECT * FROM forum_categories ORDER BY sort_order ASC, id ASC")->fetch_all(MYSQLI_ASSOC);
     $subforums = $db->query(
@@ -6568,6 +6579,10 @@ function getForumCategoriesWithSubforums(): array {
          LEFT JOIN users lu ON lu.id = lp.author_id
          ORDER BY s.sort_order ASC, s.id ASC"
     )->fetch_all(MYSQLI_ASSOC);
+
+    if (!$includeModOnly) {
+        $subforums = array_values(array_filter($subforums, fn($s) => empty($s['mod_only'])));
+    }
 
     foreach ($categories as &$cat) {
         $cat['subforums'] = array_values(array_filter($subforums, fn($s) => (int)$s['category_id'] === (int)$cat['id']));
@@ -6630,7 +6645,7 @@ function getForumTopics(int $subforumId, int $page = 1, int $perPage = 20): arra
 function getForumTopicById(int $id): ?array {
     $db = getDB();
     $stmt = $db->prepare(
-        "SELECT t.*, u.username AS author_username, s.name AS subforum_name, s.slug AS subforum_slug
+        "SELECT t.*, u.username AS author_username, s.name AS subforum_name, s.slug AS subforum_slug, s.mod_only AS subforum_mod_only
          FROM forum_topics t
          JOIN users u ON u.id = t.author_id
          JOIN forum_subforums s ON s.id = t.subforum_id
@@ -6813,21 +6828,23 @@ function deleteForumCategory(int $id): void {
     $stmt->close();
 }
 
-function createForumSubforum(int $categoryId, string $name, string $description, int $sortOrder): int {
+function createForumSubforum(int $categoryId, string $name, string $description, int $sortOrder, bool $modOnly = false): int {
     $db = getDB();
     $slug = generateUniqueForumSlug($name);
-    $stmt = $db->prepare("INSERT INTO forum_subforums (category_id, name, slug, description, sort_order) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param('isssi', $categoryId, $name, $slug, $description, $sortOrder);
+    $modOnlyVal = $modOnly ? 1 : 0;
+    $stmt = $db->prepare("INSERT INTO forum_subforums (category_id, name, slug, description, sort_order, mod_only) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param('isssii', $categoryId, $name, $slug, $description, $sortOrder, $modOnlyVal);
     $stmt->execute();
     $id = $stmt->insert_id;
     $stmt->close();
     return $id;
 }
 
-function updateForumSubforum(int $id, int $categoryId, string $name, string $description, int $sortOrder): void {
+function updateForumSubforum(int $id, int $categoryId, string $name, string $description, int $sortOrder, bool $modOnly = false): void {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE forum_subforums SET category_id = ?, name = ?, description = ?, sort_order = ? WHERE id = ?");
-    $stmt->bind_param('issii', $categoryId, $name, $description, $sortOrder, $id);
+    $modOnlyVal = $modOnly ? 1 : 0;
+    $stmt = $db->prepare("UPDATE forum_subforums SET category_id = ?, name = ?, description = ?, sort_order = ?, mod_only = ? WHERE id = ?");
+    $stmt->bind_param('issiii', $categoryId, $name, $description, $sortOrder, $modOnlyVal, $id);
     $stmt->execute();
     $stmt->close();
 }
@@ -6839,4 +6856,54 @@ function deleteForumSubforum(int $id): void {
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $stmt->close();
+}
+
+// ---- Follow Forum (v0.28) - follow a subforum (not individual topics) to
+// get notified whenever anyone posts a new topic or reply in it. ----
+
+function isFollowingSubforum(int $userId, int $subforumId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM forum_subforum_follows WHERE user_id = ? AND subforum_id = ?");
+    $stmt->bind_param('ii', $userId, $subforumId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row !== null;
+}
+
+function followSubforum(int $userId, int $subforumId): void {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("INSERT INTO forum_subforum_follows (user_id, subforum_id) VALUES (?, ?)");
+        $stmt->bind_param('ii', $userId, $subforumId);
+        $stmt->execute();
+        $stmt->close();
+    } catch (mysqli_sql_exception $e) {
+        if (!str_contains($e->getMessage(), 'Duplicate')) throw $e;
+    }
+}
+
+function unfollowSubforum(int $userId, int $subforumId): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM forum_subforum_follows WHERE user_id = ? AND subforum_id = ?");
+    $stmt->bind_param('ii', $userId, $subforumId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Notifies everyone following $subforumId except $actorId (the poster
+// themselves). Used for both a new topic and a new reply - same
+// notification type, distinguished by $message/$link.
+function notifySubforumFollowers(int $subforumId, ?int $actorId, ?string $link, ?string $message): void {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT user_id FROM forum_subforum_follows WHERE subforum_id = ?");
+    $stmt->bind_param('i', $subforumId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    foreach ($rows as $row) {
+        $uid = (int)$row['user_id'];
+        if ($actorId !== null && $uid === $actorId) continue;
+        createNotification($uid, 'forum_new_post', $actorId, $link, $message);
+    }
 }

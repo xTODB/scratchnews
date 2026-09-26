@@ -32,7 +32,7 @@ $canPostImage = canPostImageInGroup($myRole);
 $groupArticles = getGroupArticles((int)$group['id']);
 $canAttachArticle = canAttachArticleToGroup($myRole, $group['article_policy'] ?? 'members', (bool)$myId);
 $myPendingInvite = ($myId && !$myRole) ? getPendingGroupInviteForUserInGroup((int)$group['id'], $myId) : null;
-$myPendingGroupRequest = ($myRole === 'host' || $isSiteMod) ? getPendingGroupRequestForGroup((int)$group['id']) : null;
+$myPendingGroupRequest = ($myRole === 'host' || $isAdmin) ? getPendingGroupRequestForGroup((int)$group['id']) : null;
 $publicInvite = getPublicGroupInviteLink((int)$group['id']);
 $myMemberRow = null;
 if ($myRole) {
@@ -155,7 +155,7 @@ if ($myRole) {
         <span class="group-tab" onclick="showGroupTab('articles', this)">Articles</span>
         <span class="group-tab" onclick="showGroupTab('members', this)">Members</span>
         <?php if ($myRole): ?><span class="group-tab" onclick="showGroupTab('invite', this)">Invite</span><?php endif; ?>
-        <?php if ($myRole === 'host' || $isSiteMod): ?><span class="group-tab" onclick="showGroupTab('manage', this)">Manage</span><?php endif; ?>
+        <?php if ($myRole === 'host' || $isAdmin): ?><span class="group-tab" onclick="showGroupTab('manage', this)">Manage</span><?php endif; ?>
     </div>
 
     <div id="group-tab-wall" class="group-tab-panel active">
@@ -339,7 +339,7 @@ if ($myRole) {
     </div>
     <?php endif; ?>
 
-    <?php if ($myRole === 'host' || $isSiteMod): ?>
+    <?php if ($myRole === 'host' || $isAdmin): ?>
     <div id="group-tab-manage" class="group-tab-panel">
         <?php if ($myPendingGroupRequest): ?>
             <p>A <?= e($myPendingGroupRequest['request_type']) ?> request for this group is pending moderator/dev review.</p>

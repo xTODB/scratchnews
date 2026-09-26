@@ -23,10 +23,12 @@ if ($action === 'new_topic') {
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
     if (!$subforum) forumRedirect('/forums');
+    if (!canViewSubforum($subforum)) forumRedirect('/forums');
     if ($title === '' || $content === '') {
         forumRedirect('/forums/' . $subforum['slug'] . '/new?error=' . urlencode('Title and message are both required.'));
     }
     $topicId = createForumTopic($subforumId, $myId, $title, $content);
+    notifySubforumFollowers($subforumId, $myId, '/forums/' . $subforum['slug'] . '/' . $topicId, 'New topic: ' . $title);
     forumRedirect('/forums/' . $subforum['slug'] . '/' . $topicId);
 }
 
@@ -34,6 +36,7 @@ if ($action === 'reply') {
     $topicId = (int)($_POST['topic_id'] ?? 0);
     $topic = getForumTopicById($topicId);
     if (!$topic) forumRedirect('/forums');
+    if (!empty($topic['subforum_mod_only']) && !$canModerate) forumRedirect('/forums');
     if ($topic['is_locked'] && !$canModerate) {
         forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topicId . '?error=' . urlencode('This topic is locked.'));
     }
@@ -42,10 +45,23 @@ if ($action === 'reply') {
         forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topicId . '?error=' . urlencode('Reply cannot be empty.'));
     }
     $postId = addForumPost($topicId, $myId, $content);
+    notifySubforumFollowers((int)$topic['subforum_id'], $myId, '/forums/' . $topic['subforum_slug'] . '/' . $topicId . '#post-' . $postId, 'New reply in: ' . $topic['title']);
     // Land on the last page, where the new reply now lives.
     $result = getForumPosts($topicId, 1, 20);
     $lastPage = max(1, (int)ceil($result['total'] / 20));
     forumRedirect('/forums/' . $topic['subforum_slug'] . '/' . $topicId . '?page=' . $lastPage . '#post-' . $postId);
+}
+
+if ($action === 'toggle_follow') {
+    $subforumId = (int)($_POST['subforum_id'] ?? 0);
+    $subforum = getSubforumById($subforumId);
+    if (!$subforum || !canViewSubforum($subforum)) forumRedirect('/forums');
+    if (isFollowingSubforum($myId, $subforumId)) {
+        unfollowSubforum($myId, $subforumId);
+    } else {
+        followSubforum($myId, $subforumId);
+    }
+    forumRedirect('/forums/' . $subforum['slug']);
 }
 
 if ($action === 'edit_post') {

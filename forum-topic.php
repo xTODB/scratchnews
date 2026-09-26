@@ -9,6 +9,10 @@ if (!$topic || $topic['subforum_slug'] !== $slug) {
     header('Location: /forums');
     exit;
 }
+if (!empty($topic['subforum_mod_only']) && !forumCanModerate()) {
+    header('Location: /forums');
+    exit;
+}
 
 $page = max(1, (int)($_GET['page'] ?? 1));
 if ($page === 1) {
@@ -140,6 +144,7 @@ $allSubforums = $canModerate ? getAllForumSubforums() : [];
                         <input type="hidden" name="action" value="edit_post">
                         <textarea name="content" id="edit-content-<?= (int)$p['id'] ?>" class="bbcode-textarea" rows="4" style="width:100%;"><?= e($p['content']) ?></textarea>
                         <?php renderBBCodeToolbar('edit-content-' . (int)$p['id']); ?>
+                        <?php renderBBCodePreviewToggle('edit-content-' . (int)$p['id']); ?>
                         <div style="margin-top:0.5rem; display:flex; gap:0.6rem;">
                             <button type="submit" class="btn inline">Save</button>
                             <a href="?page=<?= $page ?>#post-<?= (int)$p['id'] ?>" class="btn inline secondary">Cancel</a>
@@ -192,6 +197,7 @@ $allSubforums = $canModerate ? getAllForumSubforums() : [];
                 <input type="hidden" name="topic_id" value="<?= (int)$topic['id'] ?>">
                 <?php renderBBCodeToolbar('bbcode_editor'); ?>
                 <textarea id="bbcode_editor" name="content" rows="6" required><?= e($replyPrefill) ?></textarea>
+                <?php renderBBCodePreviewToggle('bbcode_editor'); ?>
                 <button type="submit" class="btn">Post Reply</button>
             </form>
         <?php endif; ?>

@@ -14,6 +14,12 @@ requireCsrf();
 
 $myId = (int)$_SESSION['reader_id'];
 $isSiteMod = !empty($_SESSION['is_admin']) || !empty($_SESSION['is_moderator']);
+// v0.28: "mods and upper ability to self-edit/delete groups, power only to
+// dev" - $isSiteMod used to let ANY mod or admin request edit/delete on ANY
+// group, not just their own. That blanket override is now dev-only
+// (is_admin specifically); a regular moderator with no host role on a group
+// can no longer request edit/delete for it at all.
+$isDevOnly = !empty($_SESSION['is_admin']);
 $action = $_POST['action'] ?? '';
 
 function groupRedirect(string $slug, string $error = '', string $notice = '', string $anchor = ''): void {
@@ -157,8 +163,7 @@ if ($action === 'post_comment') {
     $newRole = ($_POST['role'] ?? '') === 'manager' ? 'manager' : 'member';
     // Dev-only override (is_admin specifically) - NOT $isSiteMod, which also includes
     // general moderators. See setGroupMemberRole() for why.
-    $isAdminOnly = !empty($_SESSION['is_admin']);
-    $result = setGroupMemberRole($groupId, $targetUserId, $newRole, $myId, $isAdminOnly);
+    $result = setGroupMemberRole($groupId, $targetUserId, $newRole, $myId, $isDevOnly);
     groupRedirect($slug, $result['ok'] ? '' : $result['reason']);
 
 } elseif ($action === 'set_comment_policy') {
@@ -168,7 +173,7 @@ if ($action === 'post_comment') {
     groupRedirect($slug);
 
 } elseif ($action === 'request_edit') {
-    if (!($myRole === 'host' || $isSiteMod)) groupRedirect($slug, 'Only the host can edit this group.');
+    if (!($myRole === 'host' || $isDevOnly)) groupRedirect($slug, 'Only the host can edit this group.');
     if (getPendingGroupRequestForGroup($groupId)) groupRedirect($slug, 'A request for this group is already pending review.');
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -185,7 +190,7 @@ if ($action === 'post_comment') {
     groupRedirect($slug, '', 'Edit request submitted for review.');
 
 } elseif ($action === 'request_delete') {
-    if (!($myRole === 'host' || $isSiteMod)) groupRedirect($slug, 'Only the host can delete this group.');
+    if (!($myRole === 'host' || $isDevOnly)) groupRedirect($slug, 'Only the host can delete this group.');
     if (getPendingGroupRequestForGroup($groupId)) groupRedirect($slug, 'A request for this group is already pending review.');
     createGroupDeleteRequest($groupId, $myId);
     groupRedirect($slug, '', 'Delete request submitted for review.');

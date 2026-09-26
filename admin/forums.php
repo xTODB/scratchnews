@@ -29,10 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_POST['name'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
+        $modOnly = !empty($_POST['mod_only']);
         if ($name === '' || !$categoryId) {
             $error = 'Subforum name and category are required.';
         } else {
-            createForumSubforum($categoryId, $name, $description, $sortOrder);
+            createForumSubforum($categoryId, $name, $description, $sortOrder, $modOnly);
         }
     } elseif ($action === 'update_subforum') {
         $id = (int)($_POST['id'] ?? 0);
@@ -40,10 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_POST['name'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
+        $modOnly = !empty($_POST['mod_only']);
         if ($name === '' || !$categoryId) {
             $error = 'Subforum name and category are required.';
         } else {
-            updateForumSubforum($id, $categoryId, $name, $description, $sortOrder);
+            updateForumSubforum($id, $categoryId, $name, $description, $sortOrder, $modOnly);
         }
     } elseif ($action === 'delete_subforum') {
         deleteForumSubforum((int)($_POST['id'] ?? 0));
@@ -128,6 +130,7 @@ $subforums = getAllForumSubforums();
             <div class="field"><label>Description</label><input type="text" name="description" value="<?= e($sf['description'] ?? '') ?>"></div>
             <div class="field"><label>Sort order</label><input type="number" name="sort_order" value="<?= (int)$sf['sort_order'] ?>"></div>
             <div class="field"><label>Slug</label><span>/forums/<?= e($sf['slug']) ?></span></div>
+            <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;"><input type="checkbox" name="mod_only" value="1" <?= !empty($sf['mod_only']) ? 'checked' : '' ?>> Mod-only</label></div>
             <button class="btn inline" type="submit">Save</button>
         </form>
         <form method="post" onsubmit="return confirm('Delete this subforum and ALL its topics and posts?');">
@@ -151,6 +154,7 @@ $subforums = getAllForumSubforums();
         <div class="field"><label>New subforum name</label><input type="text" name="name" required></div>
         <div class="field"><label>Description</label><input type="text" name="description"></div>
         <div class="field"><label>Sort order</label><input type="number" name="sort_order" value="0"></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;"><input type="checkbox" name="mod_only" value="1"> Mod-only</label></div>
         <button class="btn" type="submit">Add Subforum</button>
     </form>
 </main>

@@ -3,7 +3,7 @@ require_once __DIR__ . '/functions.php';
 startSession();
 logVisit('/forums');
 
-$categories = getForumCategoriesWithSubforums();
+$categories = getForumCategoriesWithSubforums(forumCanModerate());
 $isAdmin = !empty($_SESSION['is_admin']);
 ?>
 <!DOCTYPE html>
@@ -28,6 +28,8 @@ $isAdmin = !empty($_SESSION['is_admin']);
 .forum-count-col { text-align: center; width: 80px; white-space: nowrap; }
 .forum-lastpost-col { width: 220px; font-size: 0.9rem; }
 .forum-lastpost-empty { color: #999; }
+.forum-topic-tag { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; margin-right: 0.4rem; vertical-align: middle; }
+.forum-topic-tag.locked { background: #999; color: #fff; }
 @media (max-width: 700px) {
     .forum-count-col, .forum-lastpost-col { display: none; }
 }
@@ -68,6 +70,7 @@ $isAdmin = !empty($_SESSION['is_admin']);
                     <tr>
                         <td>
                             <a href="/forums/<?= e($sf['slug']) ?>" class="forum-subforum-name"><?= e($sf['name']) ?></a>
+                            <?php if (!empty($sf['mod_only'])): ?><span class="forum-topic-tag locked">Mod Only</span><?php endif; ?>
                             <?php if ($sf['description']): ?>
                                 <div class="forum-subforum-desc"><?= e($sf['description']) ?></div>
                             <?php endif; ?>

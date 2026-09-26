@@ -9,7 +9,7 @@ if (empty($_SESSION['reader_username'])) {
 
 $slug = $_GET['slug'] ?? '';
 $subforum = $slug ? getSubforumBySlug($slug) : null;
-if (!$subforum) {
+if (!$subforum || !canViewSubforum($subforum)) {
     header('Location: /forums');
     exit;
 }
@@ -45,6 +45,7 @@ $content = $_POST['content'] ?? '';
         <label for="bbcode_editor">Message</label>
         <?php renderBBCodeToolbar('bbcode_editor'); ?>
         <textarea id="bbcode_editor" name="content" rows="10" required><?= e($content) ?></textarea>
+        <?php renderBBCodePreviewToggle('bbcode_editor'); ?>
 
         <button type="submit" class="btn">Create Topic</button>
     </form>

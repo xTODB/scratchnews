@@ -4,7 +4,7 @@ startSession();
 
 $slug = $_GET['slug'] ?? '';
 $subforum = $slug ? getSubforumBySlug($slug) : null;
-if (!$subforum) {
+if (!$subforum || !canViewSubforum($subforum)) {
     header('Location: /forums');
     exit;
 }
@@ -15,6 +15,8 @@ $result = getForumTopics((int)$subforum['id'], $page, 20);
 $topics = $result['topics'];
 $totalPages = max(1, (int)ceil($result['total'] / $result['perPage']));
 $loggedIn = !empty($_SESSION['reader_username']);
+$myId = (int)($_SESSION['reader_id'] ?? 0);
+$isFollowing = $myId ? isFollowingSubforum($myId, (int)$subforum['id']) : false;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,10 +54,18 @@ $loggedIn = !empty($_SESSION['reader_username']);
 <main class="home-main">
     <div class="forum-breadcrumb"><a href="/forums">&larr; Forums</a></div>
     <div class="forums-header">
-        <h2><?= e($subforum['name']) ?></h2>
-        <?php if ($loggedIn): ?>
-            <a href="/forums/<?= e($subforum['slug']) ?>/new" class="btn inline">New Topic</a>
-        <?php endif; ?>
+        <h2><?= e($subforum['name']) ?> <?php if (!empty($subforum['mod_only'])): ?><span class="forum-topic-tag locked">Mod Only</span><?php endif; ?></h2>
+        <div style="display:flex; gap:0.5rem;">
+            <?php if ($loggedIn): ?>
+                <form method="post" action="/forum-action" style="display:inline;">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="toggle_follow">
+                    <input type="hidden" name="subforum_id" value="<?= (int)$subforum['id'] ?>">
+                    <button type="submit" class="btn inline secondary"><?= $isFollowing ? 'Unfollow Forum' : 'Follow Forum' ?></button>
+                </form>
+                <a href="/forums/<?= e($subforum['slug']) ?>/new" class="btn inline">New Topic</a>
+            <?php endif; ?>
+        </div>
     </div>
     <?php if ($subforum['description']): ?>
         <div class="forum-desc"><?= e($subforum['description']) ?></div>
