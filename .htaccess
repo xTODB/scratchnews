@@ -32,6 +32,12 @@ RewriteRule ^forums/([a-z0-9-]+)/([0-9]+)(?:-[a-z0-9-]*)?/?$ forum-topic.php?slu
 RewriteRule ^forums/([a-z0-9-]+)/?$ forum.php?slug=$1 [L,QSA]
 RewriteRule ^admin/forums/?$ admin/forums.php [L,QSA]
 
+# ScratchNews Sites (0.29) - /s/<slug>/ itself is a real subfolder deployed
+# by each site's own repo, so it's served directly by Apache and needs no
+# rule here. Only the directory index and its admin page are clean URLs.
+RewriteRule ^s/?$ sites.php [L,QSA]
+RewriteRule ^admin/sites/?$ admin/sites.php [L,QSA]
+
 # Clean URLs: strip .php extension (top-level pages only, for now).
 # Explicit rules, not a dynamic -f check — InfinityFree's setup makes
 # both DOCUMENT_ROOT and REQUEST_FILENAME unreliable for filesystem

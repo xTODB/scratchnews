@@ -48,6 +48,7 @@
                 <a href="/profiles" class="app-menu-item primary">Profiles <span class="app-menu-arrow">&#8250;</span></a>
                 <a href="/writers-contest" class="app-menu-item secondary">Writers' Contest <span class="app-menu-arrow">&#8250;</span></a>
                 <a href="/forums" class="app-menu-item secondary">Forums <span class="app-menu-arrow">&#8250;</span></a>
+                <a href="/s" class="app-menu-item secondary">Sites <span class="app-menu-arrow">&#8250;</span></a>
                 <div class="app-menu-divider"></div>
                 <a href="/about" class="app-menu-item secondary">About</a>
                 <?php if (!empty($_SESSION['reader_username'])): ?>

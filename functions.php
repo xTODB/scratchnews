@@ -6858,6 +6858,77 @@ function deleteForumSubforum(int $id): void {
     $stmt->close();
 }
 
+// ---- ScratchNews Sites (v0.29) - directory of independent sub-sites, each
+// its own separate GitHub repo deployed into a real subfolder under this
+// site's own document root (e.g. /s/census/ -> xTODB/scratchcensus). This
+// site only stores the directory entry - it does not host or proxy the
+// sub-site's actual code/pages. ----
+
+function slugifySiteName(string $name): string {
+    $slug = strtolower(trim($name));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = trim($slug, '-');
+    return $slug !== '' ? $slug : 'site';
+}
+
+function generateUniqueSiteSlug(string $name): string {
+    $db = getDB();
+    $base = slugifySiteName($name);
+    $slug = $base;
+    $i = 2;
+    while (true) {
+        $stmt = $db->prepare("SELECT 1 FROM sites WHERE slug = ?");
+        $stmt->bind_param('s', $slug);
+        $stmt->execute();
+        $exists = $stmt->get_result()->fetch_row() !== null;
+        $stmt->close();
+        if (!$exists) return $slug;
+        $slug = $base . '-' . $i;
+        $i++;
+    }
+}
+
+function getAllSites(): array {
+    $db = getDB();
+    $result = $db->query("SELECT * FROM sites ORDER BY sort_order ASC, id ASC");
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+function getActiveSites(): array {
+    $db = getDB();
+    $result = $db->query("SELECT * FROM sites WHERE is_active = 1 ORDER BY sort_order ASC, id ASC");
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+function createSite(string $name, string $description, string $repoUrl, bool $isActive, int $sortOrder): int {
+    $db = getDB();
+    $slug = generateUniqueSiteSlug($name);
+    $isActiveVal = $isActive ? 1 : 0;
+    $stmt = $db->prepare("INSERT INTO sites (name, slug, description, repo_url, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param('ssssii', $name, $slug, $description, $repoUrl, $isActiveVal, $sortOrder);
+    $stmt->execute();
+    $id = $stmt->insert_id;
+    $stmt->close();
+    return $id;
+}
+
+function updateSite(int $id, string $name, string $description, string $repoUrl, bool $isActive, int $sortOrder): void {
+    $db = getDB();
+    $isActiveVal = $isActive ? 1 : 0;
+    $stmt = $db->prepare("UPDATE sites SET name = ?, description = ?, repo_url = ?, is_active = ?, sort_order = ? WHERE id = ?");
+    $stmt->bind_param('sssiii', $name, $description, $repoUrl, $isActiveVal, $sortOrder, $id);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function deleteSite(int $id): void {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM sites WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $stmt->close();
+}
+
 // ---- Follow Topic (v0.28, rebuilt) - follow an individual topic to get
 // notified whenever anyone replies to it. Replaces the earlier subforum-level
 // Follow Forum (forum_subforum_follows), which followed an entire board
