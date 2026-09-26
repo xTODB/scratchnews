@@ -40,8 +40,8 @@ body.dark .contributor-card { border-color:#444; }
     <h2>About</h2>
     <img src="/assets/scratchnewsSS.webp" alt="" class="about-hero" onerror="this.style.display='none';">
 
-    <p>ScratchNews is a news platform about Scratch-related news, made to prevent misinformation and disinformation among the Scratch community.
-        It transmits information in the form of articles, has many social features and created by Scratchers, for Scratchers. It's code is also <a href="https://github.com/xTODB/scratchnews/">open-source.</a><br>
+    <p>ScratchNews is a news and social media platform about Scratch-related news, made to serve as a third space for Scratchers around the world and to inform the Scratch community.
+        It transmits information in the form of articles, has many social features and created by Scratchers, for Scratchers. It's code is also <a href="https://github.com/xTODB/scratchnews/">fully open-source.</a><br>
         ScratchNews is a growing platform, and features are added almost daily. We'd like if there were users, and users who submit articles to help our goal of making the Scratch community a little more informed every day.
     </p>
 
