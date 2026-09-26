@@ -16,6 +16,8 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Sep26] 0.28 - I have not updated this site for 2 whole weeks. Holy...</p><br><ul>
+        <li>Follow forum topics, preview forum posts, moderator forums, and removed mod ability to self-edit/delete groups.
     <p>[Sep13] - Material Design Icons. Possibly last update ever.</p>
     <p>[Sep8] SCRATCHNEWS HAS MOVED TO scratchnews.net!!!</p>
     <p>[Sep7] 0.27.1 - Small update!</p><br><ul>
