@@ -16,6 +16,7 @@ startSession();
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Changelog</h2>
+    <p>[Sep27] 0.29 - <a href="https://scratchnews.net/s/">ScratchNews Sites!</a> A place where ScratchNews makes independent Scratch tools and sites.<br>Visit the first ScratchNews site I made, <a href="https://scratchnews.net/s/census/">ScratchCensus</a>!</p>
     <p>[Sep26] 0.28 - I have not updated this site for 2 whole weeks. Holy...</p><br><ul>
         <li>Follow forum topics, preview forum posts, moderator forums, and removed mod ability to self-edit/delete groups.
     <p>[Sep13] - Material Design Icons. Possibly last update ever.</p>

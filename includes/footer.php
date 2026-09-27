@@ -12,8 +12,9 @@
                 <a href="/community-guidelines">Community Guidelines</a>
             </div>
             <div class="footer-col">
-                <h4>Developers</h4>
+                <h4>Developers &amp; Sites</h4>
                 <a href="/api.php">API</a>
+                <a href="/s">Sites</a>
             </div>
             <div class="footer-col">
                 <h4>Account</h4>
