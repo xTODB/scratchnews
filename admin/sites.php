@@ -23,10 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $repoUrl = trim($_POST['repo_url'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $isActive = !empty($_POST['is_active']);
+        $slug = trim($_POST['slug'] ?? '');
         if ($name === '') {
             $error = 'Site name is required.';
         } else {
-            updateSite($id, $name, $description, $repoUrl, $isActive, $sortOrder);
+            updateSite($id, $name, $description, $repoUrl, $isActive, $sortOrder, $slug);
         }
     } elseif ($action === 'delete_site') {
         deleteSite((int)($_POST['id'] ?? 0));
@@ -66,6 +67,7 @@ $sites = getAllSites();
     <h2>ScratchNews Sites</h2>
     <p><a href="/s">View the public Sites page &rarr;</a></p>
     <p style="color:#888;">Each site lives in its own GitHub repo and deploys straight into <code>/s/&lt;slug&gt;/</code> on this account - this page only manages the public directory entry, not the site's actual code.</p>
+    <p style="color:#888;">Editing Slug below only changes where this directory links to - it does NOT move the site's own deployed files. If you change it, also update that site's own GitHub Actions deploy config (server-dir) to the matching subfolder, or the link here will 404.</p>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
 
     <div class="forum-admin-list">
@@ -77,7 +79,7 @@ $sites = getAllSites();
             <div class="field"><label>Description</label><input type="text" name="description" value="<?= e($s['description'] ?? '') ?>"></div>
             <div class="field"><label>Repo URL</label><input type="text" name="repo_url" value="<?= e($s['repo_url'] ?? '') ?>" placeholder="https://github.com/xTODB/scratchcensus"></div>
             <div class="field"><label>Sort order</label><input type="number" name="sort_order" value="<?= (int)$s['sort_order'] ?>"></div>
-            <div class="field"><label>Slug</label><span>/s/<?= e($s['slug']) ?></span></div>
+            <div class="field"><label>Slug</label><span style="display:flex;align-items:center;gap:0.3rem;">/s/<input type="text" name="slug" value="<?= e($s['slug']) ?>" style="min-width:120px;"></span></div>
             <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;"><input type="checkbox" name="is_active" value="1" <?= !empty($s['is_active']) ? 'checked' : '' ?>> Active (listed)</label></div>
             <button class="btn inline" type="submit">Save</button>
         </form>

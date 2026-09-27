@@ -6871,14 +6871,14 @@ function slugifySiteName(string $name): string {
     return $slug !== '' ? $slug : 'site';
 }
 
-function generateUniqueSiteSlug(string $name): string {
+function generateUniqueSiteSlug(string $name, int $excludeId = 0): string {
     $db = getDB();
     $base = slugifySiteName($name);
     $slug = $base;
     $i = 2;
     while (true) {
-        $stmt = $db->prepare("SELECT 1 FROM sites WHERE slug = ?");
-        $stmt->bind_param('s', $slug);
+        $stmt = $db->prepare("SELECT 1 FROM sites WHERE slug = ? AND id != ?");
+        $stmt->bind_param('si', $slug, $excludeId);
         $stmt->execute();
         $exists = $stmt->get_result()->fetch_row() !== null;
         $stmt->close();
@@ -6912,11 +6912,15 @@ function createSite(string $name, string $description, string $repoUrl, bool $is
     return $id;
 }
 
-function updateSite(int $id, string $name, string $description, string $repoUrl, bool $isActive, int $sortOrder): void {
+function updateSite(int $id, string $name, string $description, string $repoUrl, bool $isActive, int $sortOrder, string $slug = ''): void {
     $db = getDB();
     $isActiveVal = $isActive ? 1 : 0;
-    $stmt = $db->prepare("UPDATE sites SET name = ?, description = ?, repo_url = ?, is_active = ?, sort_order = ? WHERE id = ?");
-    $stmt->bind_param('sssiii', $name, $description, $repoUrl, $isActiveVal, $sortOrder, $id);
+    $slug = trim($slug);
+    // Empty slug field (or a value that sanitizes to nothing) falls back to
+    // re-deriving from the current name rather than leaving the column blank.
+    $finalSlug = generateUniqueSiteSlug($slug !== '' ? $slug : $name, $id);
+    $stmt = $db->prepare("UPDATE sites SET name = ?, slug = ?, description = ?, repo_url = ?, is_active = ?, sort_order = ? WHERE id = ?");
+    $stmt->bind_param('ssssiii', $name, $finalSlug, $description, $repoUrl, $isActiveVal, $sortOrder, $id);
     $stmt->execute();
     $stmt->close();
 }
