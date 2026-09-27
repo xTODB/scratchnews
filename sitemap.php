@@ -13,6 +13,7 @@ $topics = $db->query(
      FROM forum_topics t
      JOIN forum_subforums s ON s.id = t.subforum_id"
 )->fetch_all(MYSQLI_ASSOC);
+$sites = getActiveSites();
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
@@ -31,6 +32,7 @@ $staticPaths = [
     '/submission-guidelines',
     '/download',
     '/stats',
+    '/s',
 ];
 foreach ($staticPaths as $path) {
     echo '  <url><loc>https://scratchnews.net' . e($path) . '</loc></url>' . "\n";
@@ -63,6 +65,13 @@ foreach ($subforums as $s) {
 // Forum topics
 foreach ($topics as $t) {
     echo '  <url><loc>https://scratchnews.net/forums/' . e($t['subforum_slug']) . '/' . (int)$t['id'] . '</loc></url>' . "\n";
+}
+
+// ScratchNews Sites - each lives in its own repo/subfolder, so this sitemap
+// only knows the site's root URL, not anything deeper inside it (individual
+// sites would need their own sitemap for their own subpages, if they want one)
+foreach ($sites as $s) {
+    echo '  <url><loc>https://scratchnews.net/s/' . e($s['slug']) . '/</loc></url>' . "\n";
 }
 
 echo '</urlset>';
