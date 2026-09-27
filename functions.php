@@ -941,6 +941,16 @@ function getUserByUsername(string $username): ?array {
     return $user ?: null;
 }
 
+function usernameExists(string $username): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT 1 FROM users WHERE username = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $exists = $stmt->get_result()->fetch_row() !== null;
+    $stmt->close();
+    return $exists;
+}
+
 function changePassword(int $userId, string $newPassword): void {
     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
     $db = getDB();
@@ -2531,8 +2541,14 @@ function buildCommentTree(array $comments): array {
     return $topLevel;
 }
 
+// Only linkify @mentions of real users - a bare regex match on any
+// @word (e.g. a test mention, a typo, or someone @mentioning a Scratch
+// user who isn't a ScratchNews member) was generating links to usernames
+// that don't exist, which Google was crawling and correctly 404ing on.
 function linkifyMentions(string $escapedText): string {
-    return preg_replace('/@([A-Za-z0-9_]{3,20})\b/', '<a href="/@$1">@$1</a>', $escapedText);
+    return preg_replace_callback('/@([A-Za-z0-9_]{3,20})\b/', function ($m) {
+        return usernameExists($m[1]) ? '<a href="/@' . $m[1] . '">@' . $m[1] . '</a>' : $m[0];
+    }, $escapedText);
 }
 
 // Turns plain http(s)/www links in already-escaped comment text into clickable,

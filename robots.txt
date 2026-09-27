@@ -1,5 +1,11 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
+# Internal AJAX/action endpoints - not real pages, only hit via JS/forms.
+Disallow: /*-ajax.php$
+Disallow: /verify-comment-auth.php
+Disallow: /verify-scratch.php
+Disallow: /upload-image
+Disallow: /google-auth
 
-Sitemap: https://scratchnews.freedev.app/sitemap.php
+Sitemap: https://scratchnews.net/sitemap.php
