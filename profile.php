@@ -46,6 +46,16 @@ $bioHasMore = $bioRaw !== '' && strpos($bioRaw, "\n") !== false;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php include __DIR__ . '/includes/favicon.php'; ?>
 <title><?= $user ? e($user['username']) : 'User Not Found' ?> - <?= e(SITE_NAME) ?></title>
+<?php if ($user):
+    // Consolidate the ?view=comments/articles/profile_comments tab variants
+    // onto one canonical URL - same identity, not separate pages.
+    $isThinProfile = $articleCount === 0 && $totalCommentCount === 0 && $profileCommentCount === 0;
+?>
+<link rel="canonical" href="https://scratchnews.net/@<?= e(rawurlencode($user['username'])) ?>">
+<?php if ($isThinProfile): ?>
+<meta name="robots" content="noindex,follow">
+<?php endif; ?>
+<?php endif; ?>
 <link rel="stylesheet" href="/assets/style.css?v=24">
 <style>
 /* Page-scoped stopgap — fold into style.css once shared */

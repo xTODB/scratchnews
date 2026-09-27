@@ -123,6 +123,10 @@ $hasScratchblocks = strpos($displayContent, 'class="blocks"') !== false;
 <title><?= $article ? e($displayTitle) . ' - ' . e(SITE_NAME) : 'Article not found' ?></title>
 <?php if ($article): ?>
 <meta name="description" content="<?= e(mb_strimwidth($article['summary'], 0, 160, '...')) ?>">
+<!-- Share links append ?sid=... for click attribution - canonicalize every
+     variant back to the clean URL so Google doesn't see each share as a
+     separate duplicate page. -->
+<link rel="canonical" href="https://scratchnews.net/article/<?= (int)$article['id'] ?>">
 <script type="application/ld+json">
 <?= json_encode([
     "@context" => "https://schema.org",

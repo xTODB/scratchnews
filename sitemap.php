@@ -5,7 +5,16 @@ header('Content-Type: application/xml; charset=utf-8');
 $db = getDB();
 
 $articles = $db->query("SELECT id, updated_at FROM articles WHERE status = 'published' OR status IS NULL")->fetch_all(MYSQLI_ASSOC);
-$profiles = $db->query("SELECT username FROM users WHERE is_banned = 0 AND username NOT LIKE 'deleted_user_%'")->fetch_all(MYSQLI_ASSOC);
+$profiles = $db->query(
+    "SELECT username FROM users u
+     WHERE is_banned = 0 AND username NOT LIKE 'deleted_user_%'
+     AND (
+        EXISTS (SELECT 1 FROM articles a WHERE a.user_id = u.id)
+        OR EXISTS (SELECT 1 FROM comments c WHERE c.user_id = u.id)
+        OR EXISTS (SELECT 1 FROM group_comments gc WHERE gc.user_id = u.id)
+        OR EXISTS (SELECT 1 FROM profile_comments pc WHERE pc.author_id = u.id)
+     )"
+)->fetch_all(MYSQLI_ASSOC);
 $groups = $db->query("SELECT slug FROM `groups` WHERE status = 'active'")->fetch_all(MYSQLI_ASSOC);
 $subforums = $db->query("SELECT slug FROM forum_subforums")->fetch_all(MYSQLI_ASSOC);
 $topics = $db->query(
