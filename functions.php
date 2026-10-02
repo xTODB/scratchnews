@@ -1433,6 +1433,27 @@ function setUserHeadModerator(int $userId, bool $isHeadModerator): void {
     }
 }
 
+// Dev/Admin power. Only callable from admin/users.php (already admin-gated).
+// Refuses to remove the last remaining admin so the site can't be locked out.
+// Returns 'ok' or 'last_admin'.
+function setUserAdmin(int $userId, bool $isAdmin): string {
+    $db = getDB();
+    if (!$isAdmin) {
+        $res = $db->query("SELECT COUNT(*) FROM users WHERE is_admin = 1 AND id <> " . (int)$userId);
+        $others = $res ? (int)$res->fetch_row()[0] : 0;
+        if ($others < 1) return 'last_admin';
+    }
+    $val = $isAdmin ? 1 : 0;
+    $stmt = $db->prepare("UPDATE users SET is_admin = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $userId);
+    $stmt->execute();
+    $stmt->close();
+    if ($isAdmin) {
+        setUserModerator($userId, true);
+    }
+    return 'ok';
+}
+
 // v0.25.2: Featured Users - admin-granted flag (reuses the same star-toggle
 // pattern as setArticleFeatured()/admin/index.php). All of a featured user's
 // published articles automatically count as Featured (see getFeaturedArticles()
