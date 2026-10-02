@@ -38,6 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($userId > 0 && in_array($action, ['make_head_moderator', 'unmake_head_moderator'])) {
         setUserHeadModerator($userId, $action === 'make_head_moderator');
         $message = $action === 'make_head_moderator' ? 'Head Moderator rank granted (Moderator rank included).' : 'Head Moderator rank removed.';
+    } elseif ($userId > 0 && in_array($action, ['make_admin', 'unmake_admin'])) {
+        if ($userId === (int)($_SESSION['reader_id'] ?? 0)) {
+            $message = 'You can\'t change your own Admin status.';
+        } else {
+            $grant = $action === 'make_admin';
+            $r = setUserAdmin($userId, $grant);
+            if ($r === 'last_admin') {
+                $message = 'Can\'t remove the last Admin.';
+            } else {
+                $message = $grant ? 'Admin (dev) power granted. They now have full admin panel access.' : 'Admin (dev) power removed.';
+            }
+        }
     } elseif ($userId > 0 && $action === 'reset_password') {
         $newPassword = $_POST['new_password'] ?? '';
         if (strlen($newPassword) < 6) {
@@ -86,7 +98,19 @@ $users = array_values(array_filter($users, fn($u) => strpos($u['username'], 'del
                 <td><a href="/@<?= e($u['username']) ?>">@<?= e($u['username']) ?></a></td>
                 <td><?= $u['email'] ? e($u['email']) : '-' ?></td>
                 <td><?= e($u['ip_address'] ?? '—') ?></td>
-                <td><?= $u['is_admin'] ? 'Yes' : '—' ?></td>
+                <td style="white-space:nowrap;">
+                    <?= $u['is_admin'] ? 'Yes' : '—' ?>
+                    <?php if ((int)$u['id'] !== (int)($_SESSION['reader_id'] ?? 0) && strpos($u['username'], 'deleted_user_') !== 0): ?>
+                    <div style="font-size:0.8rem;">
+                        <a href="#" onclick="if(confirm('<?= $u['is_admin'] ? 'Remove Admin (dev) power from' : 'Give FULL Admin (dev) power to' ?> @<?= e($u['username']) ?>?<?= $u['is_admin'] ? '' : '\n\nThey will be able to see user emails and IPs, reset passwords, ban users, and change every admin setting.' ?>')) document.getElementById('adm<?= (int)$u['id'] ?>').submit(); return false;"><?= $u['is_admin'] ? 'Remove Admin' : 'Make Admin' ?></a>
+                        <form id="adm<?= (int)$u['id'] ?>" method="post" style="display:none;">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <input type="hidden" name="action" value="<?= $u['is_admin'] ? 'unmake_admin' : 'make_admin' ?>">
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                </td>
                 <td><?= isUserVerified($u) ? 'Yes' : 'No' ?></td>
                 <td style="white-space:nowrap;">
                     <?= renderRankBadges($u) ?: '<span style="opacity:0.5;">—</span>' ?>
