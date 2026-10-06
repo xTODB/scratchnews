@@ -20,6 +20,7 @@
                 <h4>Account</h4>
                 <a href="/feedback">Feedback</a>
                 <a href="/contact">Contact Us</a>
+                <a href="/apply-moderator">Become a Moderator</a>
                 <?php if (!empty($_SESSION['reader_username'])): ?><a href="/delete-account">Delete Account</a><?php endif; ?>
             </div>
             <div class="footer-col">

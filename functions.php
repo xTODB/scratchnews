@@ -4945,6 +4945,8 @@ function updateUserLocation(int $userId, ?float $lat, ?float $lng, ?string $coun
     $stmt->close();
 }
 
+require_once __DIR__ . '/includes/mod-app-functions.php';
+
 // ---- Notifications ----
 // NOTE: icon filenames below are placed based on the new icons provided this session
 // (follow, new_article, article_approved, article_rejected, comment_delete, ban)
@@ -4974,6 +4976,9 @@ const NOTIFICATION_ICONS = [
     'admin_new_contact'      => '/assets/icons/message.svg',
     'admin_contact_reply'    => '/assets/icons/reply.svg',
     'contact_reply'          => '/assets/icons/reply.svg',
+    'admin_new_mod_application' => '/assets/icons/message.svg',
+    'mod_application_accepted'  => '/assets/icons/article_approved.svg',
+    'mod_application_declined'  => '/assets/icons/article_rejected.svg',
     // group_invite.svg (SN_Groups icon) is also slated to replace nav-profiles.svg
     // once Groups fully ships and Profiles folds into it - not done yet, still beta.
     'group_invite'           => '/assets/icons/group_invite.svg',
@@ -5072,6 +5077,9 @@ function renderNotificationText(array $n): string {
         case 'admin_new_contact': return 'New Contact Us message submitted';
         case 'admin_contact_reply': return 'New reply on a Contact Us thread';
         case 'contact_reply': return 'ScratchNews replied to your Contact Us message';
+        case 'admin_new_mod_application': return 'New moderator application from ' . $actor;
+        case 'mod_application_accepted': return 'Your moderator application was accepted';
+        case 'mod_application_declined': return 'Your moderator application was declined';
         case 'group_member_joined': return $actor . ' joined a group you\'re in';
         case 'group_member_promoted': return $actor . ' was promoted to manager';
         case 'group_new_comment': return $actor . ' commented in a group you\'re in';
