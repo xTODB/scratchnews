@@ -1668,17 +1668,38 @@ function setRememberToken(int $userId): string {
     $token = bin2hex(random_bytes(32));
     $hash = hash('sha256', $token);
     $expires = date('Y-m-d H:i:s', time() + 60 * 60 * 24 * 30);
-    $stmt = $db->prepare("UPDATE users SET remember_token = ?, remember_token_expires = ? WHERE id = ?");
-    $stmt->bind_param('ssi', $hash, $expires, $userId);
+    $stmt = $db->prepare("INSERT INTO user_remember_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)");
+    $stmt->bind_param('iss', $userId, $hash, $expires);
+    $stmt->execute();
+    $stmt->close();
+    // prune expired tokens, and keep only the 10 newest devices
+    $stmt = $db->prepare("DELETE FROM user_remember_tokens WHERE user_id = ? AND (expires_at < NOW() OR id NOT IN (SELECT id FROM (SELECT id FROM user_remember_tokens WHERE user_id = ? ORDER BY id DESC LIMIT 10) t))");
+    $stmt->bind_param('ii', $userId, $userId);
     $stmt->execute();
     $stmt->close();
     return $token;
 }
 
-function clearRememberToken(int $userId): void {
+function touchRememberToken(string $token): void {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE users SET remember_token = NULL, remember_token_expires = NULL WHERE id = ?");
-    $stmt->bind_param('i', $userId);
+    $hash = hash('sha256', $token);
+    $expires = date('Y-m-d H:i:s', time() + 60 * 60 * 24 * 30);
+    $stmt = $db->prepare("UPDATE user_remember_tokens SET expires_at = ? WHERE token_hash = ?");
+    $stmt->bind_param('ss', $expires, $hash);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function clearRememberToken(int $userId, ?string $token = null): void {
+    $db = getDB();
+    if ($token !== null && $token !== '') {
+        $hash = hash('sha256', $token);
+        $stmt = $db->prepare("DELETE FROM user_remember_tokens WHERE user_id = ? AND token_hash = ?");
+        $stmt->bind_param('is', $userId, $hash);
+    } else {
+        $stmt = $db->prepare("DELETE FROM user_remember_tokens WHERE user_id = ?");
+        $stmt->bind_param('i', $userId);
+    }
     $stmt->execute();
     $stmt->close();
 }
@@ -1686,7 +1707,7 @@ function clearRememberToken(int $userId): void {
 function getUserByValidRememberToken(int $userId, string $token): ?array {
     $db = getDB();
     $hash = hash('sha256', $token);
-    $stmt = $db->prepare("SELECT * FROM users WHERE id = ? AND remember_token = ? AND remember_token_expires > NOW()");
+    $stmt = $db->prepare("SELECT u.* FROM users u JOIN user_remember_tokens t ON t.user_id = u.id WHERE u.id = ? AND t.token_hash = ? AND t.expires_at > NOW()");
     $stmt->bind_param('is', $userId, $hash);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -1783,8 +1804,8 @@ function startSession(): void {
                 $_SESSION['color_theme'] = $user['color_theme'] ?? 'default';
                 $_SESSION['translate_lang'] = $user['translate_lang'] ?? '';
                 logUserIp((int)$user['id'], $_SERVER['REMOTE_ADDR'] ?? '');
-                $newToken = setRememberToken($user['id']);
-                setcookie('remember_me', $user['id'] . ':' . $newToken, [
+                touchRememberToken($token);
+                setcookie('remember_me', $user['id'] . ':' . $token, [
                     'expires' => time() + 60 * 60 * 24 * 30,
                     'path' => '/',
                     'secure' => true,
