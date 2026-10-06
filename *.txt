@@ -1,0 +1,2 @@
+sooo um 
+NSERT INTO redirects (slug, target_url) VALUES ('test', 'https://example.com/');
