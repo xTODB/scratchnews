@@ -119,3 +119,18 @@ RewriteRule ^preview-article/?$ preview-article.php [L,QSA]
 <FilesMatch "\.(css|js|php)$">
     Header set Cache-Control "no-cache, must-revalidate"
 </FilesMatch>
+
+# Speed: compress text responses (a 63 KB style.css becomes about 12 KB)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript text/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# Speed: images and fonts almost never change under the same name, so let browsers keep them
+<IfModule mod_headers.c>
+    <FilesMatch "\.(png|jpe?g|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+    <FilesMatch "\.(woff2?|ttf|otf)$">
+        Header set Cache-Control "public, max-age=31536000"
+    </FilesMatch>
+</IfModule>
