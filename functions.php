@@ -1723,6 +1723,8 @@ function getUserByValidRememberToken(int $userId, string $token): ?array {
 // them consistent regardless of which backend server handles a given request.
 class DbSessionHandler implements SessionHandlerInterface {
     private mysqli $db;
+    private string $readData = '';
+    private int $readActivity = 0; // 0 = no stored row existed when this request read it
 
     public function __construct(mysqli $db) {
         $this->db = $db;
@@ -1732,17 +1734,23 @@ class DbSessionHandler implements SessionHandlerInterface {
     public function close(): bool { return true; }
 
     public function read($id): string {
-        $stmt = $this->db->prepare("SELECT data FROM sessions WHERE id = ? AND last_activity > ?");
+        $stmt = $this->db->prepare("SELECT data, last_activity FROM sessions WHERE id = ? AND last_activity > ?");
         $cutoff = time() - (int)ini_get('session.gc_maxlifetime');
         $stmt->bind_param('si', $id, $cutoff);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        return $row ? $row['data'] : '';
+        $this->readData = $row ? (string)$row['data'] : '';
+        $this->readActivity = $row ? (int)$row['last_activity'] : 0;
+        return $this->readData;
     }
 
     public function write($id, $data): bool {
         $now = time();
+        // Speed: no row and nothing to store (bots, first-time guests) = no insert; unchanged data
+        // seen within the last 5 minutes = no write. Sessions still never outlive gc_maxlifetime.
+        if ($this->readActivity === 0 && $data === '') return true;
+        if ($this->readActivity > 0 && $data === $this->readData && ($now - $this->readActivity) < 300) return true;
         $stmt = $this->db->prepare("INSERT INTO sessions (id, data, last_activity) VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)");
         $stmt->bind_param('ssi', $id, $data, $now);
