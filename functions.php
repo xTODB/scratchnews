@@ -1,11 +1,25 @@
 <?php
-// === CANONICAL HOST REDIRECT: freedev.app -> scratchnews.net ===
+// === CANONICAL HOST REDIRECT (date-gated) ===
+// Before CUTOVER_AT: freedev.app -> scratchnews.net (the old behaviour).
+// From CUTOVER_AT on: scratchnews.net -> scratchnews.freedev.app, because the
+// .net registration expires on 2027-09-07 and auto-renew is off.
 // 301, preserves path + query string. Runs before anything else so it
 // applies to every route, including clean-URL rewrites.
-if (isset($_SERVER['HTTP_HOST']) && stripos($_SERVER['HTTP_HOST'], 'freedev.app') !== false) {
-    $newUrl = 'https://scratchnews.net' . $_SERVER['REQUEST_URI'];
-    header('Location: ' . $newUrl, true, 301);
-    exit;
+// Keep CUTOVER_AT well before the expiry: once the domain lapses, requests
+// never reach this server and no code can redirect them.
+define('CUTOVER_AT', '2027-08-24 00:00:00'); // UTC, two weeks before expiry
+$reqHost = strtolower(preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? ''));
+$reqHost = preg_replace('/^www\./', '', $reqHost);
+$cutoverDone = time() >= strtotime(CUTOVER_AT . ' UTC');
+if ($reqHost !== '') {
+    if ($cutoverDone && $reqHost === 'scratchnews.net') {
+        header('Location: https://scratchnews.freedev.app' . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
+        exit;
+    }
+    if (!$cutoverDone && stripos($reqHost, 'freedev.app') !== false) {
+        header('Location: https://scratchnews.net' . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
+        exit;
+    }
 }
 
 // === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
@@ -202,6 +216,641 @@ function deleteArticle(int $id): bool {
 // without publishing, that row - and the ID it took from getNextArticleId() - is
 // orphaned forever, which is why admin's all-statuses article count can run ahead of
 // the public "published" count. Called opportunistically from admin/index.php on
+// dashboard load rather than via cron, so no server-side scheduling is needed.
+// updated_at is bumped automatically (ON UPDATE current_timestamp) by autosaveArticle()'s
+// own UPDATE, so "untouched for $daysOld days" is a reliable staleness signal. Returns
+// the number of rows deleted.
+function cleanupStaleDraftArticles(int $daysOld = 14): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM articles WHERE status = 'draft' AND updated_at < (NOW() - INTERVAL ? DAY)");
+    $stmt->bind_param('i', $daysOld);
+    $stmt->execute();
+    $ids = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+    $stmt->close();
+    foreach ($ids as $staleId) {
+        deleteArticle((int)$staleId);
+    }
+    return count($ids);
+}
+
+// "New since you were away" counters (retention feature). Each cookie holds the epoch
+// timestamp of the last time the visitor DISMISSED that section's badge (see
+// includes/new-since-badge.php + the click handler in includes/footer.php) - it is
+// deliberately NEVER touched on ordinary page load/reload, only via that explicit
+// dismiss click, so the count doesn't evaporate the instant the page is viewed
+// (TODB's explicit requirement). First-ever visit (no cookie yet) just plants the
+// cookie at "now" and returns 0, so nobody sees a huge fake number on their first load.
+// $table is always one of our own fixed table names (never request input).
+function getNewSinceCount(string $cookieName, string $table, string $statusClause = ''): int {
+    if (empty($_COOKIE[$cookieName])) {
+        setcookie($cookieName, (string)time(), time() + 31536000, '/');
+        return 0;
+    }
+    $since = (int)$_COOKIE[$cookieName];
+    $db = getDB();
+    $sql = "SELECT COUNT(*) AS c FROM `$table` WHERE created_at > FROM_UNIXTIME(?)";
+    if ($statusClause !== '') $sql .= " AND $statusClause";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param('i', $since);
+    $stmt->execute();
+    $count = (int)($stmt->get_result()->fetch_assoc()['c'] ?? 0);
+    $stmt->close();
+    return $count;
+}
+
+// Soft-delete: a reader unpublishing their own article. The row (and its likes/
+// comments/views/share history) is kept, just hidden from every public listing/query
+// that filters on status = 'published'. An admin can restore it via admin/edit.php's
+// Publish button. Requires the caller to own the article - returns false otherwise.
+function unpublishArticle(int $articleId, int $userId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE articles SET status = 'unpublished' WHERE id = ? AND user_id = ? AND status = 'published'");
+    $stmt->bind_param('ii', $articleId, $userId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    return $affected > 0;
+}
+
+// Dev-only: toggle the "featured" tag exposed via api/articles.php (v0.24.1,
+// built for the MaterArc/ScratchStats partnership). Purely an API-facing flag -
+// doesn't change how the article looks/behaves anywhere on-site.
+function setArticleFeatured(int $articleId, bool $featured): bool {
+    $db = getDB();
+    $val = $featured ? 1 : 0;
+    $stmt = $db->prepare("UPDATE articles SET is_featured = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $articleId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    return $affected > 0;
+}
+
+// Small helper to safely print user content
+function e(string $str): string {
+    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+}
+
+function logVisit(string $page): void {
+    $db = getDB();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $stmt = $db->prepare("INSERT INTO visits (ip_address, page, user_agent) VALUES (?, ?, ?)");
+    $stmt->bind_param('sss', $ip, $page, $ua);
+    $stmt->execute();
+    $stmt->close();
+    $db->query("DELETE FROM visits WHERE visited_at < DATE_SUB(NOW(), INTERVAL 3 DAY)");
+
+    $stmt = $db->prepare("INSERT IGNORE INTO daily_unique_visitors (visit_date, ip_address) VALUES (CURDATE(), ?)");
+    $stmt->bind_param('s', $ip);
+    $stmt->execute();
+    $stmt->close();
+    $db->query("DELETE FROM daily_unique_visitors WHERE visit_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY)");
+}
+
+function getRecentVisits(int $limit = 200, ?string $includeIp = null, ?string $excludeIp = null): array {
+    $db = getDB();
+    $sql = "SELECT * FROM visits WHERE 1=1";
+    $params = [];
+    $types = '';
+
+    if ($includeIp !== null && $includeIp !== '') {
+        $sql .= " AND ip_address = ?";
+        $params[] = $includeIp;
+        $types .= 's';
+    }
+    if ($excludeIp !== null && $excludeIp !== '') {
+        $sql .= " AND ip_address != ?";
+        $params[] = $excludeIp;
+        $types .= 's';
+    }
+
+    $sql .= " ORDER BY id DESC LIMIT ?";
+    $params[] = $limit;
+    $types .= 'i';
+
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+// Plain-text export of the raw Visitor Log (admin/visits.php) - same include/exclude
+// IP filters as that page. The `visits` table now keeps a rolling 3-day window
+// (see logVisit()) instead of a fixed row count, so a busy day survives until
+// the next morning; this export shows up to the most recent 2000 of those rows.
+// Admin-only, not Head Mod (raw IPs) - matches admin/visits.php's own gate.
+function buildVisitsExportText(?string $includeIp = null, ?string $excludeIp = null): string {
+    $visits = getRecentVisits(2000, $includeIp, $excludeIp);
+
+    $out = "ScratchNews Visitor Log Export\n";
+    $out .= "Generated: " . gmdate('Y-m-d H:i') . " UTC\n";
+    if ($includeIp) $out .= "Filter: only IP $includeIp\n";
+    if ($excludeIp) $out .= "Filter: excluding IP $excludeIp\n";
+    $out .= "Showing up to the most recent 2000 visits from the last 3 days (the `visits` table keeps a rolling 3-day window, not a fixed row count)\n";
+    $out .= "==========================================\n\n";
+
+    foreach ($visits as $v) {
+        $out .= $v['visited_at'] . " UTC | " . $v['ip_address'] . " | " . $v['page'] . " | " . $v['user_agent'] . "\n";
+    }
+
+    return $out;
+}
+
+// ---- Time on Site ----
+define('HEARTBEAT_INTERVAL_SECONDS', 15);
+
+function recordHeartbeat(string $sessionKey, ?string $source = null, ?int $userId = null, ?string $page = null): void {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT last_seen FROM site_sessions WHERE session_key = ?");
+    $stmt->bind_param('s', $sessionKey);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $add = HEARTBEAT_INTERVAL_SECONDS;
+
+    if ($row) {
+        $secondsSinceLast = time() - strtotime($row['last_seen']);
+        if ($secondsSinceLast < HEARTBEAT_INTERVAL_SECONDS - 5) return;
+        $stmt = $db->prepare("UPDATE site_sessions SET seconds_active = seconds_active + ?, last_seen = NOW(), user_id = ? WHERE session_key = ?");
+        $stmt->bind_param('iis', $add, $userId, $sessionKey);
+        $stmt->execute();
+        $stmt->close();
+    } else {
+        $stmt = $db->prepare("INSERT INTO site_sessions (session_key, seconds_active, first_seen, last_seen, source, landing_page, user_id) VALUES (?, ?, NOW(), NOW(), ?, ?, ?)");
+        $stmt->bind_param('sissi', $sessionKey, $add, $source, $page, $userId);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    $stmt = $db->prepare("INSERT INTO time_totals_daily (visit_date, total_seconds) VALUES (CURDATE(), ?) ON DUPLICATE KEY UPDATE total_seconds = total_seconds + ?");
+    $stmt->bind_param('ii', $add, $add);
+    $stmt->execute();
+    $stmt->close();
+
+    if ($page !== null && $page !== '') {
+        $stmt = $db->prepare("INSERT INTO page_time_totals (visit_date, page, total_seconds) VALUES (CURDATE(), ?, ?) ON DUPLICATE KEY UPDATE total_seconds = total_seconds + ?");
+        $stmt->bind_param('sii', $page, $add, $add);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    $db->query("DELETE FROM site_sessions WHERE last_seen < DATE_SUB(NOW(), INTERVAL 7 DAY)");
+}
+
+function getCollectiveTimeStats(): array {
+    $db = getDB();
+    $allTime = $db->query("SELECT COALESCE(SUM(total_seconds), 0) AS s FROM time_totals_daily")->fetch_assoc()['s'];
+    $today = $db->query("SELECT COALESCE(total_seconds, 0) AS s FROM time_totals_daily WHERE visit_date = CURDATE()")->fetch_assoc()['s'] ?? 0;
+    return [
+        'all_time_hours' => round($allTime / 3600, 1),
+        'today_hours' => round($today / 3600, 1),
+    ];
+}
+
+function getTimeOnSiteStats(int $days = 7): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT seconds_active FROM site_sessions WHERE last_seen >= DATE_SUB(NOW(), INTERVAL ? DAY) AND seconds_active > 0");
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $values = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'seconds_active');
+    $stmt->close();
+
+    sort($values);
+    $count = count($values);
+    $avg = $count ? array_sum($values) / $count : 0;
+    $median = $count ? ($count % 2 ? $values[intdiv($count, 2)] : ($values[$count / 2 - 1] + $values[$count / 2]) / 2) : 0;
+    return ['count' => $<?php
+// === CANONICAL HOST REDIRECT (date-gated) ===
+// Before CUTOVER_AT: freedev.app -> scratchnews.net (the old behaviour).
+// From CUTOVER_AT on: scratchnews.net -> scratchnews.freedev.app, because the
+// .net registration expires on 2027-09-07 and auto-renew is off.
+// 301, preserves path + query string. Runs before anything else so it
+// applies to every route, including clean-URL rewrites.
+// Keep CUTOVER_AT well before the expiry: once the domain lapses, requests
+// never reach this server and no code can redirect them.
+define('CUTOVER_AT', '2027-08-24 00:00:00'); // UTC, two weeks before expiry
+$reqHost = strtolower(preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? ''));
+$reqHost = preg_replace('/^www\./', '', $reqHost);
+$cutoverDone = time() >= strtotime(CUTOVER_AT . ' UTC');
+if ($reqHost !== '') {
+    if ($cutoverDone && $reqHost === 'scratchnews.net') {
+        header('Location: https://scratchnews.freedev.app' . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
+        exit;
+    }
+    if (!$cutoverDone && stripos($reqHost, 'freedev.app') !== false) {
+        header('Location: https://scratchnews.net' . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
+        exit;
+    }
+}
+
+// === MAINTENANCE MODE (git-tracked, no File Manager needed) ===
+date_default_timezone_set('Etc/GMT-3'); // GMT+3
+define('MAINTENANCE_MODE', false);
+define('MAINTENANCE_UNTIL', null); // null = stays on until you flip this back to false
+define('MAINTENANCE_MESSAGE', 'There was a social attack on the site and multiple people accused me (the developer) of some stuff. Don\'t worry, when this situation fades ScratchNews will be back in full swing!');
+$maintenance_active = MAINTENANCE_MODE && (MAINTENANCE_UNTIL === null || time() < strtotime(MAINTENANCE_UNTIL));
+
+// === WRITERS' CONTEST MODE (git-tracked, no File Manager needed) ===
+// While true, the homepage welcome banner is replaced by the contest banner for
+// EVERYONE (logged in or not) - see includes/welcome-banner.php. Flip back to
+// false whenever the contest round ends.
+define('CONTEST_MODE', false);
+
+if ($maintenance_active) {
+    http_response_code(503);
+    header('Retry-After: 3600');
+    ?>
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScratchNews - Back soon</title>
+    <style>body{font-family:sans-serif;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px}.box{max-width:480px}h1{color:#f7931e}</style>
+    </head><body><div class="box">
+    <h1>ScratchNews is taking a quick break</h1>
+    <p><?php echo MAINTENANCE_MESSAGE; ?></p>
+    </div></body></html>
+    <?php
+    exit;
+}
+// === rest of functions.php continues below ===
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/webpush.php';
+require_once __DIR__ . '/version.php';
+
+function getAllArticles(bool $includeDrafts = false): array {
+    $db = getDB();
+    $sql = "SELECT * FROM articles";
+    if (!$includeDrafts) $sql .= " WHERE status = 'published'";
+    $sql .= " ORDER BY created_at DESC";
+    $result = $db->query($sql);
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+// Get a single article by ID
+function getArticleById(int $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM articles WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $article = $result->fetch_assoc();
+    $stmt->close();
+    return $article ?: null;
+}
+
+// A pure white or pure black inline text color, in any of the forms Quill's
+// color picker writes (keyword / 3- or 6-digit hex / rgb() / rgba()).
+function isWhiteOrBlackColorValue(string $value): bool {
+    $v = strtolower(trim($value));
+    if ($v === 'white' || $v === '#fff' || $v === '#ffffff') return true;
+    if ($v === 'black' || $v === '#000' || $v === '#000000') return true;
+    if (preg_match('/^rgba?\(\s*255\s*,\s*255\s*,\s*255\s*(,.*)?\)$/', $v)) return true;
+    if (preg_match('/^rgba?\(\s*0\s*,\s*0\s*,\s*0\s*(,.*)?\)$/', $v)) return true;
+    return false;
+}
+
+// Drops a hardcoded white/black `color:` declaration out of a style="" attribute
+// (leaving any other declarations - e.g. background-color for a highlight box -
+// untouched) so the theme's own text color always applies instead. Quill's Text
+// Color picker lets writers pick literal white or black, which then rendered fine
+// by coincidence in whichever theme it was authored in and went invisible in the
+// other - this removes that specific footgun without touching other colors.
+function stripWhiteBlackTextColor(string $html): string {
+    return preg_replace_callback('/style\s*=\s*"([^"]*)"/i', function ($m) {
+        $decls = array_filter(array_map('trim', explode(';', $m[1])), fn($d) => $d !== '');
+        $kept = [];
+        foreach ($decls as $decl) {
+            if (preg_match('/^color\s*:\s*(.+)$/i', $decl, $cm) && isWhiteOrBlackColorValue($cm[1])) {
+                continue; // drop this declaration only
+            }
+            $kept[] = $decl;
+        }
+        if (!$kept) return '';
+        return 'style="' . implode('; ', $kept) . '"';
+    }, $html);
+}
+
+// Allow only safe formatting tags in article content (bold, italic, headers, colors via span, etc.)
+function sanitizeArticleHtml(string $html): string {
+    $allowed = '<p><br><strong><b><em><i><s><strike><u><h1><h2><h3><span><ul><ol><li><blockquote><a><img>';
+    $html = strip_tags($html, $allowed);
+    $html = preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $html);
+    $html = preg_replace('/(href|src)\s*=\s*("javascript:[^"]*"|\'javascript:[^\']*\')/i', '$1="#"', $html);
+    $html = stripWhiteBlackTextColor($html);
+    return $html;
+}
+
+// Scratchblocks support (0.27.1): writers wrap Scratch pseudo-code in
+// [scratchblocks]...[/scratchblocks] directly in the Quill editor (same convention
+// as the Scratch Wiki/Forums). Deliberately NOT converted to <pre> at save time -
+// the raw bracket text stays in the DB (sanitizeArticleHtml never touches it, since
+// it's plain text, not a tag) so the renderer/library version can change later with
+// no migration - same reasoning as forums' renderBBCode(). Rendering to <pre
+// class="blocks"> only happens at display time, in article.php, right before the
+// scratchblocks.js library (loaded client-side) picks it up via renderMatching().
+function renderScratchblocksMarkup(string $html): string {
+    return preg_replace_callback('/\[scratchblocks\](.*?)\[\/scratchblocks\]/is', function ($m) {
+        $code = $m[1];
+        // Quill stores separate lines as <br> or as sibling <p>s depending on
+        // Shift+Enter vs Enter - both need to become a real newline, since
+        // scratchblocks' parser splits script lines on "\n".
+        $code = preg_replace('/<br\s*\/?>/i', "\n", $code);
+        $code = preg_replace('/<\/p>\s*<p[^>]*>/i', "\n", $code);
+        $code = strip_tags($code); // scratch code should be plain - drop any stray formatting
+        $code = html_entity_decode($code, ENT_QUOTES, 'UTF-8'); // restore literal < > & etc.
+        $code = trim($code, "\n");
+        return '<pre class="blocks">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</pre>';
+    }, $html);
+}
+
+// Machine translation (translateHtmlContent(), below) walks article content as plain
+// text nodes and would otherwise send scratchblocks code straight through MyMemory,
+// mangling the pseudo-code syntax. Swap each [scratchblocks]...[/scratchblocks]
+// segment for an inert placeholder token before translation, then restore the
+// original afterwards - translateHtmlContent() calls both halves of this pair itself.
+function extractScratchblocksSegments(string $html): array {
+    $segments = [];
+    $protected = preg_replace_callback('/\[scratchblocks\](.*?)\[\/scratchblocks\]/is', function ($m) use (&$segments) {
+        $token = '{{SB_' . count($segments) . '}}';
+        $segments[] = $m[0];
+        return $token;
+    }, $html);
+    return [$protected, $segments];
+}
+function restoreScratchblocksSegments(string $html, array $segments): string {
+    foreach ($segments as $i => $original) {
+        $html = str_replace('{{SB_' . $i . '}}', $original, $html);
+    }
+    return $html;
+}
+
+// Word count used for the v0.25 250-word minimum on reader submissions -
+// counts plain text only, HTML markup stripped first so tags don't inflate it.
+function countContentWords(string $html): int {
+    $text = trim(strip_tags($html));
+    if ($text === '') return 0;
+    return count(preg_split('/\s+/u', $text));
+}
+
+function createArticle(string $title, string $summary, string $content, string $author, ?string $imageUrl = null, string $status = 'published', ?int $userId = null): int {
+    $db = getDB();
+    $content = sanitizeArticleHtml($content);
+    $id = getNextArticleId();
+    $stmt = $db->prepare("INSERT INTO articles (id, title, summary, content, author, image_url, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param('issssssi', $id, $title, $summary, $content, $author, $imageUrl, $status, $userId);
+    $stmt->execute();
+    $stmt->close();
+    if ($status === 'published' && $userId !== null) {
+        foreach (getFollowerIds($userId) as $followerId) {
+            createNotification($followerId, 'followed_user_article', $userId, '/article/' . $id, $title);
+        }
+    }
+    return $id;
+}
+
+// Update an existing article
+function updateArticle(int $id, string $title, string $summary, string $content, string $author, ?string $imageUrl = null, string $status = 'published', ?int $userId = null): bool {
+    $db = getDB();
+    $content = sanitizeArticleHtml($content);
+    $stmt = $db->prepare("UPDATE articles SET title = ?, summary = ?, content = ?, author = ?, image_url = ?, status = ?, user_id = ? WHERE id = ?");
+    $stmt->bind_param('ssssssii', $title, $summary, $content, $author, $imageUrl, $status, $userId, $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+// Delete an article
+function deleteArticle(int $id): bool {
+    $db = getDB();
+    $article = getArticleById($id);
+    if ($article && !empty($article['image_url'])) {
+        deleteUploadedImage($article['image_url']);
+    }
+    $stmt = $db->prepare("DELETE FROM articles WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+// autosaveArticle() creates a real articles row (status='draft') the moment an admin
+// starts a new article, before Publish/Save is ever clicked. If the tab is closed
+// without publishing, that row - and the ID it took from getNextArticleId() - is
+// orphaned forever, which is why admin's all-statuses article count can run ahead of
+// the public "published" count. Called opportunistically from admin/index.php on
+// dashboard load rather than via cron, so no server-side scheduling is needed.
+// updated_at is bumped automatically (ON UPDATE current_timestamp) by autosaveArticle()'s
+// own UPDATE, so "untouched for $daysOld days" is a reliable staleness signal. Returns
+// the number of rows deleted.
+function cleanupStaleDraftArticles(int $daysOld = 14): int {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT id FROM articles WHERE status = 'draft' AND updated_at < (NOW() - INTERVAL ? DAY)");
+    $stmt->bind_param('i', $daysOld);
+    $stmt->execute();
+    $ids = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+    $stmt->close();
+    foreach ($ids as $staleId) {
+        deleteArticle((int)$staleId);
+    }
+    return count($ids);
+}
+
+// "New since you were away" counters (retention feature). Each cookie holds the epoch
+// timestamp of the last time the visitor DISMISSED that section's badge (see
+// includes/new-since-badge.php + the click handler in includes/footer.php) - it is
+// deliberately NEVER touched on ordinary page load/reload, only via that explicit
+// dismiss click, so the count doesn't evaporate the instant the page is viewed
+// (TODB's explicit requirement). First-ever visit (no cookie yet) just plants the
+// cookie at "now" and returns 0, so nobody sees a huge fake number on their first load.
+// $table is always one of our own fixed table names (never request input).
+function getNewSinceCount(string $cookieName, string $table, string $statusClause = ''): int {
+    if (empty($_COOKIE[$cookieName])) {
+        setcookie($cookieName, (string)time(), time() + 31536000, '/');
+        return 0;
+    }
+    $since = (int)$_COOKIE[$cookieName];
+    $db = getDB();
+    $sql = "SELECT COUNT(*) AS c FROM `$table` WHERE created_at > FROM_UNIXTIME(?)";
+    if ($statusClause !== '') $sql .= " AND $statusClause";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param('i', $since);
+    $stmt->execute();
+    $count = (int)($stmt->get_result()->fetch_assoc()['c'] ?? 0);
+    $stmt->close();
+    return $count;
+}
+
+// Soft-delete: a reader unpublishing their own article. The row (and its likes/
+// comments/views/share history) is kept, just hidden from every public listing/query
+// that filters on status = 'published'. An admin can restore it via admin/edit.php's
+// Publish button. Requires the caller to own the article - returns false otherwise.
+function unpublishArticle(int $articleId, int $userId): bool {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE articles SET status = 'unpublished' WHERE id = ? AND user_id = ? AND status = 'published'");
+    $stmt->bind_param('ii', $articleId, $userId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    return $affected > 0;
+}
+
+// Dev-only: toggle the "featured" tag exposed via api/articles.php (v0.24.1,
+// built for the MaterArc/ScratchStats partnership). Purely an API-facing flag -
+// doesn't change how the article looks/behaves anywhere on-site.
+function setArticleFeatured(int $articleId, bool $featured): bool {
+    $db = getDB();
+    $val = $featured ? 1 : 0;
+    $stmt = $db->prepare("UPDATE articles SET is_featured = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $articleId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    return $affected > 0;
+}
+
+// Small helper to safely print user content
+function e(string $str): string {
+    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+}
+
+function logVisit(string $page): void {
+    $db = getDB();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $stmt = $db->prepare("INSERT INTO visits (ip_address, page, user_agent) VALUES (?, ?, ?)");
+    $stmt->bind_param('sss', $ip, $page, $ua);
+    $stmt->execute();
+    $stmt->close();
+    $db->query("DELETE FROM visits WHERE visited_at < DATE_SUB(NOW(), INTERVAL 3 DAY)");
+
+    $stmt = $db->prepare("INSERT IGNORE INTO daily_unique_visitors (visit_date, ip_address) VALUES (CURDATE(), ?)");
+    $stmt->bind_param('s', $ip);
+    $stmt->execute();
+    $stmt->close();
+    $db->query("DELETE FROM daily_unique_visitors WHERE visit_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY)");
+}
+
+function getRecentVisits(int $limit = 200, ?string $includeIp = null, ?string $excludeIp = null): array {
+    $db = getDB();
+    $sql = "SELECT * FROM visits WHERE 1=1";
+    $params = [];
+    $types = '';
+
+    if ($includeIp !== null && $includeIp !== '') {
+        $sql .= " AND ip_address = ?";
+        $params[] = $includeIp;
+        $types .= 's';
+    }
+    if ($excludeIp !== null && $excludeIp !== '') {
+        $sql .= " AND ip_address != ?";
+        $params[] = $excludeIp;
+        $types .= 's';
+    }
+
+    $sql .= " ORDER BY id DESC LIMIT ?";
+    $params[] = $limit;
+    $types .= 'i';
+
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+// Plain-text export of the raw Visitor Log (admin/visits.php) - same include/exclude
+// IP filters as that page. The `visits` table now keeps a rolling 3-day window
+// (see logVisit()) instead of a fixed row count, so a busy day survives until
+// the next morning; this export shows up to the most recent 2000 of those rows.
+// Admin-only, not Head Mod (raw IPs) - matches admin/visits.php's own gate.
+function buildVisitsExportText(?string $includeIp = null, ?string $excludeIp = null): string {
+    $visits = getRecentVisits(2000, $includeIp, $excludeIp);
+
+    $out = "ScratchNews Visitor Log Export\n";
+    $out .= "Generated: " . gmdate('Y-m-d H:i') . " UTC\n";
+    if ($includeIp) $out .= "Filter: only IP $includeIp\n";
+    if ($excludeIp) $out .= "Filter: excluding IP $excludeIp\n";
+    $out .= "Showing up to the most recent 2000 visits from the last 3 days (the `visits` table keeps a rolling 3-day window, not a fixed row count)\n";
+    $out .= "==========================================\n\n";
+
+    foreach ($visits as $v) {
+        $out .= $v['visited_at'] . " UTC | " . $v['ip_address'] . " | " . $v['page'] . " | " . $v['user_agent'] . "\n";
+    }
+
+    return $out;
+}
+
+// ---- Time on Site ----
+define('HEARTBEAT_INTERVAL_SECONDS', 15);
+
+function recordHeartbeat(string $sessionKey, ?string $source = null, ?int $userId = null, ?string $page = null): void {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT last_seen FROM site_sessions WHERE session_key = ?");
+    $stmt->bind_param('s', $sessionKey);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $add = HEARTBEAT_INTERVAL_SECONDS;
+
+    if ($row) {
+        $secondsSinceLast = time() - strtotime($row['last_seen']);
+        if ($secondsSinceLast < HEARTBEAT_INTERVAL_SECONDS - 5) return;
+        $stmt = $db->prepare("UPDATE site_sessions SET seconds_active = seconds_active + ?, last_seen = NOW(), user_id = ? WHERE session_key = ?");
+        $stmt->bind_param('iis', $add, $userId, $sessionKey);
+        $stmt->execute();
+        $stmt->close();
+    } else {
+        $stmt = $db->prepare("INSERT INTO site_sessions (session_key, seconds_active, first_seen, last_seen, source, landing_page, user_id) VALUES (?, ?, NOW(), NOW(), ?, ?, ?)");
+        $stmt->bind_param('sissi', $sessionKey, $add, $source, $page, $userId);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    $stmt = $db->prepare("INSERT INTO time_totals_daily (visit_date, total_seconds) VALUES (CURDATE(), ?) ON DUPLICATE KEY UPDATE total_seconds = total_seconds + ?");
+    $stmt->bind_param('ii', $add, $add);
+    $stmt->execute();
+    $stmt->close();
+
+    if ($page !== null && $page !== '') {
+        $stmt = $db->prepare("INSERT INTO page_time_totals (visit_date, page, total_seconds) VALUES (CURDATE(), ?, ?) ON DUPLICATE KEY UPDATE total_seconds = total_seconds + ?");
+        $stmt->bind_param('sii', $page, $add, $add);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    $db->query("DELETE FROM site_sessions WHERE last_seen < DATE_SUB(NOW(), INTERVAL 7 DAY)");
+}
+
+function getCollectiveTimeStats(): array {
+    $db = getDB();
+    $allTime = $db->query("SELECT COALESCE(SUM(total_seconds), 0) AS s FROM time_totals_daily")->fetch_assoc()['s'];
+    $today = $db->query("SELECT COALESCE(total_seconds, 0) AS s FROM time_totals_daily WHERE visit_date = CURDATE()")->fetch_assoc()['s'] ?? 0;
+    return [
+        'all_time_hours' => round($allTime / 3600, 1),
+        'today_hours' => round($today / 3600, 1),
+    ];
+}
+
+function getTimeOnSiteStats(int $days = 7): array {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT seconds_active FROM site_sessions WHERE last_seen >= DATE_SUB(NOW(), INTERVAL ? DAY) AND seconds_active > 0");
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $values = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'seconds_active');
+    $stmt->close();
+
+    sort($values);
+    $count = count($values);
+    $avg = $count ? array_sum($values) / $count : 0;
+    $median = $count ? ($count % 2 ? $values[intdiv($count, 2)] : ($values[$count / 2 - 1] + $values[$count / 2]) / 2) : 0;
+    return ['count' => $. Called opportunistically from admin/index.php on
 // dashboard load rather than via cron, so no server-side scheduling is needed.
 // updated_at is bumped automatically (ON UPDATE current_timestamp) by autosaveArticle()'s
 // own UPDATE, so "untouched for $daysOld days" is a reliable staleness signal. Returns
